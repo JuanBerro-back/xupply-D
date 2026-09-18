@@ -115,11 +115,11 @@ export default function OrderDetail() {
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2">
         <Link to="/pedidos" className="mb-3 inline-block text-sm text-brand hover:underline font-medium">← Volver a pedidos</Link>
-        <div className="rounded-xl border bg-white p-5 shadow-sm">
+        <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm transition-colors duration-200">
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="text-xl font-black text-slate-800 tracking-tight">{order.order_code}</h2>
-              <p className="text-sm text-gray-500">
+              <h2 className="text-xl font-black text-slate-800 dark:text-white tracking-tight">{order.order_code}</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
                 {isSupplier ? order.restaurant_name : order.supplier_name} · {formatDate(order.created_at)}
               </p>
             </div>
@@ -128,7 +128,7 @@ export default function OrderDetail() {
 
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left text-gray-500">
+              <tr className="border-b border-slate-200 dark:border-slate-800 text-left text-slate-500 dark:text-slate-400">
                 <th className="py-2">Producto</th>
                 <th className="py-2 text-right">Cantidad</th>
                 <th className="py-2 text-right">Precio</th>
@@ -137,7 +137,7 @@ export default function OrderDetail() {
             </thead>
             <tbody>
               {order.items.map((i) => (
-                <tr key={i.id} className="border-b">
+                <tr key={i.id} className="border-b border-slate-100 dark:border-slate-800 text-slate-800 dark:text-slate-200">
                   <td className="py-2">{i.name}</td>
                   <td className="py-2 text-right">{i.quantity} {i.unit}</td>
                   <td className="py-2 text-right">{formatMoney(i.unit_price)}</td>
@@ -146,10 +146,10 @@ export default function OrderDetail() {
               ))}
             </tbody>
           </table>
-          <div className="mt-4 flex justify-end text-lg font-bold">Total: {formatMoney(order.total)}</div>
-          {order.notes && <p className="mt-3 rounded-lg bg-gray-50 p-2.5 text-sm text-gray-600">Notas: {order.notes}</p>}
+          <div className="mt-4 flex justify-end text-lg font-bold text-slate-900 dark:text-white">Total: {formatMoney(order.total)}</div>
+          {order.notes && <p className="mt-3 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 p-2.5 text-sm text-slate-600 dark:text-slate-300">Notas: {order.notes}</p>}
           {order.delivery_address && (
-            <p className="mt-2 text-sm text-gray-600 flex items-center gap-1.5">
+            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
               <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -158,7 +158,7 @@ export default function OrderDetail() {
             </p>
           )}
           {order.requested_delivery_date && (
-            <p className="mt-1 text-sm text-gray-600 flex items-center gap-1.5">
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
               <svg className="w-4 h-4 text-slate-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
@@ -304,22 +304,22 @@ export default function OrderDetail() {
           </div>
         )}
 
-        <div className="mt-4 rounded-xl border bg-white p-5 shadow-sm">
-          <h3 className="mb-2 font-bold text-slate-800 text-sm">Historial de Eventos</h3>
-          {history.length === 0 && <p className="text-sm text-gray-400">Sin eventos registrados.</p>}
+        <div className="mt-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm transition-colors duration-200">
+          <h3 className="mb-2 font-bold text-slate-800 dark:text-white text-sm">Historial de Eventos</h3>
+          {history.length === 0 && <p className="text-sm text-gray-400 dark:text-slate-500">Sin eventos registrados.</p>}
           <ul className="space-y-1 text-sm">
             {history.map((h, i) => (
-              <li key={i} className="flex justify-between border-b py-1.5">
+              <li key={i} className="flex justify-between border-b border-slate-100 dark:border-slate-800 py-1.5 text-slate-700 dark:text-slate-300">
                 <span>{h.action === 'create' ? 'Pedido creado' : `Cambio de estado: ${h.action}`}</span>
-                <span className="text-gray-400 text-xs">{formatDate(h.created_at)}</span>
+                <span className="text-gray-400 dark:text-slate-500 text-xs">{formatDate(h.created_at)}</span>
               </li>
             ))}
           </ul>
         </div>
       </div>
 
-      <div className="h-fit rounded-xl border bg-white p-5 shadow-sm space-y-4">
-        <h3 className="font-bold text-slate-800 text-sm">Gestión del Pedido</h3>
+      <div className="h-fit rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm space-y-4 transition-colors duration-200">
+        <h3 className="font-bold text-slate-800 dark:text-white text-sm">Gestión del Pedido</h3>
 
         {/* Botón directo para asignar domiciliario si aún no tiene */}
         {canManageDelivery && (!latestDelivery || !latestDelivery.driver_id) && !done && (

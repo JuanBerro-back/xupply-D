@@ -7,12 +7,12 @@ export default function OrderCard({ order, isSupplier }: { order: Order; isSuppl
   return (
     <Link
       to={`/pedidos/${order.id}`}
-      className="block rounded-lg border bg-white p-4 shadow-sm transition hover:shadow"
+      className="block rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-sm transition hover:shadow-md dark:hover:border-slate-700"
     >
       <div className="flex items-center justify-between">
         <div>
-          <p className="font-semibold">{order.order_code}</p>
-          <p className="text-sm text-gray-500">
+          <p className="font-bold text-slate-800 dark:text-white">{order.order_code}</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">
             {isSupplier ? order.restaurant_name : order.supplier_name}
           </p>
         </div>
@@ -21,7 +21,7 @@ export default function OrderCard({ order, isSupplier }: { order: Order; isSuppl
           <p className="mt-1 font-bold text-brand">{formatMoney(order.total)}</p>
         </div>
       </div>
-      <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-gray-400 border-t pt-2">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-1 text-xs text-slate-400 dark:text-slate-500 border-t border-slate-100 dark:border-slate-800 pt-2">
         <span>
           {formatDate(order.created_at)}
           {order.items?.length ? ` · ${order.items.length} producto(s)` : ''}

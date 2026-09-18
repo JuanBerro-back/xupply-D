@@ -2,44 +2,64 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-150;
+/* Transición suave global para cambios de tema */
+*,
+*::before,
+*::after {
+  transition-property: background-color, border-color, color, fill, stroke, box-shadow;
+  transition-duration: 250ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Dark Mode Global Support */
+body {
+  @apply bg-slate-50 text-slate-900 antialiased transition-colors duration-300;
+}
+
+/* Soporte Global para Modo Oscuro */
 .dark body {
   background-color: #0b1120;
   color: #f8fafc;
 }
 
-/* High Contrast Accessibility Mode (WCAG AAA) */
-.high-contrast {
-  filter: contrast(115%);
+.dark .bg-white {
+  background-color: #1e293b;
+  color: #f8fafc;
 }
 
-.high-contrast body {
-  background-color: #ffffff !important;
-  color: #000000 !important;
-  font-weight: 600 !important;
+.dark .bg-slate-50 {
+  background-color: #0f172a;
 }
 
-.high-contrast.dark body {
-  background-color: #000000 !important;
-  color: #ffffff !important;
+.dark .bg-gray-50 {
+  background-color: #0f172a;
 }
 
-.high-contrast button,
-.high-contrast a,
-.high-contrast input,
-.high-contrast select,
-.high-contrast [class*="border"] {
-  border-color: currentColor !important;
-  border-width: 2px !important;
+.dark .border-slate-200,
+.dark .border-slate-100,
+.dark .border-gray-200,
+.dark .border-gray-100,
+.dark .border {
+  border-color: #334155;
 }
 
-.high-contrast button:focus-visible,
-.high-contrast a:focus-visible,
-.high-contrast input:focus-visible {
-  outline: 3px solid #fbbf24 !important;
-  outline-offset: 3px !important;
+.dark .text-slate-900,
+.dark .text-slate-800,
+.dark .text-gray-900,
+.dark .text-gray-800 {
+  color: #f8fafc;
+}
+
+.dark .text-slate-600,
+.dark .text-slate-500,
+.dark .text-gray-600,
+.dark .text-gray-500 {
+  color: #94a3b8;
+}
+
+.dark input,
+.dark select,
+.dark textarea {
+  background-color: #1e293b;
+  border-color: #334155;
+  color: #f8fafc;
 }

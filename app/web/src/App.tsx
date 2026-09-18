@@ -39,7 +39,7 @@ export default function App() {
   const { items } = useNotifications();
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800 antialiased">
+    <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-[#0b1120] dark:text-slate-100 antialiased transition-colors duration-300">
       {user && <Navbar />}
       <main className={user ? 'mx-auto max-w-7xl px-4 py-6 pb-24 lg:pb-6' : ''}>
         <Routes>

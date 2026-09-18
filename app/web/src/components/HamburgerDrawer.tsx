@@ -24,7 +24,6 @@ import {
   IconDocument,
   IconSun,
   IconMoon,
-  IconContrast,
   IconGlobe,
   IconLogout,
   IconClose,
@@ -38,7 +37,7 @@ interface HamburgerDrawerProps {
 export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProps) {
   const { user, tenant, logout } = useAuth();
   const { count, openCart } = useCart();
-  const { isDarkMode, isHighContrast, toggleDarkMode, toggleHighContrast } = useTheme();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const { lang, toggleLanguage, t } = useLanguage();
   const navigate = useNavigate();
 
@@ -366,24 +365,6 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                     isDarkMode ? 'bg-indigo-600 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
                   }`}
                   aria-label="Alternar modo oscuro"
-                >
-                  <div className="bg-white w-4 h-4 rounded-full shadow-md transform transition-transform" />
-                </button>
-              </div>
-
-              {/* Modo Alto Contraste (Accesibilidad) */}
-              <div className="flex items-center justify-between border-t border-slate-200/60 dark:border-slate-700/50 pt-2">
-                <span className="flex items-center gap-2 font-medium text-xs text-slate-700 dark:text-slate-200">
-                  <IconContrast className="w-4 h-4 text-slate-600 dark:text-slate-300" />
-                  <span>{isHighContrast ? t('theme.high_contrast') : t('theme.normal_contrast')}</span>
-                </span>
-                <button
-                  type="button"
-                  onClick={toggleHighContrast}
-                  className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors duration-200 cursor-pointer ${
-                    isHighContrast ? 'bg-amber-500 justify-end' : 'bg-slate-300 dark:bg-slate-700 justify-start'
-                  }`}
-                  aria-label="Alternar alto contraste"
                 >
                   <div className="bg-white w-4 h-4 rounded-full shadow-md transform transition-transform" />
                 </button>

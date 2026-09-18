@@ -6,14 +6,13 @@ import { useLanguage } from '../context/LanguageContext';
 import { useTheme } from '../context/ThemeContext';
 import NotificationBell from './NotificationBell';
 import HamburgerDrawer from './HamburgerDrawer';
-import { IconMenu, IconLogout, IconSun, IconMoon, IconContrast, IconGlobe, IconAndroid } from './Icons';
-import { isCapacitorNative } from '../lib/api';
+import { IconMenu, IconLogout, IconSun, IconMoon, IconGlobe } from './Icons';
 
 export default function Navbar() {
   const { user, tenant, logout } = useAuth();
   const { count, openCart } = useCart();
   const { lang, toggleLanguage, t } = useLanguage();
-  const { isDarkMode, isHighContrast, toggleDarkMode, toggleHighContrast } = useTheme();
+  const { isDarkMode, toggleDarkMode } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -138,20 +137,6 @@ export default function Navbar() {
               </button>
             )}
 
-            {/* Acceso Directo Descarga APK en Navbar */}
-            {!isCapacitorNative() && (
-              <a
-                href="/Xupply.apk"
-                download="Xupply.apk"
-                className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs transition shadow-xs border border-emerald-400/60 cursor-pointer"
-                title={lang === 'es' ? 'Descargar instalador Xupply.apk para Android' : 'Download Xupply.apk Android installer'}
-                aria-label="Descargar Xupply APK"
-              >
-                <IconAndroid className="w-4 h-4 text-slate-950" />
-                <span>APK</span>
-              </a>
-            )}
-
             {/* Campanita de Notificaciones */}
             <NotificationBell />
 
@@ -165,21 +150,6 @@ export default function Navbar() {
             >
               <IconGlobe className="w-3.5 h-3.5" />
               <span>{lang.toUpperCase()}</span>
-            </button>
-
-            {/* Acceso Rápido: Alto Contraste (WCAG AAA) */}
-            <button
-              type="button"
-              onClick={toggleHighContrast}
-              className={`flex items-center justify-center h-9 w-9 rounded-xl transition active:scale-95 cursor-pointer border shadow-2xs ${
-                isHighContrast
-                  ? 'bg-amber-400 text-slate-950 border-amber-300 ring-2 ring-amber-300'
-                  : 'bg-white/15 hover:bg-white/25 text-white border-white/20'
-              }`}
-              title={isHighContrast ? 'Desactivar alto contraste' : 'Activar accesibilidad alto contraste'}
-              aria-label="Alto contraste"
-            >
-              <IconContrast className="w-4 h-4" />
             </button>
 
             {/* Acceso Rápido: Modo Oscuro Funcional */}

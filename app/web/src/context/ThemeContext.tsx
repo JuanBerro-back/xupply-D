@@ -2,9 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 
 interface ThemeContextType {
   isDarkMode: boolean;
-  isHighContrast: boolean;
   toggleDarkMode: () => void;
-  toggleHighContrast: () => void;
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
@@ -17,13 +15,12 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
-  const [isHighContrast, setIsHighContrast] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return localStorage.getItem('xupply_high_contrast') === 'true';
-  });
-
   useEffect(() => {
     const root = document.documentElement;
+    // Limpieza de modo de alto contraste previo
+    root.classList.remove('high-contrast');
+    localStorage.removeItem('xupply_high_contrast');
+
     if (isDarkMode) {
       root.classList.add('dark');
       localStorage.setItem('xupply_theme', 'dark');
@@ -33,22 +30,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     }
   }, [isDarkMode]);
 
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isHighContrast) {
-      root.classList.add('high-contrast');
-      localStorage.setItem('xupply_high_contrast', 'true');
-    } else {
-      root.classList.remove('high-contrast');
-      localStorage.setItem('xupply_high_contrast', 'false');
-    }
-  }, [isHighContrast]);
-
   const toggleDarkMode = () => setIsDarkMode((prev) => !prev);
-  const toggleHighContrast = () => setIsHighContrast((prev) => !prev);
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, isHighContrast, toggleDarkMode, toggleHighContrast }}>
+    <ThemeContext.Provider value={{ isDarkMode, toggleDarkMode }}>
       {children}
     </ThemeContext.Provider>
   );
@@ -61,3 +46,4 @@ export function useTheme() {
   }
   return context;
 }
+
