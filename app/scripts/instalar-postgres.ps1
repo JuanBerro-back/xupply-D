@@ -1,4 +1,4 @@
-# Zupply - instalacion de PostgreSQL 18 (requiere PowerShell como ADMINISTRADOR)
+# Xupply - instalacion de PostgreSQL 18 (requiere PowerShell como ADMINISTRADOR)
 # Ejecuta el instalador de PostgreSQL en modo silencioso y luego provisiona la BD.
 param(
   [string]$SuperPassword = ''
@@ -13,7 +13,7 @@ if (-not $pr.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administra
 
 $installer = Join-Path $env:USERPROFILE 'postgresql_18.exe'
 if (-not (Test-Path $installer)) {
-  $installer = 'C:\Users\jdbpb\Desktop\tareas\zupply\postgresql_18.exe'
+  $installer = 'C:\Users\jdbpb\Desktop\tareas\xupply\postgresql_18.exe'
 }
 if (-not (Test-Path $installer)) {
   throw "Instalador no encontrado. Descarga PostgreSQL 18 y guardalo como: $env:USERPROFILE\postgresql_18.exe"
@@ -32,4 +32,4 @@ if ($LASTEXITCODE -ne 0) { throw "El instalador fallo con codigo $LASTEXITCODE" 
 
 Write-Host "PostgreSQL instalado. Provisionando la base de datos..."
 & (Join-Path $PSScriptRoot 'provision.ps1') -PostgresPassword $SuperPassword
-Write-Host "Listo! Abre la aplicacion desde el acceso directo 'Zupply' en el Escritorio."
+Write-Host "Listo! Abre la aplicacion desde el acceso directo 'Xupply' en el Escritorio."

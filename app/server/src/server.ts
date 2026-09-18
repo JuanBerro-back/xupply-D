@@ -27,6 +27,6 @@ io.on('connection', (socket) => {
 setIo(io);
 
 server.listen(PORT, '0.0.0.0', async () => {
-  console.log(`Zupply API corriendo en http://0.0.0.0:${PORT}`);
+  console.log(`Xupply API corriendo en http://0.0.0.0:${PORT}`);
   await initDatabase();
 });

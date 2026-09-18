@@ -92,7 +92,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                 {user?.name || user?.username}
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">
-                {user?.role?.replace('_', ' ')} · {tenant?.name || 'Zupply'}
+                {user?.role?.replace('_', ' ')} · {tenant?.name || 'Xupply'}
               </p>
             </div>
           </div>
@@ -248,10 +248,10 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                   <IconPlans className="w-4 h-4 text-amber-500 dark:text-amber-400" />
                   <span>{t('nav.plans')}</span>
                 </span>
-                <span className="text-[10px] text-amber-700 bg-amber-100 dark:bg-amber-900/50 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">ZUPPLY</span>
+                <span className="text-[10px] text-amber-700 bg-amber-100 dark:bg-amber-900/50 dark:text-amber-300 font-bold px-2 py-0.5 rounded-md">XUPPLY</span>
               </Link>
 
-              <Link to="/zupply-ia" className={linkItemClass}>
+              <Link to="/xupply-ia" className={linkItemClass}>
                 <span className="flex items-center gap-3">
                   <IconAi className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                   <span>{t('nav.ai')}</span>
@@ -282,7 +282,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
 
               {settingsOpen && (
                 <div className="pl-9 pr-3 py-2 bg-slate-50 rounded-xl space-y-1 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300 animate-in fade-in">
-                  <p><b>{lang === 'es' ? 'Negocio' : 'Business'}:</b> {tenant?.name || 'Zupply'}</p>
+                  <p><b>{lang === 'es' ? 'Negocio' : 'Business'}:</b> {tenant?.name || 'Xupply'}</p>
                   <p><b>{lang === 'es' ? 'Tipo' : 'Type'}:</b> {isSupplier ? 'Proveedor Mayorista' : 'Restaurante'}</p>
                   <p><b>{lang === 'es' ? 'Usuario' : 'User'}:</b> @{user?.username}</p>
                   <p><b>{lang === 'es' ? 'Rol' : 'Role'}:</b> {user?.role}</p>

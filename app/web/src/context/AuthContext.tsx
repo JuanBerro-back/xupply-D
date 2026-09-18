@@ -26,9 +26,9 @@ const AuthContext = createContext<AuthContextValue>(null!);
 
 function getDisplayName(tenant: TenantInfo | null): string {
   if (tenant && tenant.name && tenant.type !== 'platform') {
-    return `${tenant.name} - Zupply`;
+    return `${tenant.name} - Xupply`;
   }
-  return 'Zupply';
+  return 'Xupply';
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTenant(t);
       document.title = getDisplayName(t);
     } catch {
-      document.title = 'Zupply';
+      document.title = 'Xupply';
     }
   };
 
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setTenant(t);
       document.title = getDisplayName(t);
     } catch {
-      document.title = 'Zupply';
+      document.title = 'Xupply';
     }
   };
 
@@ -94,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     disconnectSocket();
     setUser(null);
     setTenant(null);
-    document.title = 'Zupply';
+    document.title = 'Xupply';
   };
 
   return (

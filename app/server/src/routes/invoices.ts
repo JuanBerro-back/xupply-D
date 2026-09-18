@@ -91,7 +91,7 @@ router.post('/', roleRequired('gerente', 'admin'), async (req, res, next) => {
           to_email: client_email,
           to_name: client_name ?? client_email,
           subject: `Factura ${code}`,
-          body: `Tu factura ${code} por $${total} está disponible en Zupply.`,
+          body: `Tu factura ${code} por $${total} está disponible en Xupply.`,
         });
       }
       res.status(201).json(invoice.rows[0]);

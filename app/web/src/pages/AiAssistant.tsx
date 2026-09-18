@@ -24,7 +24,7 @@ export default function AiAssistant() {
   const [plan, setPlan] = useState('basico');
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState<ChatMessage[]>([
-    { role: 'assistant', content: 'Hola, soy Zupply IA. ¿En qué te ayudo hoy?' },
+    { role: 'assistant', content: 'Hola, soy Xupply IA. ¿En qué te ayudo hoy?' },
   ]);
   const [sending, setSending] = useState(false);
   const [predictions, setPredictions] = useState<PredictResponse | null>(null);
@@ -61,7 +61,7 @@ export default function AiAssistant() {
     try {
       const res = await api<ReportResponse>('/ai/report', { method: 'POST', body: JSON.stringify({ type: 'general' }) });
       setReport(res);
-      push({ message: 'Reporte generado con Zupply IA', at: new Date().toISOString() });
+      push({ message: 'Reporte generado con Xupply IA', at: new Date().toISOString() });
     } catch (err) {
       alert((err as Error).message);
     }
@@ -71,7 +71,7 @@ export default function AiAssistant() {
 
   return (
     <div>
-      <h2 className="mb-4 text-xl font-bold">Zupply IA</h2>
+      <h2 className="mb-4 text-xl font-bold">Xupply IA</h2>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         <label className="text-sm text-gray-500">Plan simulado:</label>
         <select value={plan} onChange={(e) => setPlan(e.target.value)} className={inputCls + ' w-40'}>

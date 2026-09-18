@@ -1,6 +1,6 @@
 {
-  "name": "Zupply",
-  "short_name": "Zupply",
+  "name": "Xupply",
+  "short_name": "Xupply",
   "description": "Pedidos y seguimiento GPS en tiempo real",
   "start_url": "/",
   "scope": "/",

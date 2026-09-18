@@ -81,7 +81,7 @@ export default function Login() {
       <div className="absolute inset-0 bg-black/40" />
       <div className="relative z-10 w-full max-w-md rounded-lg bg-white/95 p-6 sm:p-8 shadow-2xl backdrop-blur-sm">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold text-brand">Zupply</h1>
+          <h1 className="text-2xl font-bold text-brand">Xupply</h1>
           <button
             type="button"
             onClick={() => setShowConfig(!showConfig)}
@@ -94,7 +94,7 @@ export default function Login() {
         </div>
         <p className="mb-4 text-sm text-gray-600">Plataforma B2B de pedidos, inventario, facturación y logística</p>
 
-        {/* Banner destacado: ¿Aún no tienes Zupply App? */}
+        {/* Banner destacado: ¿Aún no tienes Xupply App? */}
         <div className="mb-4">
           <AppDownloadNotice compact dismissible={false} />
         </div>
@@ -177,14 +177,14 @@ export default function Login() {
               <IconAndroid className="w-4 h-4 text-white" />
             </span>
             <div className="min-w-0 font-bold text-emerald-950">
-              {lang === 'en' ? "Don't have Zupply App yet?" : '¿Aún no tienes Zupply App?'}
+              {lang === 'en' ? "Don't have Xupply App yet?" : '¿Aún no tienes Xupply App?'}
             </div>
           </div>
           <a
             href={downloadUrl}
-            download="Zupply.apk"
+            download="Xupply.apk"
             className="shrink-0 inline-flex items-center justify-center gap-1.5 font-bold bg-emerald-600 hover:bg-emerald-700 active:scale-95 text-white px-3.5 py-1.5 rounded-lg shadow-xs transition text-xs cursor-pointer"
-            title="Descargar instalador Zupply.apk"
+            title="Descargar instalador Xupply.apk"
           >
             <IconDownload className="w-3.5 h-3.5 text-white" />
             <span>{lang === 'en' ? 'Download APK' : 'Descargar APK'}</span>

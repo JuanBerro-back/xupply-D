@@ -9,12 +9,12 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
   if (!isOpen) return null;
 
   return (
-    <Modal title="Términos y Condiciones de Zupply B2B" onClose={onClose}>
+    <Modal title="Términos y Condiciones de Xupply B2B" onClose={onClose}>
       <div className="max-h-[65vh] overflow-y-auto pr-2 space-y-4 text-xs text-slate-600 leading-relaxed dark:text-slate-300">
         <div className="rounded-xl bg-sky-50 border border-sky-100 p-3 text-sky-900 dark:bg-sky-950/40 dark:border-sky-800 dark:text-sky-200">
           <p className="font-bold text-sm mb-1">Ecosistema Logístico y Plataforma Gastronómica B2B</p>
           <p>
-            Vigente a partir de Septiembre 2026. Al utilizar Zupply como restaurante, proveedor o domiciliario, aceptas
+            Vigente a partir de Septiembre 2026. Al utilizar Xupply como restaurante, proveedor o domiciliario, aceptas
             los siguientes términos de operación y comercio electrónico.
           </p>
         </div>
@@ -22,7 +22,7 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
         <div>
           <h4 className="font-bold text-slate-800 text-sm mb-1 dark:text-white">1. Objeto y Alcance de la Plataforma</h4>
           <p>
-            Zupply es una plataforma tecnológica que facilita la digitalización, compraventa mayorista de insumos
+            Xupply es una plataforma tecnológica que facilita la digitalización, compraventa mayorista de insumos
             alimentarios, monitoreo logístico y costeo gastronómico entre restaurantes y proveedores autorizados.
           </p>
         </div>
@@ -33,7 +33,7 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
             Para garantizar la autenticidad e integridad en la entrega de materias primas, cada despacho cuenta con una
             <b> Llave de Seguridad (código único de 4 dígitos)</b> portada por el domiciliario. La entrega se considera
             oficialmente recibida y aceptada a conformidad cuando el gerente del restaurante ingresa dicha llave en el
-            sistema Zupply.
+            sistema Xupply.
           </p>
         </div>
 
@@ -58,7 +58,7 @@ export default function TermsModal({ isOpen, onClose }: TermsModalProps) {
         <div>
           <h4 className="font-bold text-slate-800 text-sm mb-1 dark:text-white">5. Privacidad y Seguridad de Datos</h4>
           <p>
-            Zupply resguarda la información confidencial de clientes, recetas, precios pactados y geolocalización en
+            Xupply resguarda la información confidencial de clientes, recetas, precios pactados y geolocalización en
             estricto cumplimiento de la normativa de protección de datos personales (Ley 1581 de Colombia).
           </p>
         </div>

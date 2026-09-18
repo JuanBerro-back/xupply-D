@@ -88,8 +88,8 @@ export default function Plans() {
     const handlePlanChange = () => {
       setCurrentPlan(getActivePlan());
     };
-    window.addEventListener('zupply_plan_changed', handlePlanChange);
-    return () => window.removeEventListener('zupply_plan_changed', handlePlanChange);
+    window.addEventListener('xupply_plan_changed', handlePlanChange);
+    return () => window.removeEventListener('xupply_plan_changed', handlePlanChange);
   }, []);
 
   const handleSelectPlan = async (planId: PlanTier) => {
@@ -132,10 +132,10 @@ export default function Plans() {
         <div className="relative z-10 max-w-3xl">
           <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-sm border border-white/20 mb-3">
             <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span>Modelo Híbrido Zupply B2B</span>
+            <span>Modelo Híbrido Xupply B2B</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-black tracking-tight text-white">
-            Planes de Suscripción Zupply
+            Planes de Suscripción Xupply
           </h1>
           <p className="mt-2 text-sm sm:text-base text-slate-300">
             Escala tu restaurante o distribuidora. Elige el nivel de acceso que necesitas: desde operaciones básicas
@@ -333,7 +333,7 @@ export default function Plans() {
                 </td>
               </tr>
               <tr>
-                <td className="px-5 py-3 font-semibold text-slate-800">Zupply Asistente IA (Ventana Flotante)</td>
+                <td className="px-5 py-3 font-semibold text-slate-800">Xupply Asistente IA (Ventana Flotante)</td>
                 <td className="px-5 py-3 text-center text-amber-600 font-bold">Consultas Básicas</td>
                 <td className="px-5 py-3 text-center text-emerald-600 font-bold">
                   <span className="inline-flex items-center gap-1 justify-center"><IconCheck className="w-3.5 h-3.5" /> Completo</span>

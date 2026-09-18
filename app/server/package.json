@@ -1,5 +1,5 @@
 {
-  "name": "zupply-backend",
+  "name": "xupply-backend",
   "version": "1.0.0",
   "private": true,
   "main": "dist/server.js",

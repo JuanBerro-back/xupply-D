@@ -53,7 +53,7 @@ export const PLAN_CONFIG: Record<PlanTier, PlanLimits> = {
 };
 
 export function getActivePlan(): PlanTier {
-  const saved = localStorage.getItem('zupply_active_plan');
+  const saved = localStorage.getItem('xupply_active_plan');
   if (saved === 'basico' || saved === 'medio' || saved === 'premium') {
     return saved;
   }
@@ -61,8 +61,8 @@ export function getActivePlan(): PlanTier {
 }
 
 export function setActivePlan(plan: PlanTier): void {
-  localStorage.setItem('zupply_active_plan', plan);
-  window.dispatchEvent(new Event('zupply_plan_changed'));
+  localStorage.setItem('xupply_active_plan', plan);
+  window.dispatchEvent(new Event('xupply_plan_changed'));
 }
 
 export function checkPlanFeature(feature: keyof Omit<PlanLimits, 'name' | 'price' | 'description'>): boolean {

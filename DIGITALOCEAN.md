@@ -1,4 +1,4 @@
-# Desplegar Zupply en DigitalOcean
+# Desplegar Xupply en DigitalOcean
 
 ## 1. Crear el Droplet
 
@@ -10,7 +10,7 @@
 Asocia un dominio al IP del Droplet con un registro `A`, por ejemplo:
 
 ```text
-zupply.midominio.com -> IP_DEL_DROPLET
+xupply.midominio.com -> IP_DEL_DROPLET
 ```
 
 ## 2. Instalar Docker
@@ -28,8 +28,8 @@ Vuelve a entrar por SSH después del `exit`.
 ## 3. Descargar el proyecto
 
 ```bash
-git clone https://github.com/JuanBerro-back/zupply-D.git
-cd zupply-D
+git clone https://github.com/JuanBerro-back/xupply-D.git
+cd xupply-D
 cp .env.production.example .env.production
 nano .env.production
 ```
@@ -57,7 +57,7 @@ https://tu-dominio.com/health
 Debe responder:
 
 ```json
-{"status":"ok","service":"zupply-api"}
+{"status":"ok","service":"xupply-api"}
 ```
 
 Luego abre `https://tu-dominio.com` desde Chrome en el celular e instala la PWA.

@@ -379,14 +379,14 @@ router.get('/summary', async (req, res, next) => {
       },
       {
         id: 4,
-        title: 'Zupply IA: Asistente Inteligente para Cocina y Bodega',
+        title: 'Xupply IA: Asistente Inteligente para Cocina y Bodega',
         tag: 'INTELIGENCIA',
         tag_color: 'bg-purple-500',
         date: 'Septiembre 2026',
         summary: 'Predice automáticamente tus compras semanales, detecta riesgos de rotura de stock y minimiza mermas con machine learning.',
         image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&w=900&q=80',
         action_label: 'Consultar IA',
-        action_url: '/zupply-ia',
+        action_url: '/xupply-ia',
       },
     ];
 

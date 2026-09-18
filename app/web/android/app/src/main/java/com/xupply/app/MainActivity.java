@@ -1,4 +1,4 @@
-package com.zupply.app;
+package com.xupply.app;
 
 import com.getcapacitor.BridgeActivity;
 

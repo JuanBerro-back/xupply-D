@@ -12,24 +12,24 @@ const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [isDarkMode, setIsDarkMode] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    const saved = localStorage.getItem('zupply_theme');
+    const saved = localStorage.getItem('xupply_theme');
     if (saved) return saved === 'dark';
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
   const [isHighContrast, setIsHighContrast] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    return localStorage.getItem('zupply_high_contrast') === 'true';
+    return localStorage.getItem('xupply_high_contrast') === 'true';
   });
 
   useEffect(() => {
     const root = document.documentElement;
     if (isDarkMode) {
       root.classList.add('dark');
-      localStorage.setItem('zupply_theme', 'dark');
+      localStorage.setItem('xupply_theme', 'dark');
     } else {
       root.classList.remove('dark');
-      localStorage.setItem('zupply_theme', 'light');
+      localStorage.setItem('xupply_theme', 'light');
     }
   }, [isDarkMode]);
 
@@ -37,10 +37,10 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     const root = document.documentElement;
     if (isHighContrast) {
       root.classList.add('high-contrast');
-      localStorage.setItem('zupply_high_contrast', 'true');
+      localStorage.setItem('xupply_high_contrast', 'true');
     } else {
       root.classList.remove('high-contrast');
-      localStorage.setItem('zupply_high_contrast', 'false');
+      localStorage.setItem('xupply_high_contrast', 'false');
     }
   }, [isHighContrast]);
 

@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">Zupply</string>
-    <string name="title_activity_main">Zupply</string>
-    <string name="package_name">com.zupply.app</string>
-    <string name="custom_url_scheme">com.zupply.app</string>
+    <string name="app_name">Xupply</string>
+    <string name="title_activity_main">Xupply</string>
+    <string name="package_name">com.xupply.app</string>
+    <string name="custom_url_scheme">com.xupply.app</string>
 </resources>

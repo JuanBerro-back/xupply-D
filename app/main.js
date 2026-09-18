@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const http = require('http');
 
-const PORT = Number(process.env.ZUPLY_PORT || 4420);
+const PORT = Number(process.env.XUPLY_PORT || 4420);
 const URL = `http://127.0.0.1:${PORT}`;
 const SERVER_RUNNER = path.join(__dirname, 'server', 'dist', 'server.js');
 const SERVER_CWD = path.join(__dirname, 'server');
@@ -43,13 +43,13 @@ function startServer() {
     env: { ...process.env, PORT: String(PORT) },
     windowsHide: true,
   });
-  serverProc.stdout.on('data', (d) => console.log('[zupply-server]', String(d).trim()));
-  serverProc.stderr.on('data', (d) => console.error('[zupply-server]', String(d).trim()));
+  serverProc.stdout.on('data', (d) => console.log('[xupply-server]', String(d).trim()));
+  serverProc.stderr.on('data', (d) => console.error('[xupply-server]', String(d).trim()));
   serverProc.on('exit', (code) => {
     if (code && code !== 0) {
       dialog.showErrorBox(
-        'Zupply',
-        'El servidor interno de Zupply se detuvo inesperadamente.\n\nAsegurate de que PostgreSQL este corriendo con la base "zupply" (usuario juan_berroteran) y vuelve a abrir la aplicacion.'
+        'Xupply',
+        'El servidor interno de Xupply se detuvo inesperadamente.\n\nAsegurate de que PostgreSQL este corriendo con la base "xupply" (usuario juan_berroteran) y vuelve a abrir la aplicacion.'
       );
     }
   });
@@ -62,7 +62,7 @@ function createWindow() {
     height: 820,
     minWidth: 1024,
     minHeight: 640,
-    title: 'Zupply',
+    title: 'Xupply',
     icon: fs.existsSync(iconFile) ? iconFile : undefined,
     backgroundColor: '#0284c7',
     autoHideMenuBar: true,
@@ -91,7 +91,7 @@ app.whenReady().then(async () => {
     await waitForHealth();
     createWindow();
   } catch (e) {
-    dialog.showErrorBox('Zupply', `No se pudo iniciar la aplicacion:\n${e.message}`);
+    dialog.showErrorBox('Xupply', `No se pudo iniciar la aplicacion:\n${e.message}`);
     app.exit(1);
   }
 });

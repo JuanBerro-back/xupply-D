@@ -142,7 +142,7 @@ interface DashboardData {
 const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
   {
     id: 1,
-    title: 'Nueva versión de Zupply con GPS satelital y asignación vehicular',
+    title: 'Nueva versión de Xupply con GPS satelital y asignación vehicular',
     tag: 'Novedades de la App',
     tag_color: 'bg-emerald-600',
     date: 'Actualización reciente',
@@ -157,7 +157,7 @@ const DEFAULT_ANNOUNCEMENTS: Announcement[] = [
     tag: 'Comunidad Gastronómica',
     tag_color: 'bg-blue-600',
     date: 'Comunidad',
-    summary: 'Más de 40 restaurantes en Bucaramanga y Santander redujeron costos hasta un 18% centralizando compras en Zupply.',
+    summary: 'Más de 40 restaurantes en Bucaramanga y Santander redujeron costos hasta un 18% centralizando compras en Xupply.',
     image_url: 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?w=800&auto=format&fit=crop&q=80',
     action_label: 'Explorar Catálogo',
     action_url: '/catalogo',
@@ -384,7 +384,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      {/* Aviso Prominente de Descarga de Zupply App */}
+      {/* Aviso Prominente de Descarga de Xupply App */}
       <AppDownloadNotice />
 
       {/* Vista Exclusiva y Dedicada para Domiciliarios */}
@@ -417,7 +417,7 @@ export default function Dashboard() {
 
               <button
                 type="button"
-                onClick={() => window.dispatchEvent(new Event('zupply_open_drawer'))}
+                onClick={() => window.dispatchEvent(new Event('xupply_open_drawer'))}
                 className="inline-flex items-center gap-2 rounded-2xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-md hover:bg-slate-800 active:scale-95 transition cursor-pointer"
                 title="Abrir menú tipo hamburguesa"
               >
@@ -479,12 +479,12 @@ export default function Dashboard() {
                 </Link>
 
                 <Link
-                  to="/zupply-ia"
+                  to="/xupply-ia"
                   className="flex items-center gap-3 p-3 rounded-2xl bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-200 dark:border-indigo-800/60 hover:bg-indigo-100 transition"
                 >
                   <IconAi className="w-6 h-6 text-indigo-600" />
                   <div>
-                    <p className="text-xs font-black text-indigo-900 dark:text-indigo-200">Asistente Zupply IA</p>
+                    <p className="text-xs font-black text-indigo-900 dark:text-indigo-200">Asistente Xupply IA</p>
                     <p className="text-[10px] text-indigo-600 dark:text-indigo-400">Preguntas sobre rutas y entregas</p>
                   </div>
                 </Link>
@@ -617,7 +617,7 @@ export default function Dashboard() {
           {/* Botón Destacado Menú Tipo Hamburguesa */}
           <button
             type="button"
-            onClick={() => window.dispatchEvent(new Event('zupply_open_drawer'))}
+            onClick={() => window.dispatchEvent(new Event('xupply_open_drawer'))}
             className="inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 active:scale-95 px-3.5 py-2 text-xs font-black shadow-sm transition cursor-pointer border border-slate-700"
             title="Abrir menú tipo hamburguesa con todos los módulos"
           >
@@ -688,7 +688,7 @@ export default function Dashboard() {
             </button>
             <button
               type="button"
-              onClick={() => window.dispatchEvent(new Event('zupply_open_drawer'))}
+              onClick={() => window.dispatchEvent(new Event('xupply_open_drawer'))}
               className="px-2.5 py-1 rounded-lg bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 border border-emerald-500/30 transition text-[11px] font-semibold whitespace-nowrap cursor-pointer"
             >
               Menú Lateral
@@ -809,7 +809,7 @@ export default function Dashboard() {
                 </div>
               </Link>
 
-              {/* Planes Zupply */}
+              {/* Planes Xupply */}
               <Link
                 to="/planes"
                 className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-amber-200/80 dark:border-amber-800/80 shadow-xs hover:border-amber-500 hover:shadow-sm transition group"
@@ -818,21 +818,21 @@ export default function Dashboard() {
                   <IconPlans className="w-5 h-5 text-amber-600" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-amber-900 dark:text-amber-200">Planes Zupply</p>
+                  <p className="text-xs font-black text-amber-900 dark:text-amber-200">Planes Xupply</p>
                   <p className="text-[11px] text-amber-600 dark:text-amber-400">Suscripción & funciones</p>
                 </div>
               </Link>
 
-              {/* Zupply IA */}
+              {/* Xupply IA */}
               <Link
-                to="/zupply-ia"
+                to="/xupply-ia"
                 className="flex items-center gap-3 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-indigo-200/80 dark:border-indigo-800/80 shadow-xs hover:border-indigo-500 hover:shadow-sm transition group"
               >
                 <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 text-indigo-600 flex items-center justify-center group-hover:scale-105 transition">
                   <IconAi className="w-5 h-5 text-indigo-600" />
                 </div>
                 <div>
-                  <p className="text-xs font-black text-indigo-900 dark:text-indigo-200">Zupply Asistente IA</p>
+                  <p className="text-xs font-black text-indigo-900 dark:text-indigo-200">Xupply Asistente IA</p>
                   <p className="text-[11px] text-indigo-600 dark:text-indigo-400">Copiloto 24/7</p>
                 </div>
               </Link>
@@ -1376,7 +1376,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs">
                       {r.phone ? (
                         <a
-                          href={`https://wa.me/57${r.phone.replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(r.name)},%20te%20escribo%20de%20Zupply%20para%20presentarte%20nuestro%20catálogo%20mayorista`}
+                          href={`https://wa.me/57${r.phone.replace(/\D/g, '')}?text=Hola%20${encodeURIComponent(r.name)},%20te%20escribo%20de%20Xupply%20para%20presentarte%20nuestro%20catálogo%20mayorista`}
                           target="_blank"
                           rel="noreferrer"
                           className="inline-flex items-center gap-1 font-bold text-emerald-700 hover:text-emerald-800"

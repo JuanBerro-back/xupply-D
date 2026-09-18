@@ -16,7 +16,7 @@ interface CartContextValue {
 }
 
 const CartContext = createContext<CartContextValue>(null!);
-const CART_STORAGE_KEY = 'zupply_cart_v1';
+const CART_STORAGE_KEY = 'xupply_cart_v1';
 
 function loadCart(): CartItem[] {
   try {

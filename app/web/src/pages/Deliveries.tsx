@@ -18,7 +18,7 @@ import {
 import { IconPin, IconKey } from '../components/Icons';
 
 type PositionEvent = { delivery_id: number; lat: number; lng: number; speed?: number | null };
-const DELIVERY_STORAGE_KEY = 'zupply_deliveries_route_v2';
+const DELIVERY_STORAGE_KEY = 'xupply_deliveries_route_v2';
 
 // Fórmula de Haversine para calcular distancia en kilómetros entre dos coordenadas GPS
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {

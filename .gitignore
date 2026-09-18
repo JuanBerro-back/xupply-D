@@ -31,4 +31,4 @@ dist-apk/
 release-manual/
 *.jks
 *.apk
-!app/web/public/Zupply.apk
+!app/web/public/Xupply.apk

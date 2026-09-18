@@ -1,8 +1,8 @@
 {
-  "name": "zupply-desktop",
+  "name": "xupply-desktop",
   "version": "1.0.0",
   "private": true,
-  "description": "Zupply - Aplicacion de escritorio (Electron + Express + PostgreSQL)",
+  "description": "Xupply - Aplicacion de escritorio (Electron + Express + PostgreSQL)",
   "main": "main.js",
   "scripts": {
     "start": "electron .",

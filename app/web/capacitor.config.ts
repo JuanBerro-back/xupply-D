@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.zupply.app',
-  appName: 'Zupply',
+  appId: 'com.xupply.app',
+  appName: 'Xupply',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

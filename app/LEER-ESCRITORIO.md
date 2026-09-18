@@ -1,6 +1,6 @@
-# Zupply Escritorio
+# Xupply Escritorio
 
-Aplicacion de escritorio (Electron) de Zupply: Backend Express + PostgreSQL + interfaz React en una sola ventana.
+Aplicacion de escritorio (Electron) de Xupply: Backend Express + PostgreSQL + interfaz React en una sola ventana.
 
 ## Requisitos
 - Node.js instalado.
@@ -14,11 +14,11 @@ Abre una PowerShell en esta carpeta y ejecuta:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\setup.ps1
 ```
 
-Configura la contrasena local mediante `ZUPPLY_DB_PASSWORD` antes de ejecutar `Iniciar-Zupply.ps1`.
+Configura la contrasena local mediante `XUPPLY_DB_PASSWORD` antes de ejecutar `Iniciar-Xupply.ps1`.
 
 ## Usar
 
-Haz doble clic en el acceso directo de Zupply o ejecuta `npm start`.
+Haz doble clic en el acceso directo de Xupply o ejecuta `npm start`.
 
 Usuarios demo: `admin`, `gerente`, `empleado`, `proveedor`, `domiciliario`.
 
@@ -28,7 +28,7 @@ La conexion de desarrollo se configura en `server\.env`, archivo que no debe sub
 
 ```env
 PORT=4420
-DATABASE_URL=postgres://usuario:contrasena@localhost:5432/zupply
+DATABASE_URL=postgres://usuario:contrasena@localhost:5432/xupply
 JWT_SECRET=cambia-este-secreto
 ```
 

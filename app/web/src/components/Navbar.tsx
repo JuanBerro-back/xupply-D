@@ -20,8 +20,8 @@ export default function Navbar() {
 
   useEffect(() => {
     const handleOpenDrawer = () => setDrawerOpen(true);
-    window.addEventListener('zupply_open_drawer', handleOpenDrawer);
-    return () => window.removeEventListener('zupply_open_drawer', handleOpenDrawer);
+    window.addEventListener('xupply_open_drawer', handleOpenDrawer);
+    return () => window.removeEventListener('xupply_open_drawer', handleOpenDrawer);
   }, []);
 
   const handleLogout = () => {
@@ -33,8 +33,8 @@ export default function Navbar() {
   const isDomiciliario = user?.role === 'domiciliario';
 
   const brandName = tenant && tenant.name && tenant.type !== 'platform'
-    ? `${tenant.name} · Zupply`
-    : 'Zupply';
+    ? `${tenant.name} · Xupply`
+    : 'Xupply';
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
@@ -141,11 +141,11 @@ export default function Navbar() {
             {/* Acceso Directo Descarga APK en Navbar */}
             {!isCapacitorNative() && (
               <a
-                href="/Zupply.apk"
-                download="Zupply.apk"
+                href="/Xupply.apk"
+                download="Xupply.apk"
                 className="hidden sm:inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs transition shadow-xs border border-emerald-400/60 cursor-pointer"
-                title={lang === 'es' ? 'Descargar instalador Zupply.apk para Android' : 'Download Zupply.apk Android installer'}
-                aria-label="Descargar Zupply APK"
+                title={lang === 'es' ? 'Descargar instalador Xupply.apk para Android' : 'Download Xupply.apk Android installer'}
+                aria-label="Descargar Xupply APK"
               >
                 <IconAndroid className="w-4 h-4 text-slate-950" />
                 <span>APK</span>
@@ -216,7 +216,7 @@ export default function Navbar() {
               type="button"
               onClick={() => setDrawerOpen(true)}
               className="flex items-center gap-2 rounded-2xl bg-white text-slate-900 hover:bg-slate-100 active:scale-95 px-3.5 py-2 text-xs font-black shadow-md transition cursor-pointer border border-white/20"
-              title="Abrir Menú Completo Zupply"
+              title="Abrir Menú Completo Xupply"
               aria-label="Abrir menú hamburguesa"
             >
               <IconMenu className="w-4 h-4 text-brand" />

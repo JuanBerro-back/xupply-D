@@ -6,9 +6,9 @@ const router = Router();
 router.use(authRequired);
 
 const PLAN_SELECT: Record<string, { model: string; assistant: boolean; reports: boolean }> = {
-  basico: { model: 'zupply-lite', assistant: true, reports: false },
-  medio: { model: 'zupply-pro', assistant: true, reports: true },
-  premium: { model: 'zupply-max', assistant: true, reports: true },
+  basico: { model: 'xupply-lite', assistant: true, reports: false },
+  medio: { model: 'xupply-pro', assistant: true, reports: true },
+  premium: { model: 'xupply-max', assistant: true, reports: true },
 };
 
 router.post('/chat', async (req, res) => {
@@ -30,24 +30,24 @@ router.post('/chat', async (req, res) => {
   }
   // 2. Preguntas sobre Jerarquía y Equipo (Gerente-Empleado, Proveedor-Domiciliario)
   else if (q.includes('equipo') || q.includes('empleado') || q.includes('domiciliario') || q.includes('jefe') || q.includes('jerarquia') || q.includes('jerarquía')) {
-    reply = `👥 **Estructura Jerárquica en Zupply:**
+    reply = `👥 **Estructura Jerárquica en Xupply:**
 - **Gerente de Restaurante:** Es el líder de operaciones gastronómicas. En el módulo **Equipo**, solo visualiza y gestiona a sus **Empleados Operativos** asignados a su restaurante.
 - **Proveedor:** Es el líder logístico de distribución. En el módulo **Equipo**, solo visualiza y gestiona a su flota de **Domiciliarios / Conductores** con sus vehículos (moto, furgón o camión) y placas.
 - **Domiciliario:** Cuenta con una interfaz enfocada en pedidos pendientes, mapa satelital GPS y su llave de entrega.`;
   }
-  // 3. Preguntas sobre Planes de Suscripción Zupply
+  // 3. Preguntas sobre Planes de Suscripción Xupply
   else if (q.includes('plan') || q.includes('suscripcion') || q.includes('suscripción') || q.includes('precio') || q.includes('costo')) {
-    reply = `⭐ **Planes de Suscripción Zupply:**
+    reply = `⭐ **Planes de Suscripción Xupply:**
 - **Plan Básico (Esencial - Gratis):** Acceso al catálogo digital B2B, creación de pedidos, control básico de inventario y soporte estándar.
 - **Plan Medio (Crecimiento - $250.000/mes):** Todo lo básico + Costeo de recetas, Alertas de stock en tiempo real, Galería de proveedores recomendados y Gestión de equipo.
-- **Plan Premium (Máximo - $500.000/mes):** Acceso total sin límites: Predicción de demanda con IA, Asistente Zupply IA ilimitado, Facturación electrónica e informes contables de flujo de caja avanzados.
+- **Plan Premium (Máximo - $500.000/mes):** Acceso total sin límites: Predicción de demanda con IA, Asistente Xupply IA ilimitado, Facturación electrónica e informes contables de flujo de caja avanzados.
 *Puedes cambiar tu plan activo en cualquier momento desde la sección **Planes**.*`;
   }
   // 4. Preguntas sobre Categorización de Restaurantes y Recomendación de Proveedores
   else if (q.includes('categoria') || q.includes('categoría') || q.includes('tipo de restaurante') || q.includes('bbq') || q.includes('postre') || q.includes('brunch') || q.includes('asiatico') || q.includes('asiático') || q.includes('recomendar')) {
     reply = `🍽️ **Categorías y Recomendación Inteligente de Proveedores:**
 - Al registrar tu restaurante puedes clasificarlo entre: *BBQ & Parrilla, Postres & Pastelería, Brunch & Cafés, Asiático & Sushi, Latino & Comida Típica, Hamburguesas & Fast Food, Pizzería & Italiana, o Marisquería*.
-- Según tu categoría y tus platos, Zupply te recomienda en un **banner tipo galería fotográfica**:
+- Según tu categoría y tus platos, Xupply te recomienda en un **banner tipo galería fotográfica**:
   - **BBQ y Hamburguesas:** Proveedores de carnes maduradas, tocineta y carbón (ej. *Carnes El Paisa*).
   - **Postres y Brunch:** Proveedores de lácteos artesanales, mantequillas y frutas (ej. *Lácteos del Norte*).
   - **Asiático y Sushi:** Proveedores de pesca fresca, salmón y salsas (ej. *Mariscos del Caribe*).
@@ -82,7 +82,7 @@ router.post('/chat', async (req, res) => {
   1. Aplica rotación **PEPS** (Primero en Entrar, Primero en Salir).
   2. Ajusta el stock mínimo de perecederos (verduras/mariscos) a máximo 3 días de consumo.
   3. Para insumos secos o congelados, mantén de 7 a 10 días de inventario de seguridad.
-  *Puedes activar el análisis predictivo de Zupply IA para ver sugerencias automáticas de compra.*`;
+  *Puedes activar el análisis predictivo de Xupply IA para ver sugerencias automáticas de compra.*`;
   }
   // 8. Preguntas sobre Notificaciones, Modo Oscuro, Idioma y Ajustes
   else if (q.includes('notificacion') || q.includes('notificación') || q.includes('campana') || q.includes('campanita') || q.includes('oscuro') || q.includes('claro') || q.includes('idioma') || q.includes('menu hamburguesa')) {
@@ -97,7 +97,7 @@ router.post('/chat', async (req, res) => {
   }
   // 9. Preguntas muy básicas ("tontas" o cotidianas)
   else if (q.includes('hola') || q.includes('buenos') || q.includes('que eres') || q.includes('quien eres') || q.includes('ayuda') || q.includes('como funciona')) {
-    reply = `👋 ¡Hola! Soy **Zupply IA**, el copiloto inteligente de tu restaurante o empresa distribuidora.
+    reply = `👋 ¡Hola! Soy **Xupply IA**, el copiloto inteligente de tu restaurante o empresa distribuidora.
 
 Puedo responderte desde la pregunta más sencilla (como *dónde ver tus pedidos* o *cómo funciona la llave de entrega*) hasta las más complejas (como *fórmulas de food cost*, *ingeniería de menú*, *predicción de abastecimiento* o *estrategias de compras mayoristas*).
 
@@ -105,10 +105,10 @@ Puedo responderte desde la pregunta más sencilla (como *dónde ver tus pedidos*
   }
   // 10. Respuesta general inteligente asistida
   else {
-    reply = `🤖 **Respuesta de Zupply IA:**
+    reply = `🤖 **Respuesta de Xupply IA:**
 Respecto a tu consulta sobre *"${message.trim()}"*:
 
-En el ecosistema B2B de Zupply, la clave está en conectar la demanda diaria de cocina con la logística de proveedores locales. 
+En el ecosistema B2B de Xupply, la clave está en conectar la demanda diaria de cocina con la logística de proveedores locales. 
 
 Te recomiendo verificar:
 1. Si eres **Restaurante**: Revisa tus pedidos activos, ingresa la llave de seguridad cuando llegue tu domiciliario y optimiza tus costos con los proveedores recomendados para tu categoría.
@@ -165,7 +165,7 @@ router.post('/report', roleRequired('gerente', 'admin'), async (req, res, next) 
     );
     const typeLabel = type === 'monthly' ? 'mensual' : 'general';
     res.json({
-      title: `Reporte ${typeLabel} Zupply IA`,
+      title: `Reporte ${typeLabel} Xupply IA`,
       generated_at: new Date().toISOString(),
       orders: orders.rows[0],
       inventory: inventory.rows[0],

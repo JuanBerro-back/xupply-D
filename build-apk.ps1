@@ -1,11 +1,11 @@
 param (
-    [string]$RenderUrl = "https://zupply-d.onrender.com"
+    [string]$RenderUrl = "https://xupply-d.onrender.com"
 )
 
 $ErrorActionPreference = "Stop"
 
 Write-Host "=========================================" -ForegroundColor Cyan
-Write-Host "   Compilador de APK Zupply para Render  " -ForegroundColor Cyan
+Write-Host "   Compilador de APK Xupply para Render  " -ForegroundColor Cyan
 Write-Host "=========================================" -ForegroundColor Cyan
 Write-Host "Backend URL configurada: $RenderUrl" -ForegroundColor Yellow
 
@@ -76,11 +76,11 @@ if (Test-Path $sourceApk) {
     if (-not (Test-Path $outputDir)) {
         New-Item -ItemType Directory -Path $outputDir -Force | Out-Null
     }
-    $targetApk = Join-Path $outputDir "Zupply.apk"
+    $targetApk = Join-Path $outputDir "Xupply.apk"
     Copy-Item -Path $sourceApk -Destination $targetApk -Force
-    $publicApk = Join-Path $webDir "public\Zupply.apk"
+    $publicApk = Join-Path $webDir "public\Xupply.apk"
     Copy-Item -Path $sourceApk -Destination $publicApk -Force
-    $distApk = Join-Path $webDir "dist\Zupply.apk"
+    $distApk = Join-Path $webDir "dist\Xupply.apk"
     if (Test-Path (Join-Path $webDir "dist")) {
         Copy-Item -Path $sourceApk -Destination $distApk -Force
     }
@@ -93,7 +93,7 @@ if (Test-Path $sourceApk) {
     Write-Host "Tamaño:    $sizeMb MB" -ForegroundColor White
     Write-Host "Backend:   $RenderUrl" -ForegroundColor White
     Write-Host "`nPara instalar en tu teléfono:" -ForegroundColor Cyan
-    Write-Host "1. Conecta tu celular por USB o envíate 'dist-apk/Zupply.apk' (ej. por WhatsApp, Telegram o Drive)." -ForegroundColor Gray
+    Write-Host "1. Conecta tu celular por USB o envíate 'dist-apk/Xupply.apk' (ej. por WhatsApp, Telegram o Drive)." -ForegroundColor Gray
     Write-Host "2. Ábrelo en Android y selecciona 'Instalar'." -ForegroundColor Gray
     Write-Host "3. Si tu URL en Render es distinta a $RenderUrl, puedes cambiarla desde la app en el botón 'Servidor' en la pantalla de inicio de sesión." -ForegroundColor Gray
 } else {

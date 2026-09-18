@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zupply-shell-v1';
+const CACHE_NAME = 'xupply-shell-v1';
 const APP_SHELL = ['/', '/index.html', '/manifest.webmanifest', '/icons/icon.svg'];
 
 self.addEventListener('install', (event) => {

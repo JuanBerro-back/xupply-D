@@ -1,10 +1,10 @@
-# Zupply - Provision de base de datos PostgreSQL
-# Crea el rol administrador `juan_berroteran`, la base `zupply` y aplica el esquema.
+# Xupply - Provision de base de datos PostgreSQL
+# Crea el rol administrador `juan_berroteran`, la base `xupply` y aplica el esquema.
 param(
   [string]$Root = (Join-Path $PSScriptRoot '..'),
   [string]$DbUser = 'juan_berroteran',
   [string]$DbPassword = '',
-  [string]$DbName = 'zupply',
+  [string]$DbName = 'xupply',
   [int]$DbPort = 5432,
   [string]$PostgresSuperuser = 'postgres',
   [string]$PostgresPassword = ''
@@ -55,7 +55,7 @@ finally {
   Remove-Item Env:\PGPASSWORD
 }
 
-$sqlFile = Join-Path $Root 'server\DB\zupply_schema_postgresql.sql'
+$sqlFile = Join-Path $Root 'server\DB\xupply_schema_postgresql.sql'
 $env:PGPASSWORD = $DbPassword
 try {
   & $psql -w -h localhost -p $DbPort -U $DbUser -d $DbName -f $sqlFile -v ON_ERROR_STOP=1

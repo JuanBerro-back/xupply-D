@@ -1,8 +1,8 @@
 import { Capacitor } from '@capacitor/core';
 
-const TOKEN_KEY = 'zupply_token';
-const SERVER_URL_KEY = 'zupply_server_url';
-export const DEFAULT_RENDER_URL = 'https://zupply-d.onrender.com';
+const TOKEN_KEY = 'xupply_token';
+const SERVER_URL_KEY = 'xupply_server_url';
+export const DEFAULT_RENDER_URL = 'https://xupply-d.onrender.com';
 
 export function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
@@ -36,8 +36,8 @@ export function getApiOrigin(): string {
 }
 
 export function getApkDownloadUrl(): string {
-  // El instalador Zupply.apk se sirve directamente desde la raíz pública de la web
-  return '/Zupply.apk';
+  // El instalador Xupply.apk se sirve directamente desde la raíz pública de la web
+  return '/Xupply.apk';
 }
 
 export function setCustomApiOrigin(url: string) {

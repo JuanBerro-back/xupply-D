@@ -13,7 +13,7 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     'nav.inventory': 'Inventario (ROP)',
     'nav.team': 'Equipo',
     'nav.suppliers': 'Proveedores',
-    'nav.plans': 'Planes Zupply',
+    'nav.plans': 'Planes Xupply',
     'nav.ai': 'Asistente IA',
     'nav.invoices': 'Facturación DIAN',
     'nav.accounting': 'Contabilidad PEPS',
@@ -54,9 +54,9 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     'hub.telemetry_active': 'GPS Activo y Transmitiendo',
 
     // AI
-    'ai.title': 'Zupply IA',
+    'ai.title': 'Xupply IA',
     'ai.subtitle': 'Asistente gastronómico y logístico 24/7',
-    'ai.welcome': 'Hola, soy Zupply IA. ¿En qué te puedo asesorar hoy?',
+    'ai.welcome': 'Hola, soy Xupply IA. ¿En qué te puedo asesorar hoy?',
     'ai.placeholder': 'Escribe tu pregunta aquí...',
     'ai.send': 'Enviar',
 
@@ -76,7 +76,7 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     'nav.inventory': 'Inventory (ROP)',
     'nav.team': 'Team',
     'nav.suppliers': 'Suppliers',
-    'nav.plans': 'Zupply Plans',
+    'nav.plans': 'Xupply Plans',
     'nav.ai': 'AI Assistant',
     'nav.invoices': 'DIAN Invoicing',
     'nav.accounting': 'FIFO Accounting',
@@ -117,9 +117,9 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     'hub.telemetry_active': 'GPS Active & Streaming',
 
     // AI
-    'ai.title': 'Zupply AI',
+    'ai.title': 'Xupply AI',
     'ai.subtitle': '24/7 Foodservice & logistics copilot',
-    'ai.welcome': 'Hello, I am Zupply AI. How can I help you today?',
+    'ai.welcome': 'Hello, I am Xupply AI. How can I help you today?',
     'ai.placeholder': 'Type your question here...',
     'ai.send': 'Send',
 
@@ -143,13 +143,13 @@ const LanguageContext = createContext<LanguageContextType | undefined>(undefined
 export function LanguageProvider({ children }: { children: ReactNode }) {
   const [lang, setLang] = useState<Language>(() => {
     if (typeof window === 'undefined') return 'es';
-    const saved = localStorage.getItem('zupply_lang');
+    const saved = localStorage.getItem('xupply_lang');
     if (saved === 'en' || saved === 'es') return saved;
     return 'es';
   });
 
   useEffect(() => {
-    localStorage.setItem('zupply_lang', lang);
+    localStorage.setItem('xupply_lang', lang);
     document.documentElement.lang = lang;
   }, [lang]);
 

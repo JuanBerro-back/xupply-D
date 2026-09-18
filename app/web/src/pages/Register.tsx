@@ -60,7 +60,7 @@ export default function Register() {
           <div className="inline-flex items-center justify-center h-12 w-12 rounded-2xl bg-brand/10 text-brand font-black text-2xl mb-2">
             Z
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Crear cuenta Zupply</h1>
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">Crear cuenta Xupply</h1>
           <p className="text-xs text-slate-500 mt-1">Conecta tu negocio a la red de suministros para gastronomía</p>
         </div>
 
@@ -194,7 +194,7 @@ export default function Register() {
         </form>
 
         <p className="mt-6 text-center text-xs text-slate-500">
-          ¿Ya tienes cuenta en Zupply?{' '}
+          ¿Ya tienes cuenta en Xupply?{' '}
           <Link to="/login" className="font-bold text-brand hover:underline">
             Inicia sesión aquí
           </Link>

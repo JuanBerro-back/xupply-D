@@ -1,12 +1,12 @@
-ZUPPLY PORTABLE
+XUPPLY PORTABLE
 ===============
-App de escritorio Zupply que funciona sin instalar nada.
+App de escritorio Xupply que funciona sin instalar nada.
 
 COMO USAR EN OTRO PC (ej. con la USB):
-1) Copia la CARPETA completa "ZupplyPortable" a la USB.
-2) En el otro PC, copia "ZupplyPortable" al Escritorio o Disco Local C:.
+1) Copia la CARPETA completa "XupplyPortable" a la USB.
+2) En el otro PC, copia "XupplyPortable" al Escritorio o Disco Local C:.
    (Puede correr directo desde la USB, pero fluye mejor copiado a C:)
-3) Doble clic en "Iniciar-Zupply.cmd"
+3) Doble clic en "Iniciar-Xupply.cmd"
    - Crea la base PostgreSQL y solicita la contraseña del usuario administrador.
    - Carga el esquema + datos de prueba
    - Abre la ventana de la aplicacion.

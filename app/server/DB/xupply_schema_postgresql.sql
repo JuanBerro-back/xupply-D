@@ -1,5 +1,5 @@
 -- ============================================================
--- ZUPPLY IA - Esquema de Base de Datos PostgreSQL
+-- XUPPLY IA - Esquema de Base de Datos PostgreSQL
 -- Plataforma B2B ERP / Ecosistema Logístico con IA
 -- Surtesoft - v2.0
 -- ============================================================

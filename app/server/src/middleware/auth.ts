@@ -20,7 +20,7 @@ declare global {
   }
 }
 
-const JWT_SECRET = process.env.JWT_SECRET || 'zupply-secret-change-me';
+const JWT_SECRET = process.env.JWT_SECRET || 'xupply-secret-change-me';
 
 const permissionCache = new Map<number, Set<string>>();
 let cacheLoaded = false;

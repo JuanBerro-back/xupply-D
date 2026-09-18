@@ -1,4 +1,4 @@
-# Zupply Desktop - construccion de dependencias
+# Xupply Desktop - construccion de dependencias
 # Instala dependencias y compila server/ y web/.
 param([string]$PostgresPassword = "")
 $ErrorActionPreference = 'Stop'
@@ -26,4 +26,4 @@ if ($PostgresPassword) {
 }
 
 Write-Host ""
-Write-Host "Construccion completa. Inicia con el acceso directo 'Zupply' del Escritorio o con: npm start"
+Write-Host "Construccion completa. Inicia con el acceso directo 'Xupply' del Escritorio o con: npm start"

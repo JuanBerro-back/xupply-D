@@ -30,8 +30,8 @@ export default function AiFloatingWidget() {
       role: 'assistant',
       content:
         lang === 'en'
-          ? 'Hello! I am **Zupply AI**. I can answer any questions about the platform, from basic usage to food cost calculation, wholesale purchasing, or delivery logistics.'
-          : '¡Hola! Soy **Zupply IA**. Puedo responderte cualquier duda de la plataforma, desde preguntas básicas de uso hasta temas complejos como food cost, compras mayoristas o logística de entrega.',
+          ? 'Hello! I am **Xupply AI**. I can answer any questions about the platform, from basic usage to food cost calculation, wholesale purchasing, or delivery logistics.'
+          : '¡Hola! Soy **Xupply IA**. Puedo responderte cualquier duda de la plataforma, desde preguntas básicas de uso hasta temas complejos como food cost, compras mayoristas o logística de entrega.',
     },
   ]);
   const [input, setInput] = useState('');
@@ -59,7 +59,7 @@ export default function AiFloatingWidget() {
         method: 'POST',
         body: JSON.stringify({
           message: queryText,
-          plan: localStorage.getItem('zupply_active_plan') || 'medio',
+          plan: localStorage.getItem('xupply_active_plan') || 'medio',
         }),
       });
 
@@ -85,13 +85,13 @@ export default function AiFloatingWidget() {
           type="button"
           onClick={() => setIsOpen(true)}
           className="fixed bottom-20 lg:bottom-6 right-5 z-40 flex items-center gap-2 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-sky-600 px-4 py-3 text-white shadow-2xl hover:scale-105 active:scale-95 transition-transform duration-200 cursor-pointer border border-white/20"
-          title="Zupply IA"
-          aria-label="Zupply IA"
+          title="Xupply IA"
+          aria-label="Xupply IA"
         >
           <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white/20 text-sm">
             <IconAi className="w-3.5 h-3.5 text-amber-300" />
           </span>
-          <span className="text-xs font-bold tracking-wide">Zupply IA</span>
+          <span className="text-xs font-bold tracking-wide">Xupply IA</span>
           <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
         </button>
       )}
@@ -106,7 +106,7 @@ export default function AiFloatingWidget() {
                 <IconAi className="w-4 h-4 text-amber-300" />
               </div>
               <div>
-                <h3 className="text-xs sm:text-sm font-bold leading-tight">Zupply IA</h3>
+                <h3 className="text-xs sm:text-sm font-bold leading-tight">Xupply IA</h3>
                 <p className="text-[10px] text-white/80">
                   {lang === 'en' ? 'Basic to complex questions · Active' : 'Preguntas básicas a complejas · Activo'}
                 </p>
@@ -155,7 +155,7 @@ export default function AiFloatingWidget() {
                   <p className="whitespace-pre-line">{m.content}</p>
                 </div>
                 <span className="text-[9px] text-slate-400 mt-0.5 px-1">
-                  {m.role === 'user' ? 'Tú' : 'Zupply IA'}
+                  {m.role === 'user' ? 'Tú' : 'Xupply IA'}
                 </span>
               </div>
             ))}

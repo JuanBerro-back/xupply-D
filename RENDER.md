@@ -1,16 +1,16 @@
-# Publicar Zupply en Render
+# Publicar Xupply en Render
 
 1. Sube esta carpeta a un repositorio privado de GitHub.
 2. En Render selecciona **New > Blueprint** y conecta el repositorio.
-3. Render detectara `render.yaml` y creara el servicio web `zupply` y PostgreSQL `zupply-db`.
+3. Render detectara `render.yaml` y creara el servicio web `xupply` y PostgreSQL `xupply-db`.
 4. Cuando el servicio este creado, abre **Shell** en el servicio web y ejecuta:
 
 ```bash
-psql "$DATABASE_URL" -f server/DB/zupply_schema_postgresql.sql
+psql "$DATABASE_URL" -f server/DB/xupply_schema_postgresql.sql
 ```
 
-5. Espera a que `/health` responda `{"status":"ok","service":"zupply-api"}`.
-6. Abre la URL HTTPS de Render en Chrome desde el telefono e instala Zupply desde el menu del navegador.
+5. Espera a que `/health` responda `{"status":"ok","service":"xupply-api"}`.
+6. Abre la URL HTTPS de Render en Chrome desde el telefono e instala Xupply desde el menu del navegador.
 
 ## Variables
 

@@ -146,7 +146,7 @@ router.get('/tenant-info', authRequired, async (req, res, next) => {
       const s = await query('SELECT id, name, logo_url, category FROM suppliers WHERE id = $1', [user.supplier_id]);
       if (s.rowCount) return res.json({ type: 'supplier', subscription_plan: 'premium', ...s.rows[0] });
     }
-    res.json({ type: 'platform', name: 'Zupply', subscription_plan: 'premium' });
+    res.json({ type: 'platform', name: 'Xupply', subscription_plan: 'premium' });
   } catch (err) {
     next(err);
   }

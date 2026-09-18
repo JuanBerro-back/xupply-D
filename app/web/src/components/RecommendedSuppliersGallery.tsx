@@ -107,7 +107,7 @@ export default function RecommendedSuppliersGallery({
             </span>
             <div>
               <p className="text-[10px] uppercase font-black tracking-widest text-emerald-400">
-                Recomendador de Proveedores Zupply
+                Recomendador de Proveedores Xupply
               </p>
               <h2 className="text-sm sm:text-base font-bold text-white">
                 Proveedores Ideales para tu Restaurante: <span className="text-emerald-300 capitalize">{categoryName}</span>
