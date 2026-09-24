@@ -1,14 +1,16 @@
 import { Router } from 'express';
 import { query } from '../config/db';
 import { authRequired, roleRequired } from '../middleware/auth';
-import { emitOrder, emitToUser } from '../lib/realtime';
+import { emitOrder, emitToUser, emitDeliveryPosition, emitDeliveryStatus } from '../lib/realtime';
 import { resolveBucaramangaCoords, BUCARAMANGA_DESTINATIONS, BUCARAMANGA_DISPATCH_HUBS } from '../lib/bucaramangaGeo';
+import { haversineMeters, estimateEtaMinutes, insideGeofence, isValidCoord, slicePolyline } from '../lib/geo';
 
 const router = Router();
 router.use(authRequired);
 
 function deliverySelect() {
   return `SELECT d.*, o.order_code, o.total AS order_total, o.notes AS order_notes,
+                 o.supplier_id AS order_supplier_id,
                  r.name AS restaurant_name, r.phone AS restaurant_phone,
                  r.address AS restaurant_address,
                  v.name AS vehicle_name, v.plate, v.type AS vehicle_type,
@@ -61,6 +63,64 @@ router.get('/my-deliveries', roleRequired('domiciliario'), async (req, res, next
       [user.id]
     );
     res.json(result.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Entregas activas en el mapa (flota del proveedor / seguimiento del restaurante)
+router.get('/live', async (req, res, next) => {
+  try {
+    const user = req.user!;
+    const params: unknown[] = [];
+    // Posición vigente: del vehículo si tiene, si no del domiciliario (driver_locations)
+    let sql = `${deliverySelect()}
+       WHERE d.status IN ('asignado', 'en_camino', 'llegando')
+         AND (
+           (v.current_lat IS NOT NULL AND v.last_location_update > now() - interval '5 minutes')
+           OR EXISTS (SELECT 1 FROM driver_locations dl
+                       WHERE dl.driver_id = d.driver_id
+                         AND dl.recorded_at > now() - interval '5 minutes')
+         )`;
+    if (user.role === 'proveedor_admin' && user.supplier_id) {
+      params.push(user.supplier_id);
+      sql += ` AND o.supplier_id = $${params.length}`;
+    } else if (user.role === 'domiciliario') {
+      params.push(user.id);
+      sql += ` AND d.driver_id = $${params.length}`;
+    } else if (user.restaurant_id) {
+      params.push(user.restaurant_id);
+      sql += ` AND d.restaurant_id = $${params.length}`;
+    } else if (user.role !== 'admin') {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    sql += ' ORDER BY d.updated_at DESC LIMIT 100';
+    const result = await query(sql, params);
+
+    // Resolver posición vigente: vehículo primero, si no el domiciliario
+    const rows = [];
+    for (const r of result.rows) {
+      let lat = r.vehicle_lat !== null && r.vehicle_lat !== undefined ? Number(r.vehicle_lat) : null;
+      let lng = r.vehicle_lng !== null && r.vehicle_lng !== undefined ? Number(r.vehicle_lng) : null;
+      let updatedAt = r.last_location_update ?? null;
+      if ((lat === null || lng === null) && r.driver_id) {
+        const dl = await query('SELECT lat, lng, recorded_at FROM driver_locations WHERE driver_id = $1', [r.driver_id]);
+        if (dl.rowCount) {
+          lat = Number(dl.rows[0].lat);
+          lng = Number(dl.rows[0].lng);
+          updatedAt = dl.rows[0].recorded_at;
+        }
+      }
+      rows.push({
+        ...r,
+        position: lat !== null && lng !== null ? { lat, lng, recorded_at: updatedAt } : null,
+        eta_min:
+          lat !== null && lng !== null
+            ? estimateEtaMinutes(lat, lng, Number(r.dest_lat), Number(r.dest_lng))
+            : null,
+      });
+    }
+    res.json(rows);
   } catch (err) {
     next(err);
   }
@@ -247,7 +307,7 @@ router.post('/', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req
       });
     }
 
-    emitOrder('delivery:status', { delivery_id: deliveryRow.id, status: deliveryRow.status, delivery_code: deliveryRow.delivery_code });
+    emitDeliveryStatus(deliveryRow, { delivery_id: deliveryRow.id, status: deliveryRow.status, delivery_code: deliveryRow.delivery_code, restaurant_id: deliveryRow.restaurant_id, supplier_id: deliveryRow.order_supplier_id });
     res.status(existing.rowCount ? 200 : 201).json(deliveryRow);
   } catch (err) {
     next(err);
@@ -301,7 +361,7 @@ router.patch('/:id/assign', roleRequired('proveedor_admin', 'admin', 'gerente'),
       delivery_id: del.id,
       confirmation_code: confirmationCode,
     });
-    emitOrder('delivery:status', { delivery_id: del.id, status: result.rows[0].status, delivery_code: del.delivery_code });
+    emitDeliveryStatus(del, { delivery_id: del.id, status: result.rows[0].status, delivery_code: del.delivery_code, restaurant_id: del.restaurant_id, supplier_id: del.order_supplier_id });
     res.json(result.rows[0]);
   } catch (err) {
     next(err);
@@ -351,7 +411,7 @@ router.patch('/:id/status', async (req, res, next) => {
       );
       emitOrder('order:updated', updated.rows[0]);
     }
-    emitOrder('delivery:status', { delivery_id: del.id, status, delivery_code: del.delivery_code });
+    emitDeliveryStatus(del, { delivery_id: del.id, status, delivery_code: del.delivery_code, restaurant_id: del.restaurant_id, supplier_id: del.order_supplier_id });
     res.json(result.rows[0]);
   } catch (err) {
     next(err);
@@ -410,7 +470,7 @@ router.post('/:id/confirm', roleRequired('domiciliario', 'gerente', 'admin'), as
     );
 
     if (order.rowCount) emitOrder('order:updated', order.rows[0]);
-    emitOrder('delivery:status', { delivery_id: del.id, status: 'entregado', delivery_code: del.delivery_code });
+    emitDeliveryStatus(del, { delivery_id: del.id, status: 'entregado', delivery_code: del.delivery_code, restaurant_id: del.restaurant_id, supplier_id: del.order_supplier_id });
 
     // Notificar al domiciliario si fue el gerente quien ingresó la llave
     if (del.driver_id) {
@@ -426,41 +486,208 @@ router.post('/:id/confirm', roleRequired('domiciliario', 'gerente', 'admin'), as
   }
 });
 
+// Últimos pings por entrega, para el throttle del servidor (5 s mín.)
+const positionThrottle = new Map<number, number>();
+const MIN_PING_MS = 5000;
+const MIN_MOVE_M = 10; // no guardar en route_history si se movió menos de 10 m
+
 router.patch('/:id/position', async (req, res, next) => {
   try {
     const user = req.user!;
-    const { lat, lng, speed } = req.body;
-    if (lat === undefined || lng === undefined) {
-      return res.status(400).json({ error: 'lat y lng requeridos' });
+    const { lat, lng, speed, heading, accuracy } = req.body;
+    if (!isValidCoord(lat, lng)) {
+      return res.status(400).json({ error: 'lat/lng inválidos (rango fuera de coordenadas válidas)' });
     }
-    const delivery = await query('SELECT * FROM deliveries WHERE id = $1', [req.params.id]);
+    const delivery = await query(`${deliverySelect()} WHERE d.id = $1`, [req.params.id]);
     if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada' });
     const del = delivery.rows[0];
     if (user.role === 'domiciliario' && del.driver_id !== user.id) {
       return res.status(403).json({ error: 'Solo puedes actualizar tu posición en tus entregas' });
     }
+    if (['entregado', 'fallido'].includes(del.status)) {
+      return res.status(400).json({ error: 'La entrega ya finalizó, se dejó de rastrear' });
+    }
+
+    const latN = Number(lat);
+    const lngN = Number(lng);
+    const speedN = speed === undefined || speed === null ? null : Number(speed);
+
+    // Throttle en servidor: ignorar pings más frecuentes que 5 s
+    const lastPing = positionThrottle.get(del.id) ?? 0;
+    const now = Date.now();
+    if (now - lastPing < MIN_PING_MS) {
+      return res.json({ ok: true, throttled: true });
+    }
+    positionThrottle.set(del.id, now);
+
+    // Última posición registrada (para el umbral de movimiento)
+    const last = await query(
+      `SELECT lat, lng FROM route_history
+        WHERE delivery_id = $1 ORDER BY recorded_at DESC LIMIT 1`,
+      [del.id]
+    );
+    const moved = !last.rowCount
+      ? true
+      : haversineMeters(latN, lngN, Number(last.rows[0].lat), Number(last.rows[0].lng)) >= MIN_MOVE_M;
+
+    // Upsert de la posición del domiciliario (funciona con o sin vehículo)
+    await query(
+      `INSERT INTO driver_locations (driver_id, delivery_id, lat, lng, speed, heading, accuracy)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)
+       ON CONFLICT (driver_id) DO UPDATE
+         SET delivery_id = EXCLUDED.delivery_id, lat = EXCLUDED.lat, lng = EXCLUDED.lng,
+             speed = EXCLUDED.speed, heading = EXCLUDED.heading, accuracy = EXCLUDED.accuracy,
+             recorded_at = CURRENT_TIMESTAMP`,
+      [user.id, del.id, latN, lngN, speedN, heading ?? null, accuracy ?? null]
+    );
     if (del.vehicle_id) {
       await query(
         `UPDATE vehicles SET current_lat = $1, current_lng = $2, last_location_update = CURRENT_TIMESTAMP,
           gps_last_seen = CURRENT_TIMESTAMP WHERE id = $3`,
-        [lat, lng, del.vehicle_id]
+        [latN, lngN, del.vehicle_id]
       );
     }
-    if (del.driver_id) {
-      emitOrder('delivery:position', {
+    if (moved) {
+      await query(
+        `INSERT INTO route_history (vehicle_id, delivery_id, driver_id, lat, lng, speed, heading, accuracy)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+        [del.vehicle_id ?? null, del.id, user.id, latN, lngN, speedN, heading ?? null, accuracy ?? null]
+      );
+    }
+
+    // ETA hacia el destino de la entrega
+    const etaMin = estimateEtaMinutes(latN, lngN, Number(del.dest_lat), Number(del.dest_lng), speedN);
+
+    // Geocerca automática: < 500 m con status 'en_camino' => 'llegando'
+    let statusChanged: string | null = null;
+    if (del.status === 'en_camino' && insideGeofence(latN, lngN, Number(del.dest_lat), Number(del.dest_lng))) {
+      await query(`UPDATE deliveries SET status = 'llegando', updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [del.id]);
+      statusChanged = 'llegando';
+      const currentOrder = await query('SELECT id, status FROM orders WHERE id = $1', [del.order_id]);
+      if (currentOrder.rowCount && currentOrder.rows[0].status === 'en_camino') {
+        await query(`UPDATE orders SET updated_at = CURRENT_TIMESTAMP WHERE id = $1`, [del.order_id]);
+      }
+      emitDeliveryStatus(del, {
         delivery_id: del.id,
-        lat,
-        lng,
-        speed: speed ?? null,
-        driver_name: user.username,
+        status: 'llegando',
+        delivery_code: del.delivery_code,
+        auto: true,
+      });
+      emitToUser('notification:created', del.driver_id ?? 0, {
+        message: `Estás llegando al destino de ${del.delivery_code} (geocerca detectada)`,
+        delivery_id: del.id,
       });
     }
-    await query(
-      `INSERT INTO route_history (vehicle_id, delivery_id, lat, lng, speed)
-       VALUES ($1, $2, $3, $4, $5)`,
-      [del.vehicle_id, req.params.id, lat, lng, speed ?? null]
+
+    const payload = {
+      delivery_id: del.id,
+      order_id: del.order_id,
+      restaurant_id: del.restaurant_id,
+      driver_id: del.driver_id,
+      driver_name: del.driver_name,
+      lat: latN,
+      lng: lngN,
+      speed: speedN,
+      heading: heading ?? null,
+      accuracy: accuracy ?? null,
+      eta_min: etaMin,
+      status: statusChanged ?? del.status,
+      recorded_at: new Date().toISOString(),
+    };
+    emitDeliveryPosition(del, payload);
+
+    res.json({ ok: true, eta_min: etaMin, status: payload.status });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Seguimiento completo: posición actual + ETA + polilínea del recorrido
+router.get('/:id/track', async (req, res, next) => {
+  try {
+    const user = req.user!;
+    const delivery = await query(`${deliverySelect()} WHERE d.id = $1`, [req.params.id]);
+    if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada' });
+    const del = delivery.rows[0];
+    if (user.role === 'domiciliario' && del.driver_id !== user.id) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    if (user.role === 'proveedor_admin' && user.supplier_id && del.supplier_id !== user.supplier_id) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+    if (user.restaurant_id && del.restaurant_id !== user.restaurant_id) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+
+    const active = ['asignado', 'en_camino', 'llegando'].includes(del.status);
+
+    // Posición actual: driver_locations primero (no requiere vehículo), luego vehículo
+    let position: Record<string, unknown> | null = null;
+    if (del.driver_id) {
+      const dl = await query('SELECT * FROM driver_locations WHERE driver_id = $1', [del.driver_id]);
+      if (dl.rowCount) position = dl.rows[0];
+    }
+    if (!position && del.vehicle_lat !== null && del.vehicle_lat !== undefined) {
+      position = {
+        lat: del.vehicle_lat,
+        lng: del.vehicle_lng,
+        recorded_at: del.last_location_update,
+        speed: null,
+      };
+    }
+    if (!active) position = null; // entregado/fallido: sin tracking
+
+    const route = await query(
+      `SELECT lat, lng, speed, recorded_at FROM route_history
+        WHERE delivery_id = $1 ORDER BY recorded_at ASC`,
+      [del.id]
     );
-    res.json({ ok: true });
+
+    const etaMin =
+      position && active
+        ? estimateEtaMinutes(
+            Number(position.lat),
+            Number(position.lng),
+            Number(del.dest_lat),
+            Number(del.dest_lng),
+            position.speed ? Number(position.speed) : null
+          )
+        : null;
+
+    const distanceM =
+      position && active
+        ? Math.round(
+            haversineMeters(
+              Number(position.lat),
+              Number(position.lng),
+              Number(del.dest_lat),
+              Number(del.dest_lng)
+            )
+          )
+        : null;
+
+    res.json({
+      delivery_id: del.id,
+      delivery_code: del.delivery_code,
+      status: del.status,
+      active,
+      driver: del.driver_id
+        ? { id: del.driver_id, name: del.driver_name, phone: del.driver_phone }
+        : null,
+      vehicle: del.vehicle_id
+        ? { id: del.vehicle_id, name: del.vehicle_name, plate: del.plate }
+        : null,
+      position,
+      destination: {
+        lat: Number(del.dest_lat),
+        lng: Number(del.dest_lng),
+        address: del.delivery_address,
+      },
+      distance_m: distanceM,
+      eta_min: etaMin,
+      polyline: slicePolyline(route.rows),
+      points_count: route.rows.length,
+    });
   } catch (err) {
     next(err);
   }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { InventoryItem } from '../types';
 import Modal from '../components/Modal';
@@ -82,9 +83,17 @@ export default function Inventory() {
     <div>
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-bold">Inventario</h2>
-        <button onClick={() => { setForm(emptyForm); setModal(true); }} className="rounded bg-brand px-4 py-2 text-sm text-white">
-          + Nuevo ítem
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            to="/radar"
+            className="rounded border border-rose-300 bg-rose-50 px-3 py-2 text-sm font-semibold text-rose-700 hover:bg-rose-100 transition"
+          >
+            📡 Radar de Stock
+          </Link>
+          <button onClick={() => { setForm(emptyForm); setModal(true); }} className="rounded bg-brand px-4 py-2 text-sm text-white">
+            + Nuevo ítem
+          </button>
+        </div>
       </div>
 
       {alerts.length > 0 && (

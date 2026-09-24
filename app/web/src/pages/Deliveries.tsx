@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
 import { getExactLocation, watchExactLocation, requestLocationPermissions } from '../lib/location';
@@ -17,7 +17,17 @@ import {
 } from '../lib/bucaramangaGeo';
 import { IconPin, IconKey } from '../components/Icons';
 
-type PositionEvent = { delivery_id: number; lat: number; lng: number; speed?: number | null };
+type PositionEvent = {
+  delivery_id: number;
+  lat: number;
+  lng: number;
+  speed?: number | null;
+  heading?: number | null;
+  accuracy?: number | null;
+  eta_min?: number | null;
+  status?: string;
+  driver_name?: string;
+};
 const DELIVERY_STORAGE_KEY = 'xupply_deliveries_route_v2';
 
 // Fórmula de Haversine para calcular distancia en kilómetros entre dos coordenadas GPS
@@ -183,6 +193,7 @@ function LiveMap({
   isDriver,
   liveSpeed,
   gpsAccuracy,
+  liveEta,
 }: {
   deliveries: Delivery[];
   selected: Delivery | null;
@@ -191,6 +202,7 @@ function LiveMap({
   isDriver: boolean;
   liveSpeed: number | null;
   gpsAccuracy: number | null;
+  liveEta?: number | null;
 }) {
   const active = deliveries.filter((d) => d.status !== 'entregado' && d.status !== 'fallido');
 
@@ -378,7 +390,7 @@ function LiveMap({
               <p className="text-xl font-extrabold text-blue-400 flex items-baseline gap-2">
                 {formatDistance(proximityData.distKm)}
                 <span className="text-xs font-normal text-emerald-300">
-                  ({formatEta(proximityData.distKm, liveSpeed)})
+                  {liveEta != null ? `~${liveEta} min (servidor)` : formatEta(proximityData.distKm, liveSpeed)}
                 </span>
               </p>
             </div>
@@ -473,6 +485,10 @@ export default function Deliveries() {
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [gpsStatus, setGpsStatus] = useState<'activo' | 'inactivo' | 'pendiente' | 'error'>('inactivo');
   const [gpsManualEnabled, setGpsManualEnabled] = useState(true);
+  // ETA calculado por el servidor (geocerca/velocidad real) por entrega
+  const [serverEta, setServerEta] = useState<Record<number, number | null>>({});
+  // Throttle local de pings GPS al servidor (mín. 5 s, el backend también valida)
+  const lastPingRef = useRef(0);
 
   // Modal para confirmar entrega con código
   const [confirmModal, setConfirmModal] = useState(false);
@@ -534,6 +550,18 @@ export default function Deliveries() {
 
     const onPosition = (event: PositionEvent) => {
       setLiveSpeed(event.speed ?? null);
+      if (typeof event.eta_min === 'number') {
+        const eta = event.eta_min;
+        setServerEta((prev) => ({ ...prev, [event.delivery_id]: eta }));
+      }
+      // Sincronizar la tarjeta de acciones si la geocerca cambió el estado (p. ej. → 'llegando')
+      if (event.status) {
+        setSelected((prev) =>
+          prev && prev.id === event.delivery_id && prev.status !== event.status
+            ? { ...prev, status: event.status as Delivery['status'] }
+            : prev
+        );
+      }
       setDeliveries((current) =>
         current.map((delivery) =>
           delivery.id === event.delivery_id
@@ -542,6 +570,9 @@ export default function Deliveries() {
                 vehicle_lat: event.lat,
                 vehicle_lng: event.lng,
                 last_location_update: new Date().toISOString(),
+                ...(event.status && event.status !== delivery.status
+                  ? { status: event.status as Delivery['status'] }
+                  : {}),
               }
             : delivery
         )
@@ -621,14 +652,21 @@ export default function Deliveries() {
           );
 
           if (myActiveDelivery) {
-            api(`/deliveries/${myActiveDelivery.id}/position`, {
-              method: 'PATCH',
-              body: JSON.stringify({
-                lat: loc.lat,
-                lng: loc.lng,
-                speed: loc.speed,
-              }),
-            }).catch(() => undefined);
+            // Throttle local: máximo un ping cada 5 s (igual que el backend)
+            const now = Date.now();
+            if (now - lastPingRef.current >= 5000) {
+              lastPingRef.current = now;
+              api(`/deliveries/${myActiveDelivery.id}/position`, {
+                method: 'PATCH',
+                body: JSON.stringify({
+                  lat: loc.lat,
+                  lng: loc.lng,
+                  speed: loc.speed,
+                  heading: loc.heading ?? null,
+                  accuracy: loc.accuracy,
+                }),
+              }).catch(() => undefined);
+            }
           }
         }
       },
@@ -643,6 +681,18 @@ export default function Deliveries() {
       unwatch();
     };
   }, [isDriver, gpsManualEnabled, deliveries, user?.id]);
+
+  // Unirse a la sala de seguimiento de la entrega seleccionada
+  // (el backend emite delivery:position/status/eta solo a las partes autorizadas)
+  const selectedId = selected?.id;
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket || !selectedId) return;
+    socket.emit('delivery:join', selectedId);
+    return () => {
+      socket.emit('delivery:leave', selectedId);
+    };
+  }, [selectedId]);
 
   const changeStatus = async (id: number, status: string) => {
     try {
@@ -833,6 +883,7 @@ export default function Deliveries() {
           isDriver={isDriver}
           liveSpeed={liveSpeed}
           gpsAccuracy={gpsAccuracy}
+          liveEta={selected ? serverEta[selected.id] : null}
         />
 
         {/* Lista lateral de entregas activas */}
@@ -981,6 +1032,11 @@ export default function Deliveries() {
                       >
                         Estoy Llegando al Destino
                       </button>
+                    )}
+                    {selected.status === 'en_camino' && (
+                      <p className="col-span-2 text-[10px] text-slate-400 text-center">
+                        ℹ️ Al entrar en la geocerca de 500 m el sistema cambia a "Llegando" automáticamente.
+                      </p>
                     )}
                     {selected.status !== 'entregado' && (
                       <button

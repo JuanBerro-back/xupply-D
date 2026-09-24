@@ -20,6 +20,7 @@ import Deliveries from './pages/Deliveries';
 import Plans from './pages/Plans';
 import AiAssistant from './pages/AiAssistant';
 import TeamManagement from './pages/TeamManagement';
+import Radar from './pages/Radar';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/pedidos" element={<RequireAuth><Orders /></RequireAuth>} />
           <Route path="/pedidos/:id" element={<RequireAuth><OrderDetail /></RequireAuth>} />
           <Route path="/inventario" element={<RolesAllowed roles={['admin', 'gerente', 'empleado']}><Inventory /></RolesAllowed>} />
+          <Route path="/radar" element={<RolesAllowed roles={['admin', 'gerente', 'empleado', 'proveedor_admin']}><Radar /></RolesAllowed>} />
           <Route path="/facturacion" element={<RolesAllowed roles={['admin', 'gerente']}><Invoices /></RolesAllowed>} />
           <Route path="/contabilidad" element={<RolesAllowed roles={['admin', 'gerente']}><Accounting /></RolesAllowed>} />
           <Route path="/proveedores" element={<RequireAuth><Suppliers /></RequireAuth>} />

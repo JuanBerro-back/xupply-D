@@ -192,6 +192,21 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                 </Link>
               )}
 
+              {(isRestaurant || isSupplier) && (
+                <Link to="/radar" className={linkItemClass}>
+                  <span className="flex items-center gap-3">
+                    <svg className="w-4 h-4 text-rose-600 dark:text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    <span>{lang === 'es' ? 'Radar de Stock' : 'Stock Radar'}</span>
+                  </span>
+                  <span className="text-[10px] text-rose-700 bg-rose-100 dark:bg-rose-900/50 dark:text-rose-300 font-bold px-2 py-0.5 rounded-md">
+                    {isSupplier ? (lang === 'es' ? 'OFERTAR' : 'BID') : 'RADAR'}
+                  </span>
+                </Link>
+              )}
+
               {isOwner && (
                 <Link to="/equipo" className={linkItemClass}>
                   <span className="flex items-center gap-3">

@@ -226,6 +226,89 @@ export interface Notification {
   at: string;
 }
 
+// ---------------------------------------------------------------
+// Radar de Stock (oferta entrante de proveedores)
+// ---------------------------------------------------------------
+
+export interface RadarShare {
+  id: number;
+  restaurant_id: number;
+  supplier_id: number;
+  supplier_name?: string;
+  scope: 'todo' | 'categoria' | 'producto';
+  category: string | null;
+  inventory_id: number | null;
+  share_level: 'semaforo' | 'cantidad';
+  alert_on: 'critical' | 'low';
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface RadarAlert {
+  id: number;
+  restaurant_id: number;
+  restaurant_name?: string;
+  supplier_id: number;
+  supplier_name?: string;
+  inventory_id: number;
+  item_name?: string;
+  category?: string | null;
+  level: 'critical' | 'low';
+  unit: string | null;
+  suggested_qty: string | number;
+  status: 'abierta' | 'ofertada' | 'aceptada' | 'rechazada' | 'cerrada' | 'expirada';
+  opened_at: string;
+  expires_at: string;
+  share_level?: string;
+}
+
+export interface RadarOffer {
+  id: number;
+  alert_id: number;
+  supplier_id: number;
+  supplier_name?: string;
+  restaurant_id?: number;
+  restaurant_name?: string;
+  inventory_id?: number;
+  item_name?: string;
+  category?: string | null;
+  product_name: string;
+  unit: string | null;
+  offered_qty: string | number;
+  offered_price: string | number;
+  eta_hours: number;
+  notes: string | null;
+  status: 'pendiente' | 'aceptada' | 'rechazada' | 'expirada';
+  order_id: number | null;
+  order_code?: string;
+  created_at: string;
+  valid_until: string;
+}
+
+// ---------------------------------------------------------------
+// Seguimiento GPS en vivo
+// ---------------------------------------------------------------
+
+export interface DeliveryTrack {
+  delivery_id: number;
+  delivery_code: string;
+  status: string;
+  active: boolean;
+  driver: { id: number; name: string; phone?: string | null } | null;
+  vehicle: { id: number; name: string; plate?: string | null } | null;
+  position: {
+    lat: number | string;
+    lng: number | string;
+    speed?: number | string | null;
+    recorded_at?: string | null;
+  } | null;
+  destination: { lat: number; lng: number; address?: string | null };
+  distance_m: number | null;
+  eta_min: number | null;
+  polyline: Array<{ lat: number; lng: number }>;
+  points_count: number;
+}
+
 export interface TenantInfo {
   type: 'restaurant' | 'supplier' | 'platform';
   id?: number;

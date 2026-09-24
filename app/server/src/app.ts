@@ -16,6 +16,7 @@ import deliveriesRouter from './routes/deliveries';
 import dashboardRouter from './routes/dashboard';
 import aiRouter from './routes/ai';
 import usersRouter from './routes/users';
+import radarRouter from './routes/radar';
 import { notFound, errorHandler } from './middleware/error';
 
 export function createApp() {
@@ -51,6 +52,7 @@ export function createApp() {
   app.use('/api/dashboard', dashboardRouter);
   app.use('/api/ai', aiRouter);
   app.use('/api/users', usersRouter);
+  app.use('/api/radar', radarRouter);
 
   // Endpoint de descarga directa del instalador APK para Android
   const serveApk = (_req: express.Request, res: express.Response) => {

@@ -28,13 +28,29 @@ export function NotificationProvider({ children }: { children: ReactNode }) {
     const onOrder = () => push({ message: 'Un pedido fue actualizado', at: new Date().toISOString() });
     const onInventory = (n: { message?: string }) =>
       push({ message: n.message ?? 'Alerta de inventario', at: new Date().toISOString() });
+    const onRadarAlert = (a: { item?: string; level?: string; suggested_qty?: number; unit?: string; restaurant?: number }) =>
+      push({
+        message: `📡 Radar: "${a.item ?? 'insumo'}" en nivel ${a.level === 'critical' ? 'CRÍTICO' : 'BAJO'}${
+          a.suggested_qty ? ` — sugieren ${a.suggested_qty}${a.unit ?? ''}` : ''
+        }`,
+        at: new Date().toISOString(),
+      });
+    const onRadarOffer = (o: { item?: string }) =>
+      push({
+        message: `💰 Oferta entrante en el Radar: "${o.item ?? 'insumo'}"`,
+        at: new Date().toISOString(),
+      });
     socket.on('notification:created', onNotification);
     socket.on('order:updated', onOrder);
     socket.on('inventory:alert', onInventory);
+    socket.on('radar:alert', onRadarAlert);
+    socket.on('radar:offer', onRadarOffer);
     return () => {
       socket.off('notification:created', onNotification);
       socket.off('order:updated', onOrder);
       socket.off('inventory:alert', onInventory);
+      socket.off('radar:alert', onRadarAlert);
+      socket.off('radar:offer', onRadarOffer);
     };
   }, [user, push]);
 

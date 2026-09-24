@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query } from '../config/db';
 import { authRequired, roleRequired } from '../middleware/auth';
 import { emitInventoryAlert } from '../lib/realtime';
+import { checkRadarTrigger } from '../lib/radar';
 
 const router = Router();
 router.use(authRequired);
@@ -83,6 +84,10 @@ router.put('/:id', roleRequired('gerente', 'empleado', 'admin'), async (req, res
     const user = req.user!;
     const { current_stock, min_stock, name, category, unit, max_stock, cost_per_unit, supplier_id, expiry_date } =
       req.body;
+    const previous = await query('SELECT stock_status FROM inventory WHERE id = $1 AND restaurant_id = $2', [
+      req.params.id,
+      user.restaurant_id,
+    ]);
     const result = await query(
       `UPDATE inventory
        SET name = COALESCE($2, name), category = COALESCE($3, category),
@@ -97,7 +102,12 @@ router.put('/:id', roleRequired('gerente', 'empleado', 'admin'), async (req, res
       [req.params.id, name, category, unit, current_stock, min_stock, max_stock, cost_per_unit, supplier_id, expiry_date, user.restaurant_id]
     );
     if (!result.rowCount) return res.status(404).json({ error: 'Ítem de inventario no encontrado' });
-    res.json(result.rows[0]);
+    const updated = result.rows[0];
+    const previousStatus = previous.rowCount ? previous.rows[0].stock_status : updated.stock_status;
+    if (previousStatus !== updated.stock_status) {
+      void checkRadarTrigger(updated, previousStatus);
+    }
+    res.json(updated);
   } catch (err) {
     next(err);
   }
@@ -117,9 +127,9 @@ router.post('/:id/movements', roleRequired('gerente', 'empleado', 'admin'), asyn
     const newStock = type === 'entrada' ? previous + Number(quantity) : Math.max(0, previous - Number(quantity));
     await query(
       `UPDATE inventory SET current_stock = $1, stock_status = CASE
-         WHEN $1 <= min_stock THEN 'critical'
-         WHEN $1 <= min_stock * 2 THEN 'low'
-         ELSE 'normal' END, updated_at = CURRENT_TIMESTAMP
+         WHEN $1 <= min_stock THEN 'critical'::inventory_stock_status
+         WHEN $1 <= min_stock * 2 THEN 'low'::inventory_stock_status
+         ELSE 'normal'::inventory_stock_status END, updated_at = CURRENT_TIMESTAMP
        WHERE id = $2`,
       [newStock, req.params.id]
     );
@@ -128,6 +138,13 @@ router.post('/:id/movements', roleRequired('gerente', 'empleado', 'admin'), asyn
        VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [req.params.id, type, quantity, previous, newStock, notes, user.id]
     );
+    const updated = await query('SELECT * FROM inventory WHERE id = $1', [req.params.id]);
+    if (updated.rowCount && updated.rows[0].stock_status !== item.stock_status) {
+      void checkRadarTrigger(updated.rows[0], item.stock_status);
+      if (updated.rows[0].stock_status === 'critical') {
+        emitInventoryAlert(user.restaurant_id ?? 0, { message: `Stock crítico: ${updated.rows[0].name}` });
+      }
+    }
     res.json({ ok: true, previous_stock: previous, new_stock: newStock });
   } catch (err) {
     next(err);

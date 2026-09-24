@@ -6,6 +6,7 @@ export interface LocationData {
   lng: number;
   accuracy: number;
   speed?: number | null;
+  heading?: number | null;
 }
 
 export async function requestLocationPermissions(): Promise<boolean> {
@@ -40,6 +41,7 @@ export async function getExactLocation(): Promise<LocationData | null> {
           lng: pos.coords.longitude,
           accuracy: Math.round(pos.coords.accuracy),
           speed: pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : null,
+          heading: Number.isFinite(pos.coords.heading) ? Math.round(pos.coords.heading as number) : null,
         };
       }
     } catch (e) {
@@ -90,6 +92,7 @@ export function watchExactLocation(
               lng: pos.coords.longitude,
               accuracy: Math.round(pos.coords.accuracy),
               speed: pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : null,
+              heading: Number.isFinite(pos.coords.heading) ? Math.round(pos.coords.heading as number) : null,
             });
           } else if (err) {
             onError?.(err);
@@ -116,6 +119,7 @@ export function watchExactLocation(
             lng: pos.coords.longitude,
             accuracy: Math.round(pos.coords.accuracy),
             speed: pos.coords.speed ? Math.round(pos.coords.speed * 3.6) : null,
+            heading: Number.isFinite(pos.coords.heading) ? Math.round(pos.coords.heading as number) : null,
           });
         },
         onError,
