@@ -27,7 +27,6 @@ import UsuariosAdmin from './pages/admin/UsuariosAdmin';
 import RolesAdmin from './pages/admin/RolesAdmin';
 import PermisosAdmin from './pages/admin/PermisosAdmin';
 import AuditoriaAdmin from './pages/admin/AuditoriaAdmin';
-import ComerciosAdmin from './pages/admin/ComerciosAdmin';
 import ComercioProfile from './pages/ComercioProfile';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -73,7 +72,6 @@ export default function App() {
           <Route path="/admin" element={<RolesAllowed roles={['admin']}><AdminLayout /></RolesAllowed>}>
             <Route index element={<DashboardAdmin />} />
             <Route path="usuarios" element={<UsuariosAdmin />} />
-            <Route path="comercios" element={<ComerciosAdmin />} />
             <Route path="roles" element={<RolesAdmin />} />
             <Route path="permisos" element={<PermisosAdmin />} />
             <Route path="auditoria" element={<AuditoriaAdmin />} />

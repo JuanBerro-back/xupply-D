@@ -30,7 +30,6 @@ export default function AdminLayout() {
   const navItems = [
     { to: '/admin', label: 'Panel Principal', end: true, icon: IconDashboard },
     { to: '/admin/usuarios', label: 'Usuarios', icon: IconTeam },
-    { to: '/admin/comercios', label: 'Comercios', icon: IconStore },
     { to: '/admin/roles', label: 'Roles', icon: IconKey },
     { to: '/admin/permisos', label: 'Permisos', icon: IconShield },
     { to: '/admin/auditoria', label: 'Auditoría', icon: IconDocument },
