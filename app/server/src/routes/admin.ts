@@ -683,6 +683,26 @@ router.get('/restaurants', requirePermission('config'), async (_req: Request, re
   }
 });
 
+router.get('/comercios/:type/:id', requirePermission('config'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { type, id } = req.params;
+    if (type === 'restaurant') {
+      const rest = await query('SELECT * FROM restaurants WHERE id = $1', [id]);
+      if (!rest.rowCount) return res.status(404).json({ error: 'Not found' });
+      const menu = await query('SELECT * FROM menu_products WHERE restaurant_id = $1', [id]);
+      return res.json({ profile: rest.rows[0], catalog: menu.rows });
+    } else if (type === 'supplier') {
+      const sup = await query('SELECT * FROM suppliers WHERE id = $1', [id]);
+      if (!sup.rowCount) return res.status(404).json({ error: 'Not found' });
+      const prods = await query('SELECT p.*, c.name as category_name FROM products p LEFT JOIN product_categories c ON c.id = p.category_id WHERE p.supplier_id = $1', [id]);
+      return res.json({ profile: sup.rows[0], catalog: prods.rows });
+    }
+    res.status(400).json({ error: 'Invalid type' });
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/branches', requirePermission('config'), async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { restaurant_id } = req.query;

@@ -59,9 +59,10 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
 
   const isSupplier = user?.role === 'proveedor_admin';
   const isDomiciliario = user?.role === 'domiciliario';
-  const isOwner = user?.role === 'admin' || user?.role === 'gerente' || user?.role === 'proveedor_admin';
-  const isRestaurant = !isSupplier && (!!user?.restaurant_id || user?.role === 'gerente' || user?.role === 'empleado');
-  const canTrack = user?.role === 'admin' || isSupplier || isDomiciliario;
+  const isAdmin = user?.role === 'admin';
+  const isOwner = user?.role === 'gerente' || user?.role === 'proveedor_admin';
+  const isRestaurant = !isSupplier && !isAdmin && (!!user?.restaurant_id || user?.role === 'gerente' || user?.role === 'empleado');
+  const canTrack = isAdmin || isSupplier || isDomiciliario;
 
   const linkItemClass =
     'flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 font-medium transition text-xs sm:text-sm dark:text-slate-200 dark:hover:bg-slate-800';
@@ -111,10 +112,11 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           <AppDownloadNotice compact />
 
           {/* Módulos Principales */}
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              {lang === 'es' ? 'Módulos Principales' : 'Main Modules'}
-            </p>
+          {!isAdmin && (
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+                {lang === 'es' ? 'Módulos Principales' : 'Main Modules'}
+              </p>
             <div className="space-y-1" onClick={onClose}>
               <Link to="/" className={linkItemClass}>
                 <span className="flex items-center gap-3">
@@ -163,12 +165,14 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
               )}
             </div>
           </div>
+          )}
 
           {/* Operaciones & Logística */}
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              {lang === 'es' ? 'Operaciones & Cadena de Suministro' : 'Operations & Supply Chain'}
-            </p>
+          {!isAdmin && (
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+                {lang === 'es' ? 'Operaciones & Cadena de Suministro' : 'Operations & Supply Chain'}
+              </p>
             <div className="space-y-1" onClick={onClose}>
               {isRestaurant && (
                 <Link to="/inventario" className={linkItemClass}>
@@ -231,12 +235,14 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
               </Link>
             </div>
           </div>
+          )}
 
           {/* Finanzas & Inteligencia */}
-          <div>
-            <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              {lang === 'es' ? 'Finanzas & Automatización' : 'Finance & Automation'}
-            </p>
+          {!isAdmin && (
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+                {lang === 'es' ? 'Finanzas & Automatización' : 'Finance & Automation'}
+              </p>
             <div className="space-y-1" onClick={onClose}>
               {isOwner && !isDomiciliario && (
                 <>
@@ -274,9 +280,10 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
               </Link>
             </div>
           </div>
+          )}
 
           {/* Administración (Solo Super Admin) */}
-          {user?.role === 'admin' && (
+          {isAdmin && (
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
                 Administración

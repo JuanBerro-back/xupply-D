@@ -18,6 +18,12 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
       -- Validacion JWT en tiempo real
       ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INT DEFAULT 1;
 
+      -- Perfiles de Comercios tipo Facebook
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS description TEXT;
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS cover_url VARCHAR(500);
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS description TEXT;
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS cover_url VARCHAR(500);
+
       -- Columnas que el código de entregas usa pero el esquema base no incluía
       ALTER TABLE deliveries ADD COLUMN IF NOT EXISTS confirmation_code VARCHAR(10);
       ALTER TABLE deliveries ADD COLUMN IF NOT EXISTS actual_delivery_time TIMESTAMP NULL;

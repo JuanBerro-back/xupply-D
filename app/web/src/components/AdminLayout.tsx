@@ -12,6 +12,14 @@ function IconShield({ className }: { className?: string }) {
   );
 }
 
+function IconStore({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V10l-7-4-7 4v11h4v-6h6v6h4z" />
+    </svg>
+  );
+}
+
 export default function AdminLayout() {
   const { user } = useAuth();
   
@@ -22,6 +30,7 @@ export default function AdminLayout() {
   const navItems = [
     { to: '/admin', label: 'Panel Principal', end: true, icon: IconDashboard },
     { to: '/admin/usuarios', label: 'Usuarios', icon: IconTeam },
+    { to: '/admin/comercios', label: 'Comercios', icon: IconStore },
     { to: '/admin/roles', label: 'Roles', icon: IconKey },
     { to: '/admin/permisos', label: 'Permisos', icon: IconShield },
     { to: '/admin/auditoria', label: 'Auditoría', icon: IconDocument },
