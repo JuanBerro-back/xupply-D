@@ -10,6 +10,7 @@ export interface AuthUser {
   restaurant_id: number | null;
   supplier_id: number | null;
   branch_id: number | null;
+  token_version?: number;
 }
 
 declare global {
@@ -50,15 +51,31 @@ export function signToken(user: AuthUser): string {
   return jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
 }
 
-export function authRequired(req: Request, res: Response, next: NextFunction) {
+export async function authRequired(req: Request, res: Response, next: NextFunction) {
   const header = req.headers.authorization;
   if (!header || !header.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Token requerido' });
   }
   try {
-    req.user = jwt.verify(header.slice(7), JWT_SECRET) as AuthUser;
+    const decoded = jwt.verify(header.slice(7), JWT_SECRET) as AuthUser;
+    
+    // Verificación en tiempo real contra DB para invalidar sesiones antiguas,
+    // revocar accesos de usuarios inactivos o cuando sus roles/permisos cambian drásticamente.
+    const userCheck = await query('SELECT token_version, is_active FROM users WHERE id = $1', [decoded.id]);
+    
+    if (!userCheck.rowCount || !userCheck.rows[0].is_active) {
+      return res.status(401).json({ error: 'Cuenta inactiva o eliminada' });
+    }
+    
+    // Si el token tiene version, compararla. Si el token es antiguo (antes de agregar la columna),
+    // se considerará válido hasta que se venza o se requiera forzosamente.
+    if (decoded.token_version !== undefined && userCheck.rows[0].token_version !== decoded.token_version) {
+      return res.status(401).json({ error: 'Sesión invalidada por cambios en la cuenta. Por favor inicie sesión nuevamente.' });
+    }
+
+    req.user = decoded;
     next();
-  } catch {
+  } catch (err) {
     return res.status(401).json({ error: 'Token inválido o expirado' });
   }
 }

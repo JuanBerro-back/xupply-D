@@ -169,6 +169,7 @@ router.put('/users/:id', requirePermission('config'), async (req: Request, res: 
            supplier_id = COALESCE($8, supplier_id),
            vehicle_type = COALESCE($9, vehicle_type),
            vehicle_plate = COALESCE($10, vehicle_plate),
+           token_version = CASE WHEN role_id != COALESCE($5, role_id) THEN token_version + 1 ELSE token_version END,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING id, username, name, email, phone, role_id, restaurant_id, branch_id, supplier_id, vehicle_type, vehicle_plate, is_active, updated_at`,
@@ -189,7 +190,7 @@ router.patch('/users/:id/activate', requirePermission('config'), async (req: Req
     if (!target.rowCount) return res.status(404).json({ error: 'Usuario no encontrado' });
     
     const result = await query(
-      `UPDATE users SET is_active = TRUE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`, 
+      `UPDATE users SET is_active = TRUE, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`, 
       [id]
     );
     
@@ -219,7 +220,7 @@ router.patch('/users/:id/deactivate', requirePermission('config'), async (req: R
     }
     
     const result = await query(
-      `UPDATE users SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`, 
+      `UPDATE users SET is_active = FALSE, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $1 RETURNING *`, 
       [id]
     );
     
@@ -242,7 +243,7 @@ router.patch('/users/:id/password', requirePermission('config'), async (req: Req
     if (!target.rowCount) return res.status(404).json({ error: 'Usuario no encontrado' });
     
     const hash = await bcrypt.hash(String(password), 10);
-    await query('UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, id]);
+    await query('UPDATE users SET password_hash = $1, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, id]);
     
     await logAudit(req, 'change_password', 'user', Number(id), null, { message: 'Password updated' });
     res.json({ ok: true });
@@ -253,15 +254,12 @@ router.patch('/users/:id/password', requirePermission('config'), async (req: Req
 
 router.post('/users/:id/force-logout', requirePermission('config'), async (req: Request, res: Response, next: NextFunction) => {
   try {
-    // Nota: El sistema usa JWT stateless con caducidad de 7 días.
-    // Esta operación registrará la intención de cierre de sesión, pero para forzar
-    // verdaderamente un logout, se requeriría una tabla de blocklist de JWTs o
-    // incrementar una "token_version" en la tabla users y verificarla en el authRequired.
-    // Se responde informando de esta limitación.
-    await logAudit(req, 'force_logout', 'user', Number(req.params.id), null, { note: 'Requires frontend to discard token or token_version check' });
+    // Invalidamos el token directamente iterando su version
+    await query('UPDATE users SET token_version = token_version + 1 WHERE id = $1', [Number(req.params.id)]);
+    await logAudit(req, 'force_logout', 'user', Number(req.params.id), null, { note: 'JWT successfully invalidated via token_version' });
     res.json({ 
       ok: true, 
-      message: 'Intención de cierre de sesión registrada. Por la naturaleza stateless de JWT, el token actual seguirá siendo válido hasta que expire a menos que el frontend lo borre localmente o se implemente token_version en DB.' 
+      message: 'Sesión cerrada con éxito. Los tokens actuales del usuario han sido invalidados en tiempo real.' 
     });
   } catch (err) {
     next(err);
@@ -576,6 +574,9 @@ router.put('/roles/:id/permissions', requirePermission('config'), async (req: Re
     
     await query('COMMIT');
     
+    // Invalidar tokens de los usuarios afectados para forzar actualizacion de RBAC local
+    await query('UPDATE users SET token_version = token_version + 1 WHERE role_id = $1', [numericId]);
+
     await logAudit(req, 'update_permissions', 'role', numericId, 
       { permissions: oldPerms.rows.map(r => r.permission_id) }, 
       { permissions }

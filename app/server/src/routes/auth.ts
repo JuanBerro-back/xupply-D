@@ -14,6 +14,7 @@ function buildPayload(row: {
   restaurant_id: number | null;
   supplier_id: number | null;
   branch_id: number | null;
+  token_version?: number;
 }) {
   return {
     id: row.id,
@@ -23,6 +24,7 @@ function buildPayload(row: {
     restaurant_id: row.restaurant_id,
     supplier_id: row.supplier_id,
     branch_id: row.branch_id,
+    token_version: row.token_version,
   };
 }
 
@@ -85,7 +87,7 @@ router.post('/register', async (req, res, next) => {
     const user = await query(
       `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-       RETURNING id, username, role_id, restaurant_id, supplier_id, branch_id`,
+       RETURNING id, username, role_id, restaurant_id, supplier_id, branch_id, token_version`,
       [username, hash, name, email, phone, roleId, restaurantId, supplierId]
     );
     const row = user.rows[0];

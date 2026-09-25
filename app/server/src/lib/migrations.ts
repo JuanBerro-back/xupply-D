@@ -15,6 +15,9 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
       ALTER TABLE route_history ADD COLUMN IF NOT EXISTS accuracy DECIMAL(8,2);
       CREATE INDEX IF NOT EXISTS idx_route_driver ON route_history(driver_id, recorded_at);
 
+      -- Validacion JWT en tiempo real
+      ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INT DEFAULT 1;
+
       -- Columnas que el código de entregas usa pero el esquema base no incluía
       ALTER TABLE deliveries ADD COLUMN IF NOT EXISTS confirmation_code VARCHAR(10);
       ALTER TABLE deliveries ADD COLUMN IF NOT EXISTS actual_delivery_time TIMESTAMP NULL;
