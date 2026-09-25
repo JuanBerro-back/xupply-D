@@ -1,6 +1,6 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { IconDashboard, IconTeam, IconKey, IconShieldCheck, IconDocument } from './Icons';
+import { IconDashboard, IconTeam, IconKey, IconDocument } from './Icons';
 import { ReactNode } from 'react';
 
 // Si no tienes IconShieldCheck, usaremos IconCheck como fallback si no lo agrego
