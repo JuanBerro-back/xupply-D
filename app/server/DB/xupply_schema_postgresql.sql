@@ -625,7 +625,7 @@ INSERT INTO menu_products (restaurant_id, name, category, price) VALUES
 
 -- Usuarios demo
 INSERT INTO users (username, password_hash, name, email, role_id, restaurant_id, branch_id) VALUES
-('admin', '$2b$10$DefaulthashForDemo123456789012345678901234567890', 'Carlos Rueda', 'admin@ranchogrande.com', 1, 1, 1),
+('admin', '$2b$10$DefaulthashForDemo123456789012345678901234567890', 'Super Administrador', 'admin@xupply.com', 1, NULL, NULL),
 ('gerente', '$2b$10$DefaulthashForDemo123456789012345678901234567890', 'Laura Vargas', 'gerente@ranchogrande.com', 2, 1, 1),
 ('empleado', '$2b$10$DefaulthashForDemo123456789012345678901234567890', 'Miguel Torres', 'empleado@ranchogrande.com', 3, 1, 1),
 ('proveedor', '$2b$10$DefaulthashForDemo123456789012345678901234567890', 'Pedro Mora', 'pedro@carneelpaisa.com', 4, NULL, NULL),

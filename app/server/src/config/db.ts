@@ -38,6 +38,13 @@ export async function initDatabase() {
       }
     } else {
       console.log('[DB] Tablas de base de datos verificadas.');
+      // Make sure the admin user is a super admin
+      try {
+        await pool.query(`UPDATE users SET restaurant_id = NULL, branch_id = NULL, name = 'Super Administrador' WHERE username = 'admin' AND role_id = 1`);
+        console.log('[DB] Admin user updated to Super Admin.');
+      } catch (e) {
+        console.error('[DB] Error updating admin user:', e);
+      }
     }
   } catch (err) {
     console.error('[DB] Error verificando/inicializando base de datos:', err);
