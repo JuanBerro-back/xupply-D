@@ -21,6 +21,12 @@ import Plans from './pages/Plans';
 import AiAssistant from './pages/AiAssistant';
 import TeamManagement from './pages/TeamManagement';
 import Radar from './pages/Radar';
+import AdminLayout from './components/AdminLayout';
+import DashboardAdmin from './pages/admin/DashboardAdmin';
+import UsuariosAdmin from './pages/admin/UsuariosAdmin';
+import RolesAdmin from './pages/admin/RolesAdmin';
+import PermisosAdmin from './pages/admin/PermisosAdmin';
+import AuditoriaAdmin from './pages/admin/AuditoriaAdmin';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -60,6 +66,15 @@ export default function App() {
           <Route path="/planes" element={<RequireAuth><Plans /></RequireAuth>} />
           <Route path="/xupply-ia" element={<RequireAuth><AiAssistant /></RequireAuth>} />
           <Route path="/equipo" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><TeamManagement /></RolesAllowed>} />
+          
+          {/* Rutas de Administración */}
+          <Route path="/admin" element={<RolesAllowed roles={['admin']}><AdminLayout /></RolesAllowed>}>
+            <Route index element={<DashboardAdmin />} />
+            <Route path="usuarios" element={<UsuariosAdmin />} />
+            <Route path="roles" element={<RolesAdmin />} />
+            <Route path="permisos" element={<PermisosAdmin />} />
+            <Route path="auditoria" element={<AuditoriaAdmin />} />
+          </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

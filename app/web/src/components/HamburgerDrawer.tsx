@@ -275,6 +275,26 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
             </div>
           </div>
 
+          {/* Administración (Solo Super Admin) */}
+          {user?.role === 'admin' && (
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+                Administración
+              </p>
+              <div className="space-y-1" onClick={onClose}>
+                <Link to="/admin" className={linkItemClass}>
+                  <span className="flex items-center gap-3">
+                    <IconSettings className="w-4 h-4 text-slate-600 dark:text-slate-400" />
+                    <span>Panel de Control</span>
+                  </span>
+                  <span className="text-[10px] text-slate-700 bg-slate-200 dark:bg-slate-700 dark:text-slate-300 font-bold px-2 py-0.5 rounded-md">
+                    ADMIN
+                  </span>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Configuración y Preferencias */}
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
