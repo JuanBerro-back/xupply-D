@@ -18,11 +18,14 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
       -- Validacion JWT en tiempo real
       ALTER TABLE users ADD COLUMN IF NOT EXISTS token_version INT DEFAULT 1;
 
-      -- Perfiles de Comercios tipo Facebook
+      -- Perfiles de Comercios tipo Facebook y campos nuevos de restaurantes
       ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS description TEXT;
       ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS cover_url VARCHAR(500);
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS category VARCHAR(100);
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(50);
       ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS description TEXT;
       ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS cover_url VARCHAR(500);
+      ALTER TABLE invoices ADD COLUMN IF NOT EXISTS motivo TEXT;
 
       -- Columnas que el código de entregas usa pero el esquema base no incluía
       ALTER TABLE deliveries ADD COLUMN IF NOT EXISTS confirmation_code VARCHAR(10);
@@ -93,8 +96,29 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
       );
       CREATE INDEX IF NOT EXISTS idx_radar_offers_status ON radar_offers(status, valid_until);
       CREATE INDEX IF NOT EXISTS idx_radar_offers_alert ON radar_offers(alert_id);
+      -- Permiso Analytics
+      INSERT INTO permissions (name, description)
+      VALUES ('analytics', 'Ver analitica y KPIs de la plataforma')
+      ON CONFLICT (name) DO NOTHING;
+
+      INSERT INTO role_permissions (role_id, permission_id)
+      SELECT r.id, p.id FROM roles r, permissions p
+      WHERE r.name = 'admin' AND p.name = 'analytics'
+      ON CONFLICT DO NOTHING;
+
     `);
     console.log('[DB] Esquema Radar de Stock + GPS verificado.');
+    
+    // Indice unico parcial contabilidad
+    try {
+      await query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_accounting_invoice_ingreso
+        ON accounting_transactions (reference_type, reference_id, type)
+        WHERE reference_type = 'invoice';
+      `);
+    } catch (e) {
+      console.warn('[DB] Advertencia creando índice uq_accounting_invoice_ingreso:', e);
+    }
   } catch (err) {
     console.error('[DB] Error aplicando esquema Radar/GPS:', err);
   }
@@ -113,5 +137,20 @@ export async function expireRadarItems(): Promise<void> {
     );
   } catch (err) {
     console.error('[Radar] Error expirando alertas/ofertas:', err);
+  }
+}
+
+export async function dropLegacyPlatformViews(): Promise<void> {
+  try {
+    await query(`
+      DROP VIEW IF EXISTS v_platform_kpis;
+      DROP VIEW IF EXISTS v_sales_by_day;
+      DROP VIEW IF EXISTS v_orders_by_status;
+      DROP VIEW IF EXISTS v_top_products;
+      DROP VIEW IF EXISTS v_top_suppliers;
+    `);
+    console.log('[DB] Vistas de KPIs (Legacy) borradas sin CASCADE.');
+  } catch (err) {
+    console.error('[DB] Error borrando vistas de KPIs:', err);
   }
 }

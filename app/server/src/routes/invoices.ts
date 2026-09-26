@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query, pool } from '../config/db';
 import { authRequired, roleRequired } from '../middleware/auth';
 import { sendEmail } from '../lib/email';
+import { logAudit } from '../lib/audit';
 
 const router = Router();
 router.use(authRequired);
@@ -37,8 +38,12 @@ router.get('/', async (req, res, next) => {
 
 router.get('/:id', async (req, res, next) => {
   try {
+    const user = req.user!;
     const result = await query(`SELECT * FROM invoices WHERE id = $1`, [req.params.id]);
     if (!result.rowCount) return res.status(404).json({ error: 'Factura no encontrada' });
+    if (user.role !== 'admin' && result.rows[0].restaurant_id !== user.restaurant_id) {
+      return res.status(403).json({ error: 'No autorizado' });
+    }
     const items = await query('SELECT * FROM invoice_items WHERE invoice_id = $1 ORDER BY id', [req.params.id]);
     res.json({ ...result.rows[0], items: items.rows });
   } catch (err) {
@@ -56,6 +61,14 @@ router.post('/', roleRequired('gerente', 'admin'), async (req, res, next) => {
     }
     const client = await pool.connect();
     try {
+      if (order_id) {
+        const orderCheck = await client.query('SELECT 1 FROM orders WHERE id = $1 AND restaurant_id = $2', [order_id, user.restaurant_id]);
+        if (!orderCheck.rowCount) {
+          client.release();
+          return res.status(400).json({ error: `El order_id ${order_id} no existe o no pertenece a tu restaurante` });
+        }
+      }
+      
       await client.query('BEGIN');
       const code = `INV-${Date.now().toString(36).toUpperCase()}`;
       let subtotal = 0;
@@ -106,29 +119,90 @@ router.post('/', roleRequired('gerente', 'admin'), async (req, res, next) => {
   }
 });
 
+const INVOICE_TRANSITIONS: Record<string, string[]> = {
+  borrador: ['emitida', 'anulada'],
+  emitida: ['pagada', 'anulada'],
+  pagada: ['anulada'],
+  anulada: [],
+};
+
 router.patch('/:id/status', roleRequired('gerente', 'admin'), async (req, res, next) => {
+  let client;
   try {
     const user = req.user!;
-    const { status } = req.body;
+    const { status, motivo } = req.body;
+    
     const valid = ['borrador', 'emitida', 'pagada', 'anulada'];
     if (!valid.includes(status)) return res.status(400).json({ error: 'Estado inválido' });
-    const paidSql = status === 'pagada' ? ', paid_at = CURRENT_TIMESTAMP' : '';
-    const result = await query(
-      `UPDATE invoices SET status = $1, updated_at = CURRENT_TIMESTAMP${paidSql} WHERE id = $2 RETURNING *`,
-      [status, req.params.id]
+    
+    if (status === 'anulada' && (!motivo || String(motivo).trim().length < 5)) {
+      return res.status(400).json({ error: 'Motivo de anulación requerido (mínimo 5 caracteres)' });
+    }
+
+    client = await pool.connect();
+    await client.query('BEGIN');
+    
+    const prevQuery = await client.query('SELECT * FROM invoices WHERE id = $1 FOR UPDATE', [req.params.id]);
+    if (!prevQuery.rowCount) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Factura no encontrada' });
+    }
+    const prev = prevQuery.rows[0];
+
+    if (user.role !== 'admin' && prev.restaurant_id !== user.restaurant_id) {
+      await client.query('ROLLBACK');
+      return res.status(403).json({ error: 'No autorizado' });
+    }
+
+    if (!INVOICE_TRANSITIONS[prev.status]?.includes(status)) {
+      await client.query('ROLLBACK');
+      return res.status(400).json({ error: `No se puede pasar de ${prev.status} a ${status}` });
+    }
+    
+    let extraSql = '';
+    if (status === 'pagada') extraSql = ', paid_at = CURRENT_TIMESTAMP';
+    if (status === 'emitida') extraSql = ', issued_at = COALESCE(issued_at, CURRENT_TIMESTAMP)';
+    let params: any[] = [status, req.params.id];
+    if (status === 'anulada' && motivo) {
+      extraSql += ', motivo = $3';
+      params.push(motivo);
+    }
+    
+    const result = await client.query(
+      `UPDATE invoices SET status = $1, updated_at = CURRENT_TIMESTAMP${extraSql} WHERE id = $2 RETURNING *`,
+      params
     );
-    if (!result.rowCount) return res.status(404).json({ error: 'Factura no encontrada' });
-    if (status === 'pagada' && user.restaurant_id) {
-      await query(
+    
+    if (status === 'pagada') {
+      const exists = await client.query("SELECT id FROM accounting_transactions WHERE reference_type = $1 AND reference_id = $2 AND type = 'ingreso'", ['invoice', req.params.id]);
+      if (!exists.rowCount) {
+        await client.query(
+          `INSERT INTO accounting_transactions (restaurant_id, type, amount, description, reference_type, reference_id, payment_method, transaction_date, created_by)
+           SELECT restaurant_id, 'ingreso', total, 'Factura ' || invoice_code, 'invoice', id, payment_method, CURRENT_DATE, $2
+           FROM invoices WHERE id = $1`,
+          [req.params.id, user.id]
+        );
+      }
+    } else if (status === 'anulada' && prev.status === 'pagada') {
+      // Reversión contable al anular una pagada: se asienta el egreso en vez de borrar el ingreso (decisión de negocio)
+      await client.query(
         `INSERT INTO accounting_transactions (restaurant_id, type, amount, description, reference_type, reference_id, payment_method, transaction_date, created_by)
-         SELECT restaurant_id, 'ingreso', total, 'Factura ' || invoice_code, 'invoice', id, payment_method, CURRENT_DATE, $2
+         SELECT restaurant_id, 'egreso', total, 'Anulación factura ' || invoice_code, 'invoice', id, payment_method, CURRENT_DATE, $2
          FROM invoices WHERE id = $1`,
         [req.params.id, user.id]
       );
     }
+    
+    await client.query('COMMIT');
+    
+    await logAudit(req, 'update', 'invoice', Number(req.params.id), { status: prev.status }, { status, motivo });
+    
     res.json(result.rows[0]);
   } catch (err) {
+    if (client) await client.query('ROLLBACK');
     next(err);
+  } finally {
+    if (client) client.release();
   }
 });
 

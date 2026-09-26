@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS restaurants (
   city VARCHAR(100) DEFAULT 'Bucaramanga',
   department VARCHAR(100) DEFAULT 'Santander',
   logo_url VARCHAR(500),
+  category VARCHAR(100),
+  subscription_plan VARCHAR(50),
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -284,6 +286,7 @@ CREATE TABLE IF NOT EXISTS invoices (
   total DECIMAL(12,2) DEFAULT 0,
   payment_method payment_method DEFAULT 'Efectivo',
   status invoice_status DEFAULT 'borrador',
+  motivo TEXT,
   mesa VARCHAR(10),
   mesero VARCHAR(100),
   issued_at TIMESTAMP NULL,
@@ -501,6 +504,7 @@ INSERT INTO roles (name, display_name, description) VALUES
 -- Permisos
 INSERT INTO permissions (name, description) VALUES
 ('dashboard', 'Ver dashboard ejecutivo'),
+('analytics', 'Ver analitica y KPIs de la plataforma'),
 ('pedidos', 'Ver pedidos'),
 ('pedidos:write', 'Crear/editar pedidos'),
 ('inventario', 'Ver inventario'),

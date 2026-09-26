@@ -11,6 +11,7 @@ export interface User {
   email?: string | null;
   vehicle_type?: string | null;
   vehicle_plate?: string | null;
+  permissions?: string[];
 }
 
 export interface Supplier {
@@ -134,6 +135,7 @@ export interface Invoice {
   total: number;
   payment_method: string;
   status: string;
+  motivo?: string;
   issued_at: string;
   created_at: string;
   items: InvoiceItem[];

@@ -184,10 +184,11 @@ export default function TeamManagement() {
     setShowForm(true);
   };
 
-  const handleDeactivate = async (id: number) => {
-    if (!confirm('¿Deseas cambiar el estado de este usuario?')) return;
+  const handleDeactivate = async (u: TeamUser) => {
+    const action = u.is_active ? 'desactivar' : 'activar';
+    if (!confirm(`¿Deseas ${action} a este usuario?`)) return;
     try {
-      await api(`/users/${id}`, { method: 'DELETE' });
+      await api(`/users/${u.id}/${u.is_active ? 'deactivate' : 'activate'}`, { method: 'PATCH' });
       loadUsers();
     } catch (err) {
       setError((err as Error).message);
@@ -652,7 +653,7 @@ export default function TeamManagement() {
                   Clave
                 </button>
                 <button
-                  onClick={() => handleDeactivate(u.id)}
+                  onClick={() => handleDeactivate(u)}
                   className="rounded-lg bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 hover:bg-rose-100"
                 >
                   {u.is_active ? 'Desactivar' : 'Activar'}
@@ -757,7 +758,7 @@ export default function TeamManagement() {
                         Clave
                       </button>
                       <button
-                        onClick={() => handleDeactivate(u.id)}
+                        onClick={() => handleDeactivate(u)}
                         className="rounded-lg bg-rose-100 px-2.5 py-1 text-xs font-semibold text-rose-800 hover:bg-rose-200"
                       >
                         {u.is_active ? 'Desactivar' : 'Activar'}

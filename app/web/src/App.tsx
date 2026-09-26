@@ -27,6 +27,7 @@ import UsuariosAdmin from './pages/admin/UsuariosAdmin';
 import RolesAdmin from './pages/admin/RolesAdmin';
 import PermisosAdmin from './pages/admin/PermisosAdmin';
 import AuditoriaAdmin from './pages/admin/AuditoriaAdmin';
+import ComerciosAdmin from './pages/admin/ComerciosAdmin';
 import ComercioProfile from './pages/ComercioProfile';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
@@ -38,7 +39,24 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 function RolesAllowed({ roles, children }: { roles: string[]; children: React.ReactNode }) {
   const { user } = useAuth();
-  if (!user || !roles.includes(user.role)) return <Navigate to="/" replace />;
+  if (!user) return <Navigate to="/" replace />;
+  if (!roles.includes(user.role)) {
+    return <div className="p-8 text-center text-rose-500 font-bold text-xl mt-10">403 Acceso Denegado</div>;
+  }
+  return <>{children}</>;
+}
+
+import { hasAdminAccess } from './lib/permissions';
+
+function AdminAccessAllowed({ children }: { children: React.ReactNode }) {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="p-8 text-center text-gray-500">Cargando...</div>;
+  if (!user) return <Navigate to="/login" replace />;
+  
+  if (!hasAdminAccess(user)) {
+    return <div className="p-8 text-center text-rose-500 font-bold text-xl mt-10">403 Acceso Denegado</div>;
+  }
+  
   return <>{children}</>;
 }
 
@@ -69,14 +87,15 @@ export default function App() {
           <Route path="/equipo" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><TeamManagement /></RolesAllowed>} />
           
           {/* Rutas de Administración */}
-          <Route path="/admin" element={<RolesAllowed roles={['admin']}><AdminLayout /></RolesAllowed>}>
+          <Route path="/admin" element={<AdminAccessAllowed><AdminLayout /></AdminAccessAllowed>}>
             <Route index element={<DashboardAdmin />} />
             <Route path="usuarios" element={<UsuariosAdmin />} />
             <Route path="roles" element={<RolesAdmin />} />
             <Route path="permisos" element={<PermisosAdmin />} />
             <Route path="auditoria" element={<AuditoriaAdmin />} />
+            <Route path="comercios" element={<ComerciosAdmin />} />
           </Route>
-          <Route path="/comercio/:type/:id" element={<RequireAuth><ComercioProfile /></RequireAuth>} />
+          <Route path="/comercio/:type/:id" element={<AdminAccessAllowed><ComercioProfile /></AdminAccessAllowed>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

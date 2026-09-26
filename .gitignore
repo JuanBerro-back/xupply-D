@@ -6,6 +6,7 @@ app/server/.env
 **/node_modules/
 **/dist/
 **/.gradle/
+*.tsbuildinfo
 app/web/android/app/build/
 app/web/android/.gradle/
 app/web/android/build/

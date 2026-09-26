@@ -12,11 +12,12 @@ function IconShield({ className }: { className?: string }) {
   );
 }
 
+import { hasAdminAccess } from '../lib/permissions';
 
 export default function AdminLayout() {
   const { user } = useAuth();
   
-  if (user?.role !== 'admin') {
+  if (!hasAdminAccess(user)) {
     return <div className="p-8 text-center text-rose-500 font-bold">Acceso Denegado</div>;
   }
 
@@ -26,6 +27,7 @@ export default function AdminLayout() {
     { to: '/admin/roles', label: 'Roles', icon: IconKey },
     { to: '/admin/permisos', label: 'Permisos', icon: IconShield },
     { to: '/admin/auditoria', label: 'Auditoría', icon: IconDocument },
+    { to: '/admin/comercios', label: 'Comercios', icon: IconTeam }, // Usando IconTeam como icono de comercios
   ];
 
   return (

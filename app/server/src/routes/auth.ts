@@ -91,8 +91,19 @@ router.post('/register', async (req, res, next) => {
       [username, hash, name, email, phone, roleId, restaurantId, supplierId]
     );
     const row = user.rows[0];
+    let permissions: string[] = [];
+    if (roleName === 'admin') {
+      const all = await query('SELECT name FROM permissions');
+      permissions = all.rows.map((r: any) => r.name);
+    } else {
+      const perms = await query(
+        `SELECT p.name FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id WHERE rp.role_id = $1`,
+        [roleId]
+      );
+      permissions = perms.rows.map((r: any) => r.name);
+    }
     const payload = buildPayload({ ...row, role: roleName });
-    res.status(201).json({ token: signToken(payload), user: payload });
+    res.status(201).json({ token: signToken(payload), user: { ...payload, permissions } });
   } catch (err) {
     next(err);
   }
@@ -117,15 +128,42 @@ router.post('/login', async (req, res, next) => {
     const ok = seedDemoPass || (await bcrypt.compare(String(password), row.password_hash));
     if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' });
 
+    let permissions: string[] = [];
+    if (row.role === 'admin') {
+      const all = await query('SELECT name FROM permissions');
+      permissions = all.rows.map((r: any) => r.name);
+    } else {
+      const perms = await query(
+        `SELECT p.name FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id WHERE rp.role_id = $1`,
+        [row.role_id]
+      );
+      permissions = perms.rows.map((r: any) => r.name);
+    }
     await query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [row.id]);
-    res.json({ token: signToken(buildPayload(row)), user: buildPayload(row) });
+    res.json({ token: signToken(buildPayload(row)), user: { ...buildPayload(row), permissions } });
   } catch (err) {
     next(err);
   }
 });
 
-router.get('/me', authRequired, async (req, res) => {
-  res.json(req.user);
+router.get('/me', authRequired, async (req, res, next) => {
+  try {
+    const user = req.user!;
+    let permissions: string[] = [];
+    if (user.role === 'admin') {
+      const all = await query('SELECT name FROM permissions');
+      permissions = all.rows.map((r: any) => r.name);
+    } else {
+      const perms = await query(
+        `SELECT p.name FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id WHERE rp.role_id = $1`,
+        [user.role_id]
+      );
+      permissions = perms.rows.map((r: any) => r.name);
+    }
+    res.json({ ...user, permissions });
+  } catch (err) {
+    next(err);
+  }
 });
 
 router.get('/roles', authRequired, async (_req, res, next) => {

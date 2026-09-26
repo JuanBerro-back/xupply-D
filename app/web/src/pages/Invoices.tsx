@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { Invoice, Order } from '../types';
-import { INVOICE_STATUS, formatMoney, formatDate } from '../lib/constants';
+import { INVOICE_STATUS, INVOICE_TRANSITIONS, formatMoney, formatDate } from '../lib/constants';
 import Modal from '../components/Modal';
 import { useNotifications } from '../context/NotificationContext';
 
@@ -25,6 +25,8 @@ export default function Invoices() {
     client_email: '',
     payment_method: 'Efectivo',
   });
+  const [anularId, setAnularId] = useState<number | null>(null);
+  const [motivo, setMotivo] = useState('');
 
   const load = () => {
     api<Invoice[]>('/invoices').then(setInvoices).catch(console.error);
@@ -59,9 +61,16 @@ export default function Invoices() {
     }
   };
 
-  const changeStatus = async (id: number, status: string) => {
+  const changeStatus = async (id: number, status: string, motivoStr?: string) => {
     try {
-      await api(`/invoices/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
+      const body: any = { status };
+      if (motivoStr !== undefined) body.motivo = motivoStr;
+      await api(`/invoices/${id}/status`, { method: 'PATCH', body: JSON.stringify(body) });
+      if (status === 'anulada') {
+        push({ message: 'Factura anulada', at: new Date().toISOString() });
+        setAnularId(null);
+        setMotivo('');
+      }
       load();
     } catch (err) {
       alert((err as Error).message);
@@ -133,9 +142,20 @@ export default function Invoices() {
                   </span>
                 </td>
                 <td className="px-3 py-2 text-xs">{formatDate(inv.created_at)}</td>
-                <td className="px-3 py-2">
-                  {inv.status === 'emitida' && (
-                    <button onClick={() => changeStatus(inv.id, 'pagada')} className="rounded border border-green-600 px-2 py-1 text-xs text-green-600">Marcar pagada</button>
+                <td className="px-3 py-2 space-x-2">
+                  {INVOICE_TRANSITIONS[inv.status]?.includes('emitida') && (
+                    <button onClick={() => changeStatus(inv.id, 'emitida')} className="rounded border border-blue-600 px-2 py-1 text-xs text-blue-600 mr-2">Emitir</button>
+                  )}
+                  {INVOICE_TRANSITIONS[inv.status]?.includes('pagada') && (
+                    <button onClick={() => changeStatus(inv.id, 'pagada')} className="rounded border border-green-600 px-2 py-1 text-xs text-green-600 mr-2">Pagar</button>
+                  )}
+                  {INVOICE_TRANSITIONS[inv.status]?.includes('anulada') && (
+                    <button onClick={() => setAnularId(inv.id)} className="rounded border border-rose-600 px-2 py-1 text-xs text-rose-600">Anular</button>
+                  )}
+                  {inv.status === 'anulada' && inv.motivo && (
+                    <div className="text-xs text-slate-500 mt-1 max-w-[150px] truncate" title={inv.motivo}>
+                      Motivo: {inv.motivo}
+                    </div>
                   )}
                 </td>
               </tr>
@@ -185,6 +205,52 @@ export default function Invoices() {
               <button onClick={() => setRows([...rows, { description: '', quantity: '1', unit_price: '0' }])} className="text-sm text-brand">+ Agregar ítem</button>
             </div>
             <button onClick={submit} className="w-full rounded bg-brand py-2 text-white">Emitir factura</button>
+          </div>
+        </Modal>
+      )}
+
+      {anularId !== null && (
+        <Modal 
+          title="Confirmar anulación" 
+          onClose={() => {
+            setAnularId(null);
+            setMotivo('');
+          }}
+        >
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Motivo de la anulación
+              </label>
+              <textarea
+                value={motivo}
+                onChange={(e) => setMotivo(e.target.value)}
+                className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500 min-h-[100px]"
+                placeholder="Explica brevemente por qué anulas esta factura..."
+              />
+              <p className={`text-xs mt-1 ${motivo.trim().length < 5 ? 'text-rose-500' : 'text-slate-500'}`}>
+                {motivo.trim().length} / 5 caracteres mínimos obligatorios.
+              </p>
+            </div>
+            
+            <div className="flex gap-3 justify-end pt-2">
+              <button
+                onClick={() => {
+                  setAnularId(null);
+                  setMotivo('');
+                }}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => changeStatus(anularId, 'anulada', motivo)}
+                disabled={motivo.trim().length < 5}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Confirmar anulación
+              </button>
+            </div>
           </div>
         </Modal>
       )}

@@ -23,6 +23,13 @@ export const INVOICE_STATUS: Record<string, { label: string; color: string }> = 
   anulada: { label: 'Anulada', color: 'bg-red-100 text-red-700' },
 };
 
+export const INVOICE_TRANSITIONS: Record<string, string[]> = {
+  borrador: ['emitida', 'anulada'],
+  emitida: ['pagada', 'anulada'],
+  pagada: ['anulada'],
+  anulada: [],
+};
+
 export const SUPPLIER_FLOW = ['confirmado', 'preparando', 'despachado', 'en_camino', 'entregado'];
 
 export function formatMoney(n: number | string) {
