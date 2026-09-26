@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
-import { IconTeam, IconRestaurant, IconTruck } from '../../components/Icons';
+import { IconTeam } from '../../components/Icons';
 
 export default function DashboardAdmin() {
   const [stats, setStats] = useState<any>(null);

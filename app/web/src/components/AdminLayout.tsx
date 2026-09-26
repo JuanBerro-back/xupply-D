@@ -12,13 +12,6 @@ function IconShield({ className }: { className?: string }) {
   );
 }
 
-function IconStore({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V10l-7-4-7 4v11h4v-6h6v6h4z" />
-    </svg>
-  );
-}
 
 export default function AdminLayout() {
   const { user } = useAuth();
