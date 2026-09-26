@@ -224,12 +224,9 @@ async function run() {
       console.error(`ERROR: borrador->emitida esperaba 200, obtuvo ${resBE.status}`);
       process.exit(1);
     }
-    const acc1 = await pool.query(`SELECT count(*)::int as count, sum(amount)::numeric as total FROM accounting_transactions WHERE reference_type = 'invoice' AND reference_id = $1 AND type = 'ingreso'`, [invId]);
-    if (acc1.rows[0].count !== 1 || Number(acc1.rows[0].total) !== total) {
-      console.error(`ERROR: No se creó correctamente el asiento de ingreso al emitir. Count: ${acc1.rows[0].count}, Sum: ${acc1.rows[0].total}`);
-      process.exit(1);
-    }
-    
+    // El asiento de ingreso lo crea invoices.ts:176 solo al pasar a 'pagada',
+    // no al emitir, por eso se verifica despues de esta transicion.
+
     // emitida -> pagada (200) y assert de dedupe y paid_at
     const resEP = await patchStatus(invId, 'pagada');
     if (resEP.status !== 200) {
@@ -241,9 +238,9 @@ async function run() {
       console.error('ERROR: paid_at sigue siendo null después de pagar');
       process.exit(1);
     }
-    const acc2 = await pool.query(`SELECT count(*)::int as count FROM accounting_transactions WHERE reference_type = 'invoice' AND reference_id = $1 AND type = 'ingreso'`, [invId]);
-    if (acc2.rows[0].count !== 1) {
-      console.error(`ERROR: dedupe falló. Se esperaban 1 ingreso, hay ${acc2.rows[0].count}`);
+    const acc2 = await pool.query(`SELECT count(*)::int as count, sum(amount)::numeric as total FROM accounting_transactions WHERE reference_type = 'invoice' AND reference_id = $1 AND type = 'ingreso'`, [invId]);
+    if (acc2.rows[0].count !== 1 || Number(acc2.rows[0].total) !== total) {
+      console.error(`ERROR: dedupe o monto fallo. Se esperaba 1 ingreso por ${total}, hay ${acc2.rows[0].count} por ${acc2.rows[0].total}`);
       process.exit(1);
     }
     
