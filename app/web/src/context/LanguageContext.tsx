@@ -5,7 +5,7 @@ export type Language = 'es' | 'en';
 const DICTIONARY: Record<Language, Record<string, string>> = {
   es: {
     // Nav & General
-    'nav.dashboard': 'Inicio / Dashboard',
+    'nav.dashboard': 'Panel de control',
     'nav.catalog': 'Proveedores',
     'nav.orders': 'Restaurantes',
     'nav.cart': 'Carrito',
