@@ -1,0 +1,35 @@
+# Secrets and local configuration
+app/server/.env
+*.local
+
+# Dependencies and generated output
+**/node_modules/
+**/dist/
+**/.gradle/
+*.tsbuildinfo
+app/web/android/app/build/
+app/web/android/.gradle/
+app/web/android/build/
+
+# Local databases and runtime files
+pgdata/
+pg.log
+*.pid
+*.log
+
+# IDE and OS files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Local PostgreSQL installation
+pg/
+node/
+
+# Android releases and keystores
+dist-apk/
+release-manual/
+*.jks
+*.apk
+!app/web/public/Xupply.apk

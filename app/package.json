@@ -1,0 +1,15 @@
+{
+  "name": "xupply-desktop",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Xupply - Aplicacion de escritorio (Electron + Express + PostgreSQL)",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "postinstall": "echo Las dependencias de server/ y web/ (npm install) deben instalarse con npm run setup",
+    "setup": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/setup.ps1"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0"
+  }
+}

@@ -1,0 +1,9 @@
+**/node_modules
+**/dist
+pgdata
+pg
+node
+.git
+.env
+*.log
+app/web/android

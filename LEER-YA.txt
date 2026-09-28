@@ -1,0 +1,21 @@
+XUPPLY PORTABLE
+===============
+App de escritorio Xupply que funciona sin instalar nada.
+
+COMO USAR EN OTRO PC (ej. con la USB):
+1) Copia la CARPETA completa "XupplyPortable" a la USB.
+2) En el otro PC, copia "XupplyPortable" al Escritorio o Disco Local C:.
+   (Puede correr directo desde la USB, pero fluye mejor copiado a C:)
+3) Doble clic en "Iniciar-Xupply.cmd"
+   - Crea la base PostgreSQL y solicita la contraseña del usuario administrador.
+   - Carga el esquema + datos de prueba
+   - Abre la ventana de la aplicacion.
+
+USUARIOS DE PRUEBA (password: demo1234):
+admin | gerente | empleado | proveedor | domiciliario
+
+NOTAS:
+- La primera apertura tarda un poco (inicializa la base).
+- Requiere Windows y que la carpeta este en una unidad local estable.
+- El puerto interno de la app es 4420; PostgreSQL usa 5432.
+- Si la app no abre la base, reinicia el PC y vuelve a ejecutar.
