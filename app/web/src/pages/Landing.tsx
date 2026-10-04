@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Shield, TrendingUp, Truck, PackageSearch, FileText, Zap, Cpu, Users } from 'lucide-react';
+import { Shield, TrendingUp, Truck, PackageSearch, FileText, Zap, Cpu, Users, Smartphone, Download } from 'lucide-react';
 import { MapContainer, TileLayer, CircleMarker, Polyline } from 'react-leaflet';
-import AppDownloadNotice from '../components/AppDownloadNotice';
 
 export default function Landing() {
   const [showMapModal, setShowMapModal] = useState(false);
@@ -43,8 +42,9 @@ export default function Landing() {
           </div>
           <nav className="hidden md:flex gap-8 text-sm font-medium text-slate-600 dark:text-slate-300">
             <a href="#features" className="hover:text-sky-500 transition-colors">Características</a>
-            <a href="#planes" className="hover:text-sky-500 transition-colors">Planes</a>
+            <a href="#ventajas" className="hover:text-sky-500 transition-colors">Ventajas</a>
             <a href="#xupply-ia" className="hover:text-sky-500 transition-colors">Xupply IA</a>
+            <a href="#app" className="hover:text-emerald-500 transition-colors">Descargar App</a>
           </nav>
           <div className="flex items-center gap-4">
             <Link to="/login" className="text-sm font-medium hover:text-sky-500 transition-colors">Iniciar sesión</Link>
@@ -83,10 +83,6 @@ export default function Landing() {
                   <a href="#features" className="text-lg font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-8 py-4 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-center">
                     Explorar plataforma
                   </a>
-                </div>
-
-                <div className="mt-8 max-w-sm mx-auto lg:mx-0">
-                  <AppDownloadNotice compact={false} dismissible={false} />
                 </div>
                 
                 <div className="mt-8 flex items-center justify-center lg:justify-start gap-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
@@ -299,41 +295,120 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="planes" className="py-24 bg-slate-50 dark:bg-[#0b1120]">
+        <section id="ventajas" className="py-24 bg-slate-50 dark:bg-[#0b1120]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
-              <h2 className="text-3xl font-bold mb-4">Planes diseñados para tu crecimiento</h2>
-              <p className="text-slate-600 dark:text-slate-400">Empieza con lo básico o escala con herramientas avanzadas.</p>
+              <h2 className="text-3xl font-bold mb-4">¿Por qué elegir Xupply?</h2>
+              <p className="text-slate-600 dark:text-slate-400">Ventajas clave que nos diferencian de otras plataformas genéricas del mercado.</p>
             </div>
             
-            <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
               {[
-                { name: 'Xupply Lite', target: 'Básico', price: 'Gratis', desc: 'Catálogo y pedidos esenciales.', features: ['Catálogo mayorista', 'Pedidos B2B', 'Facturas base', 'Soporte estándar'] },
-                { name: 'Xupply Pro', target: 'Medio', price: '$89.000', period: '/mes', popular: true, desc: 'Inventario, contabilidad y logística GPS.', features: ['Todo lo de Lite', 'Control de Inventario', 'Módulo de Contabilidad', 'Seguimiento GPS en vivo'] },
-                { name: 'Xupply Max', target: 'Premium', price: '$199.000', period: '/mes', desc: 'IA avanzada y soporte prioritario.', features: ['Todo lo de Pro', 'Xupply IA ilimitada', 'Reportes inteligentes', 'Soporte 24/7'] },
-              ].map((plan, i) => (
-                <div key={i} className={`relative bg-white dark:bg-slate-900 rounded-3xl p-8 border ${plan.popular ? 'border-sky-500 shadow-2xl shadow-sky-500/10 scale-105 z-10' : 'border-slate-200 dark:border-slate-800'}`}>
-                  {plan.popular && <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-sky-500 text-white px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">Más popular</div>}
-                  <h3 className="text-xl font-bold mb-2">{plan.name}</h3>
-                  <div className="text-sm text-sky-500 font-medium mb-4">{plan.target}</div>
-                  <div className="flex items-baseline gap-1 mb-4">
-                    <span className="text-4xl font-extrabold">{plan.price}</span>
-                    {plan.period && <span className="text-slate-500">{plan.period}</span>}
+                { 
+                  icon: <Zap className="w-6 h-6" />, 
+                  title: 'Ecosistema Todo en Uno', 
+                  desc: 'A diferencia de apps de solo delivery o solo facturación, Xupply integra inventario, GPS, catálogos B2B y contabilidad en un mismo lugar.' 
+                },
+                { 
+                  icon: <TrendingUp className="w-6 h-6" />, 
+                  title: 'Cero Comisiones Abusivas', 
+                  desc: 'Otras plataformas cobran porcentajes altos por cada transacción. Con Xupply, la relación directa con tus clientes o proveedores es tuya.' 
+                },
+                { 
+                  icon: <Truck className="w-6 h-6" />, 
+                  title: 'Logística en Tiempo Real', 
+                  desc: 'A diferencia de enviar por WhatsApp, sabes exactamente dónde está tu pedido con telemetría GPS y pruebas de entrega mediante llaves de seguridad.' 
+                },
+                { 
+                  icon: <Cpu className="w-6 h-6" />, 
+                  title: 'Inteligencia Artificial', 
+                  desc: 'Nuestro modelo "Xupply IA" predice cuándo se agotarán tus ingredientes y sugiere compras antes de que te quedes sin stock. Otras plataformas no lo tienen.' 
+                },
+                { 
+                  icon: <Shield className="w-6 h-6" />, 
+                  title: 'Seguridad y Privacidad', 
+                  desc: 'Tus recetas, precios de compra e información de clientes están encriptados. No vendemos tu información a terceros ni competidores.' 
+                },
+                { 
+                  icon: <Users className="w-6 h-6" />, 
+                  title: 'Hecho para Crecer', 
+                  desc: 'Desde un pequeño restaurante hasta grandes distribuidoras mayoristas, la plataforma escala contigo sin necesidad de cambiar de software.' 
+                },
+              ].map((ventaja, i) => (
+                <div key={i} className="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-200 dark:border-slate-800 hover:border-sky-500/50 dark:hover:border-sky-500/50 transition-all group shadow-sm hover:shadow-xl hover:shadow-sky-500/5">
+                  <div className="w-12 h-12 rounded-2xl bg-sky-50 dark:bg-sky-500/10 text-sky-500 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
+                    {ventaja.icon}
                   </div>
-                  <p className="text-slate-600 dark:text-slate-400 text-sm mb-8 h-10">{plan.desc}</p>
-                  <ul className="space-y-4 mb-8">
-                    {plan.features.map((feat, j) => (
-                      <li key={j} className="flex items-center gap-3 text-sm text-slate-700 dark:text-slate-300">
-                        <div className="text-sky-500">✓</div>
-                        {feat}
-                      </li>
-                    ))}
-                  </ul>
-                  <Link to="/register" className={`block text-center w-full py-3 rounded-full font-medium transition-colors ${plan.popular ? 'bg-sky-500 text-white hover:bg-sky-400' : 'bg-slate-100 dark:bg-slate-800 text-slate-900 dark:text-white hover:bg-slate-200 dark:hover:bg-slate-700'}`}>
-                    Elegir {plan.name.split(' ')[1]}
-                  </Link>
+                  <h3 className="text-xl font-bold mb-3">{ventaja.title}</h3>
+                  <p className="text-slate-600 dark:text-slate-400 text-sm leading-relaxed">{ventaja.desc}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Xupply App Mobile Section */}
+        <section id="app" className="py-24 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 relative overflow-hidden">
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
+          
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 mb-8 border border-emerald-500/30">
+                  <Smartphone className="w-8 h-8" />
+                </div>
+                <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6">
+                  Lleva tu restaurante <br/><span className="text-emerald-400">en tu bolsillo</span>
+                </h2>
+                <p className="text-lg text-slate-300 mb-8 max-w-lg">
+                  Obtén alertas instantáneas, controla tus inventarios, realiza pedidos a distribuidores mayoristas y haz seguimiento satelital de tus entregas, todo desde tu celular Android.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <Link to="/descargar" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-lg transition shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)]">
+                    <Download className="w-6 h-6" />
+                    Descargar APK Oficial
+                  </Link>
+                  <div className="px-6 py-4 rounded-xl border border-slate-700/50 bg-slate-800/50 flex flex-col justify-center">
+                    <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider mb-1">Disponible para</span>
+                    <span className="text-slate-200 font-bold">Android 8.0+</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Decorative Mockup */}
+              <div className="relative mx-auto w-full max-w-sm lg:ml-auto">
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 rounded-[3rem]" />
+                <div className="relative bg-slate-900 border-[8px] border-slate-800 rounded-[3rem] h-[600px] overflow-hidden shadow-2xl">
+                  {/* Notch */}
+                  <div className="absolute top-0 inset-x-0 h-6 bg-slate-800 rounded-b-3xl mx-16 z-20" />
+                  
+                  {/* Fake App UI */}
+                  <div className="absolute inset-0 bg-[#0b0f19] flex flex-col">
+                    {/* Header */}
+                    <div className="pt-12 pb-6 px-6 bg-emerald-950/30">
+                      <h3 className="text-white font-bold text-xl mb-1">Hola, Burger & Co.</h3>
+                      <p className="text-emerald-400 text-sm font-medium">Tu pedido va en camino</p>
+                    </div>
+                    {/* Map Simulation */}
+                    <div className="flex-1 bg-slate-900 relative overflow-hidden">
+                       <div 
+                         className="absolute inset-0 opacity-40 mix-blend-luminosity bg-cover bg-center grayscale" 
+                         style={{ backgroundImage: 'url(https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=600&q=80)' }} 
+                       />
+                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-emerald-500/20 rounded-full animate-ping" />
+                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-emerald-500 border-2 border-slate-900 rounded-full shadow-[0_0_20px_rgba(16,185,129,0.8)] z-10" />
+                    </div>
+                    {/* ETA Panel */}
+                    <div className="h-32 bg-slate-900 rounded-t-3xl border-t border-slate-800 p-6 shadow-[0_-10px_40px_rgba(0,0,0,0.5)]">
+                      <div className="flex justify-between items-center mb-4">
+                         <div className="w-32 h-4 bg-slate-800 rounded-full" />
+                         <div className="w-16 h-6 bg-emerald-500/20 rounded-full" />
+                      </div>
+                      <div className="w-full h-12 bg-emerald-500 rounded-xl" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -347,7 +422,7 @@ export default function Landing() {
           </div>
           <nav className="flex gap-6 text-sm text-slate-500">
             <a href="#catalogo" className="hover:text-slate-900 dark:hover:text-white">Catálogo</a>
-            <a href="#planes" className="hover:text-slate-900 dark:hover:text-white">Planes</a>
+            <a href="#ventajas" className="hover:text-slate-900 dark:hover:text-white">Ventajas</a>
             <a href="#proveedores" className="hover:text-slate-900 dark:hover:text-white">Proveedores</a>
           </nav>
           <div className="text-sm text-slate-500 text-center md:text-right">

@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { isCapacitorNative, getApkDownloadUrl } from '../lib/api';
+import { Link } from 'react-router-dom';
+import { isCapacitorNative } from '../lib/api';
 import { useLanguage } from '../context/LanguageContext';
 import { IconAndroid, IconDownload, IconClose, IconCheck } from './Icons';
 
@@ -25,9 +26,6 @@ export default function AppDownloadNotice({
   if (isCapacitorNative() || (dismissible && dismissed)) {
     return null;
   }
-
-  // URL directa de descarga del instalador APK
-  const downloadUrl = getApkDownloadUrl();
 
   const handleDismiss = () => {
     if (dismissible) {
@@ -68,14 +66,13 @@ export default function AppDownloadNotice({
           </div>
         </div>
 
-        <a
-          href={downloadUrl}
-          download="Xupply.apk"
+        <Link
+          to="/descargar"
           className="shrink-0 inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-xs transition shadow-md cursor-pointer"
         >
           <IconDownload className="w-4 h-4 text-slate-950" />
           <span>{lang === 'en' ? 'Download APK' : 'Descargar APK'}</span>
-        </a>
+        </Link>
       </div>
     );
   }
@@ -112,15 +109,14 @@ export default function AppDownloadNotice({
 
         {/* Botones de acción */}
         <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
-          <a
-            href={downloadUrl}
-            download="Xupply.apk"
+          <Link
+            to="/descargar"
             className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black px-4 py-2.5 text-xs shadow-md transition cursor-pointer"
             title="Descargar archivo Xupply.apk"
           >
             <IconDownload className="w-4 h-4 text-slate-950" />
             <span>{lang === 'en' ? 'Download APK' : 'Descargar APK'}</span>
-          </a>
+          </Link>
 
           <button
             type="button"

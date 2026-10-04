@@ -24,6 +24,7 @@ import AiAssistant from './pages/AiAssistant';
 import TeamManagement from './pages/TeamManagement';
 import Radar from './pages/Radar';
 import DriverDashboard from './pages/DriverDashboard';
+import DownloadApp from './pages/DownloadApp';
 import AdminLayout from './components/AdminLayout';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 import UsuariosAdmin from './pages/admin/UsuariosAdmin';
@@ -82,6 +83,7 @@ export default function App() {
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
           <Route path="/" element={<RootRoute />} />
+          <Route path="/descargar" element={<DownloadApp />} />
           <Route path="/catalogo" element={<RequireAuth><Catalog /></RequireAuth>} />
           <Route path="/carrito" element={<RequireAuth><CartPage /></RequireAuth>} />
           <Route path="/pedidos" element={<RequireAuth><Orders /></RequireAuth>} />
