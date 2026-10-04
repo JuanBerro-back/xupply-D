@@ -108,8 +108,6 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
 
         {/* Content with all app modules */}
         <div className="flex-1 overflow-y-auto p-4 space-y-6 text-sm">
-          {/* Aviso / Acceso de Descarga de la App */}
-          <AppDownloadNotice compact />
 
           {/* Módulos Principales */}
           {!isAdmin && (

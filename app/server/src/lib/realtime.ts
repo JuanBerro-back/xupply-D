@@ -21,6 +21,14 @@ export function registerSocket(socket: Socket) {
   socket.on('delivery:leave', (id: unknown) => {
     socket.leave(`delivery:${Number(id)}`);
   });
+
+  // Permite al repartidor actualizar su posición en vivo
+  socket.on('delivery:update_position', (data: { deliveryId: number; lat: number; lng: number; speed: number | null }) => {
+    if (data && data.deliveryId) {
+      // Retransmitimos la posición a todos los que estén suscritos a esta entrega (Restaurantes, Admins, etc.)
+      socket.to(`delivery:${data.deliveryId}`).emit('delivery:position', data);
+    }
+  });
 }
 
 /**

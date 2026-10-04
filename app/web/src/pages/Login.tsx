@@ -36,10 +36,7 @@ export default function Login() {
         </div>
         <p className="mb-4 text-sm text-gray-600">Plataforma B2B de pedidos, inventario, facturación y logística</p>
 
-        {/* Banner destacado: ¿Aún no tienes Xupply App? */}
-        <div className="mb-4">
-          <AppDownloadNotice compact dismissible={false} />
-        </div>
+        {/* Banner destacado removido para la landing */}
 
 
 

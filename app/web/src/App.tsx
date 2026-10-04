@@ -8,6 +8,7 @@ import AiFloatingWidget from './components/AiFloatingWidget';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Landing from './pages/Landing';
 import Catalog from './pages/Catalog';
 import CartPage from './pages/CartPage';
 import Orders from './pages/Orders';
@@ -22,6 +23,7 @@ import Plans from './pages/Plans';
 import AiAssistant from './pages/AiAssistant';
 import TeamManagement from './pages/TeamManagement';
 import Radar from './pages/Radar';
+import DriverDashboard from './pages/DriverDashboard';
 import AdminLayout from './components/AdminLayout';
 import DashboardAdmin from './pages/admin/DashboardAdmin';
 import UsuariosAdmin from './pages/admin/UsuariosAdmin';
@@ -61,6 +63,13 @@ function AdminAccessAllowed({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+function RootRoute() {
+  const { user, loading } = useAuth();
+  if (loading) return <div className="p-8 text-center text-gray-500 bg-slate-50 dark:bg-[#0b1120] min-h-screen">Cargando...</div>;
+  if (user) return <Dashboard />;
+  return <Landing />;
+}
+
 export default function App() {
   const { user } = useAuth();
   const { items } = useNotifications();
@@ -72,7 +81,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
-          <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+          <Route path="/" element={<RootRoute />} />
           <Route path="/catalogo" element={<RequireAuth><Catalog /></RequireAuth>} />
           <Route path="/carrito" element={<RequireAuth><CartPage /></RequireAuth>} />
           <Route path="/pedidos" element={<RequireAuth><Orders /></RequireAuth>} />
@@ -87,6 +96,7 @@ export default function App() {
           <Route path="/planes" element={<RequireAuth><Plans /></RequireAuth>} />
           <Route path="/xupply-ia" element={<RequireAuth><AiAssistant /></RequireAuth>} />
           <Route path="/equipo" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><TeamManagement /></RolesAllowed>} />
+          <Route path="/repartidor" element={<RequireAuth><DriverDashboard /></RequireAuth>} />
           
           {/* Rutas de Administración */}
           <Route path="/admin" element={<AdminAccessAllowed><AdminLayout /></AdminAccessAllowed>}>
