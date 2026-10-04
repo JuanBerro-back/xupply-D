@@ -34,10 +34,17 @@ export default function ComercioProfile() {
 
   const fetchProfile = async () => {
     try {
-      const res = await api<any>(`/admin/comercios/${type}/${id}`);
-      setData(res);
+      if (type === 'supplier') {
+        const profileRes = await api<any>(`/suppliers/${id}`);
+        const catalogRes = await api<any[]>(`/products?supplier_id=${id}`);
+        setData({ profile: profileRes, catalog: catalogRes || [] });
+      } else {
+        const profileRes = await api<any>(`/restaurants/${id}`);
+        setData({ profile: profileRes, catalog: [] });
+      }
     } catch (err) {
       console.error(err);
+      setData(null);
     } finally {
       setLoading(false);
     }

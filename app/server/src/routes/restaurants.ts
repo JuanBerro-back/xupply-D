@@ -19,6 +19,17 @@ router.get('/me', async (req, res, next) => {
   }
 });
 
+router.get('/:id', async (req, res, next) => {
+  try {
+    if (req.params.id === 'me' || req.params.id === 'branches') return next(); // Let other handlers catch it
+    const result = await query('SELECT * FROM restaurants WHERE id = $1', [req.params.id]);
+    if (!result.rowCount) return res.status(404).json({ error: 'Restaurante no encontrado' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.put('/me', roleRequired('gerente', 'admin'), async (req, res, next) => {
   try {
     const user = req.user!;
