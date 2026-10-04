@@ -39,6 +39,7 @@ export default function Catalog() {
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
+  const [linkedSupplierIds, setLinkedSupplierIds] = useState<number[]>([]);
 
   const isSupplier = user?.role === 'proveedor_admin';
 
@@ -53,9 +54,25 @@ export default function Catalog() {
   useEffect(() => {
     api<Category[]>('/categories').then(setCategories).catch(console.error);
     api<Supplier[]>('/suppliers').then(setSuppliers).catch(console.error);
+
+    const updateLinked = () => {
+      const stored = localStorage.getItem('xupply_linked_suppliers');
+      if (stored) {
+        try {
+          setLinkedSupplierIds(JSON.parse(stored));
+        } catch (e) {}
+      }
+    };
+    updateLinked();
+    window.addEventListener('xupply_linked_suppliers_changed', updateLinked);
+    return () => window.removeEventListener('xupply_linked_suppliers_changed', updateLinked);
   }, []);
 
   useEffect(load, [supplierFilter, categoryFilter, search]);
+
+  const displayedProducts = isSupplier 
+    ? products 
+    : products.filter(p => p.supplier_id && linkedSupplierIds.includes(p.supplier_id));
 
   const openCreate = () => {
     setEditing(null);
@@ -144,7 +161,7 @@ export default function Catalog() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {products.map((p) => (
+        {displayedProducts.map((p) => (
           <div key={p.id} className="flex flex-col rounded-lg border bg-white p-4 shadow-sm">
             <div className="mb-1 flex items-start justify-between gap-2">
               <h3 className="font-semibold">{p.name}</h3>
@@ -175,8 +192,15 @@ export default function Catalog() {
             )}
           </div>
         ))}
-        {products.length === 0 && (
-          <div className="col-span-full py-10 text-center text-gray-500">Sin productos.</div>
+        {displayedProducts.length === 0 && (
+          <div className="col-span-full py-16 text-center">
+            <p className="text-slate-500 font-medium mb-4">No hay productos disponibles.</p>
+            {!isSupplier && linkedSupplierIds.length === 0 && (
+              <p className="text-sm text-slate-400 max-w-md mx-auto">
+                Aún no has vinculado a ningún proveedor. Ve a la pestaña <a href="/proveedores" className="text-brand font-bold hover:underline">Directorio (Proveedores)</a> para empezar a construir tu mercado.
+              </p>
+            )}
+          </div>
         )}
       </div>
 

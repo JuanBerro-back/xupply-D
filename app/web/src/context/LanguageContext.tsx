@@ -6,8 +6,8 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
   es: {
     // Nav & General
     'nav.dashboard': 'Inicio / Dashboard',
-    'nav.catalog': 'Proveedores',
-    'nav.orders': 'Restaurantes',
+    'nav.catalog': 'Mercado',
+    'nav.orders': 'Pedidos',
     'nav.cart': 'Carrito',
     'nav.deliveries': 'Mapa GPS & Rutas',
     'nav.inventory': 'Inventario (ROP)',
@@ -69,8 +69,8 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
   en: {
     // Nav & General
     'nav.dashboard': 'Home / Dashboard',
-    'nav.catalog': 'Suppliers',
-    'nav.orders': 'Restaurants',
+    'nav.catalog': 'Marketplace',
+    'nav.orders': 'Orders',
     'nav.cart': 'Cart',
     'nav.deliveries': 'GPS Map & Routes',
     'nav.inventory': 'Inventory (ROP)',
