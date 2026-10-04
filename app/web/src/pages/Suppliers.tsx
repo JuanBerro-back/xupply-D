@@ -1,23 +1,15 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
-import { Supplier, Review } from '../types';
-import Modal from '../components/Modal';
-import { useNotifications } from '../context/NotificationContext';
-import { formatDate } from '../lib/constants';
+import { Supplier } from '../types';
 import RecommendedSuppliersGallery from '../components/RecommendedSuppliersGallery';
 import { IconStar, IconCheck } from '../components/Icons';
-import { Link as LinkIcon, Unlink } from 'lucide-react';
+import { Link as LinkIcon } from 'lucide-react';
+import { useNotifications } from '../context/NotificationContext';
 
 export default function Suppliers() {
   const { push } = useNotifications();
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [reviews, setReviews] = useState<Review[]>([]);
-  const [selected, setSelected] = useState<Supplier | null>(null);
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
-  
-  // Local storage vinculations
   const [linkedIds, setLinkedIds] = useState<number[]>([]);
 
   const load = () => api<Supplier[]>('/suppliers').then(setSuppliers).catch(console.error);
@@ -32,7 +24,9 @@ export default function Suppliers() {
     }
   }, []);
 
-  const toggleLink = (id: number) => {
+  const toggleLink = (e: React.MouseEvent, id: number) => {
+    e.preventDefault();
+    e.stopPropagation();
     let newLinked;
     if (linkedIds.includes(id)) {
       newLinked = linkedIds.filter(i => i !== id);
@@ -43,34 +37,9 @@ export default function Suppliers() {
     }
     setLinkedIds(newLinked);
     localStorage.setItem('xupply_linked_suppliers', JSON.stringify(newLinked));
-    
-    // Disparar evento para que el módulo de Mercado (Catálogo) pueda recargar si está montado
     window.dispatchEvent(new Event('xupply_linked_suppliers_changed'));
   };
 
-  const open = async (s: Supplier) => {
-    setSelected(s);
-    setRating(5);
-    setComment('');
-    api<Review[]>(`/reviews?supplier_id=${s.id}`).then(setReviews).catch(() => setReviews([]));
-  };
-
-  const submitReview = async () => {
-    if (!selected) return;
-    try {
-      await api('/reviews', {
-        method: 'POST',
-        body: JSON.stringify({ supplier_id: selected.id, rating, comment }),
-      });
-      push({ message: 'Reseña publicada', at: new Date().toISOString() });
-      setSelected(null);
-      load();
-    } catch (err) {
-      alert((err as Error).message);
-    }
-  };
-
-  // Group suppliers by category
   const groupedSuppliers = suppliers.reduce((acc, s) => {
     const cat = s.category || 'General';
     if (!acc[cat]) acc[cat] = [];
@@ -79,7 +48,7 @@ export default function Suppliers() {
   }, {} as Record<string, Supplier[]>);
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-12">
       <RecommendedSuppliersGallery />
 
       <div>
@@ -90,114 +59,68 @@ export default function Suppliers() {
             <h3 className="text-lg font-bold text-slate-600 dark:text-slate-300 mb-4 border-b border-slate-200 dark:border-slate-800 pb-2">
               {category}
             </h3>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="flex flex-col gap-5">
               {items.map((s) => {
                 const isLinked = linkedIds.includes(s.id);
+                // Fallback realistic images for horizontal banners based on category
+                const defaultImage = category === 'Carnes' 
+                  ? 'https://images.unsplash.com/photo-1603048297172-c92544798d5e?auto=format&fit=crop&q=80&w=1200'
+                  : category === 'Vegetales' 
+                    ? 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=80&w=1200' 
+                    : 'https://images.unsplash.com/photo-1555396273-367ea4eb4db5?auto=format&fit=crop&q=80&w=1200';
+                
+                const coverImage = s.cover_url || defaultImage;
+
                 return (
-                  <div key={s.id} className={`rounded-2xl border ${isLinked ? 'border-brand shadow-sm bg-brand/5' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800'} p-5 text-left transition-all hover:shadow-md flex flex-col justify-between`}>
-                    <div>
-                      <div className="mb-2 flex items-start justify-between">
-                        <h3 className="font-bold text-lg leading-tight dark:text-white pr-2">{s.name}</h3>
-                        <span className="rounded-md bg-amber-100 dark:bg-amber-900/30 px-2 py-1 text-xs font-bold text-amber-700 dark:text-amber-400 inline-flex items-center gap-1 shrink-0">
-                          <IconStar className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
-                          <span>{Number(s.rating).toFixed(1)}</span>
-                        </span>
-                      </div>
-                      <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{s.city ?? 'Bucaramanga'}</p>
-                    </div>
+                  <Link 
+                    to={`/comercio/supplier/${s.id}`} 
+                    key={s.id} 
+                    className={`relative w-full h-48 sm:h-56 md:h-64 rounded-3xl overflow-hidden group border ${isLinked ? 'border-emerald-500 shadow-emerald-500/20 shadow-xl' : 'border-slate-200 dark:border-slate-800 shadow-md hover:shadow-xl'}`}
+                  >
+                    <img src={coverImage} alt={s.name} className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" />
                     
-                    <div className="flex gap-2 mt-auto pt-4 border-t border-slate-100 dark:border-slate-800">
-                      <button 
-                        onClick={() => open(s)} 
-                        className="flex-1 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-semibold py-2 rounded-xl text-sm transition-colors text-center"
-                      >
-                        Ver Perfil
-                      </button>
-                      <button
-                        onClick={() => toggleLink(s.id)}
-                        className={`flex items-center justify-center gap-1.5 px-4 rounded-xl text-sm font-bold transition-all ${
-                          isLinked 
-                            ? 'bg-emerald-500 text-white hover:bg-emerald-600' 
-                            : 'bg-brand text-white hover:bg-sky-600'
-                        }`}
-                        title={isLinked ? 'Desvincular' : 'Vincular'}
-                      >
-                        {isLinked ? <><IconCheck className="w-4 h-4" /> Vinculado</> : <><LinkIcon className="w-4 h-4" /> Vincular</>}
-                      </button>
+                    {/* Dark gradient overlay */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-slate-900/40 to-transparent"></div>
+                    <div className="absolute inset-0 bg-gradient-to-r from-slate-950/80 via-slate-900/20 to-transparent"></div>
+                    
+                    {/* Content */}
+                    <div className="absolute inset-0 flex flex-col justify-end p-6 sm:p-8">
+                      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+                        <div className="max-w-xl">
+                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800/80 backdrop-blur-sm border border-slate-700 text-xs font-bold text-slate-200 mb-3">
+                            <IconStar className="w-3.5 h-3.5 fill-amber-500 text-amber-500" />
+                            {Number(s.rating).toFixed(1)}/5
+                          </span>
+                          <h3 className="text-2xl sm:text-3xl font-black text-white leading-tight drop-shadow-md mb-2">{s.name}</h3>
+                          <p className="text-slate-300 font-medium line-clamp-1">{s.description || 'Proveedor de insumos para el sector gastronómico.'}</p>
+                          <p className="text-sm text-slate-400 mt-1">{s.city ?? 'Bucaramanga, Santander'}</p>
+                        </div>
+                        
+                        <div className="flex gap-3 shrink-0">
+                          <button
+                            onClick={(e) => toggleLink(e, s.id)}
+                            className={`flex items-center justify-center gap-2 px-5 py-3 rounded-xl font-bold transition-all backdrop-blur-md ${
+                              isLinked 
+                                ? 'bg-emerald-500 text-white hover:bg-emerald-600 shadow-lg shadow-emerald-500/30' 
+                                : 'bg-white/10 hover:bg-white/20 text-white border border-white/20'
+                            }`}
+                            title={isLinked ? 'Desvincular' : 'Vincular'}
+                          >
+                            {isLinked ? <><IconCheck className="w-4 h-4" /> Vinculado</> : <><LinkIcon className="w-4 h-4" /> Vincular</>}
+                          </button>
+                          <div className="flex items-center justify-center px-6 py-3 bg-brand hover:bg-sky-500 text-white rounded-xl font-bold transition-colors">
+                            Ver Perfil
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  </Link>
                 );
               })}
             </div>
           </div>
         ))}
       </div>
-
-      {selected && (
-        <Modal title={selected.name} onClose={() => setSelected(null)}>
-          <div className="flex justify-end gap-2 mb-4">
-            <button 
-              onClick={() => toggleLink(selected.id)}
-              className={`px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 transition ${
-                linkedIds.includes(selected.id)
-                  ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400'
-                  : 'bg-brand text-white hover:bg-sky-600 shadow-md shadow-brand/20'
-              }`}
-            >
-              {linkedIds.includes(selected.id) ? <><Unlink className="w-4 h-4" /> Desvincular Proveedor</> : <><LinkIcon className="w-4 h-4" /> Vincular Proveedor</>}
-            </button>
-            <Link to={`/comercio/supplier/${selected.id}`} className="px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 rounded-xl text-sm font-bold hover:bg-slate-200 dark:hover:bg-slate-700 transition">
-              Perfil Completo
-            </Link>
-          </div>
-          <div className="mb-6 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 p-4 text-sm">
-            <p className="mb-2"><b className="text-slate-700 dark:text-slate-300">NIT:</b> <span className="text-slate-600 dark:text-slate-400">{selected.nit ?? '—'}</span></p>
-            <p className="mb-2"><b className="text-slate-700 dark:text-slate-300">Email:</b> <span className="text-slate-600 dark:text-slate-400">{selected.email ?? '—'}</span></p>
-            <p className="mb-2"><b className="text-slate-700 dark:text-slate-300">Teléfono:</b> <span className="text-slate-600 dark:text-slate-400">{selected.phone ?? '—'}</span></p>
-            <p><b className="text-slate-700 dark:text-slate-300">Dirección:</b> <span className="text-slate-600 dark:text-slate-400">{selected.address ?? '—'}</span></p>
-          </div>
-          <h4 className="mb-3 text-base font-bold dark:text-white border-b border-slate-100 dark:border-slate-800 pb-2">Reseñas ({selected.review_count})</h4>
-          <div className="mb-6 max-h-48 space-y-3 overflow-y-auto pr-2 custom-scrollbar">
-            {reviews.length === 0 && <p className="text-sm text-slate-500 italic">Sin reseñas aún. ¡Sé el primero en calificar!</p>}
-            {reviews.map((r) => (
-              <div key={r.id} className="rounded-xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 p-3 text-sm shadow-sm">
-                <div className="flex justify-between items-center mb-1">
-                  <b className="dark:text-slate-200">{r.reviewer_name}</b>
-                  <span className="text-amber-600 dark:text-amber-500 inline-flex items-center gap-1 font-bold bg-amber-50 dark:bg-amber-900/20 px-2 py-0.5 rounded">
-                    <IconStar className="w-3.5 h-3.5 fill-amber-500" />
-                    <span>{r.rating}</span>
-                  </span>
-                </div>
-                <p className="text-slate-600 dark:text-slate-400 mt-1">{r.comment}</p>
-                <p className="text-xs text-slate-400 mt-2">{formatDate(r.created_at)}</p>
-              </div>
-            ))}
-          </div>
-          <div className="space-y-4 bg-slate-50 dark:bg-slate-900/50 -mx-6 -mb-6 p-6 border-t border-slate-100 dark:border-slate-800 rounded-b-2xl">
-            <h4 className="font-bold text-sm dark:text-slate-200">Dejar una reseña</h4>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium dark:text-slate-400">Calificación:</span>
-              <select value={rating} onChange={(e) => setRating(Number(e.target.value))} className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-sm outline-none focus:border-brand">
-                <option value="5">5 - Excelente</option>
-                <option value="4">4 - Muy bueno</option>
-                <option value="3">3 - Regular</option>
-                <option value="2">2 - Malo</option>
-                <option value="1">1 - Pésimo</option>
-              </select>
-            </div>
-            <textarea
-              placeholder="¿Cómo fue tu experiencia con este proveedor?"
-              value={comment}
-              onChange={(e) => setComment(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-sm outline-none focus:border-brand focus:ring-1 focus:ring-brand"
-              rows={3}
-            />
-            <button onClick={submitReview} className="w-full rounded-xl bg-brand py-2.5 font-bold text-white hover:bg-sky-600 transition shadow-md shadow-brand/20">
-              Publicar Reseña
-            </button>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }
