@@ -26,6 +26,8 @@ export interface Supplier {
   rating: string | number;
   review_count: number;
   logo_url: string;
+  cover_url?: string;
+  description?: string;
   is_active: boolean;
 }
 
