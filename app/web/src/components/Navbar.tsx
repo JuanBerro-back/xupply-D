@@ -54,7 +54,7 @@ export default function Navbar() {
   return (
     <>
       <header
-        className={`sticky top-0 z-30 text-white shadow-md transition-colors duration-300 ${
+        className={`hidden sm:block sticky top-0 z-30 text-white shadow-md transition-colors duration-300 ${
           isSupplier
             ? 'bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 dark:from-emerald-950 dark:via-teal-950 dark:to-emerald-950 border-b border-emerald-500/30'
             : 'bg-gradient-to-r from-sky-700 via-sky-600 to-sky-700 dark:from-slate-900 dark:via-sky-950 dark:to-slate-900 border-b border-sky-500/20'

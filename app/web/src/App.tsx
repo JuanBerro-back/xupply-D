@@ -2,6 +2,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import { useNotifications } from './context/NotificationContext';
 import Navbar from './components/Navbar';
+import BottomNav from './components/BottomNav';
 import SideCart from './components/SideCart';
 import Toasts from './components/Toasts';
 import AiFloatingWidget from './components/AiFloatingWidget';
@@ -78,7 +79,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-[#0b1120] dark:text-slate-100 antialiased transition-colors duration-300">
       {user && <Navbar />}
-      <main className={user ? 'mx-auto max-w-7xl px-4 py-6 pb-24 lg:pb-6' : ''}>
+      <main className={user ? 'mx-auto max-w-7xl px-4 py-6 pb-24 sm:pb-6' : ''}>
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
@@ -113,6 +114,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
+      {user && <BottomNav />}
       {items.length > 0 && <Toasts />}
       <SideCart />
       {user && <AiFloatingWidget />}

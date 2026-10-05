@@ -6,6 +6,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useLanguage } from '../context/LanguageContext';
 import TermsModal from './TermsModal';
 import AppDownloadNotice from './AppDownloadNotice';
+import NotificationBell from './NotificationBell';
 import {
   IconDashboard,
   IconCatalog,
@@ -96,14 +97,17 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
               </p>
             </div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition cursor-pointer"
-            aria-label="Cerrar menú lateral"
-          >
-            <IconClose className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <button
+              type="button"
+              onClick={onClose}
+              className="p-2 rounded-xl text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition cursor-pointer"
+              aria-label="Cerrar menú lateral"
+            >
+              <IconClose className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
         {/* Content with all app modules */}

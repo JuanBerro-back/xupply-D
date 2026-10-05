@@ -61,7 +61,7 @@ export default function AppDownloadNotice({
               {lang === 'en' ? "Don't have Xupply App yet?" : '¿Aún no tienes Xupply App?'}
             </p>
             <p className="text-[11px] text-emerald-300 font-medium">
-              {lang === 'en' ? 'Download official Android APK (v1.0)' : 'Descarga el APK oficial para Android'}
+              {lang === 'en' ? 'Download official Android APK (v2.0)' : 'Descarga el APK oficial para Android (v2.0)'}
             </p>
           </div>
         </div>

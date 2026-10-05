@@ -195,9 +195,9 @@ export default function Landing() {
 
               {/* Card Logística */}
               <div className="group rounded-3xl overflow-hidden bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 hover:border-amber-500/50 transition-colors shadow-lg">
-                <div className="h-48 overflow-hidden relative">
-                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent z-10" />
-                  <img src="https://images.unsplash.com/photo-1621252178280-9afeb4407b8b?auto=format&fit=crop&w=600&q=80" alt="Para Operadores Logísticos" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <div className="h-48 overflow-hidden relative bg-white">
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-transparent to-transparent z-10" />
+                  <img src="/logistica.png" alt="Para Operadores Logísticos" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   <h3 className="absolute bottom-4 left-6 z-20 text-2xl font-bold text-white">Equipos Logísticos</h3>
                 </div>
                 <div className="p-8">
