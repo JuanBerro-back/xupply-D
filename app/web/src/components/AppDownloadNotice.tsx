@@ -35,7 +35,7 @@ export default function AppDownloadNotice({
   };
 
   const handleCopyLink = async () => {
-    const fullUrl = `${window.location.origin}/Xupply.apk?v=2.0`;
+    const fullUrl = `${window.location.origin}/Xupply.apk?v=` + Date.now();
     try {
       await navigator.clipboard.writeText(fullUrl);
       setCopied(true);

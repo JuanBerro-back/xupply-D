@@ -45,7 +45,7 @@ export function getApiOrigin(): string {
 
 export function getApkDownloadUrl(): string {
   // El instalador Xupply.apk se sirve directamente desde la raíz pública de la web
-  return '/Xupply.apk?v=2.0';
+  return '/Xupply.apk?v=' + Date.now();
 }
 
 export function setCustomApiOrigin(url: string) {
