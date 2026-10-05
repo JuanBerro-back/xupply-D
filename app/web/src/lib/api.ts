@@ -6,10 +6,13 @@ export const DEFAULT_RENDER_URL = 'https://xupply-d.onrender.com';
 
 export function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
+  const cap = (window as any).Capacitor;
   return (
     window.location.protocol === 'capacitor:' ||
     Capacitor.isNativePlatform() ||
-    Boolean((window as any)?.Capacitor?.isNativePlatform?.())
+    Boolean(cap?.isNativePlatform?.()) ||
+    cap?.getPlatform?.() === 'android' ||
+    cap?.getPlatform?.() === 'ios'
   );
 }
 
