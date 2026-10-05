@@ -10,7 +10,6 @@ import AiFloatingWidget from './components/AiFloatingWidget';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
-import Landing from './pages/Landing';
 import Catalog from './pages/Catalog';
 import CartPage from './pages/CartPage';
 import Orders from './pages/Orders';
@@ -70,8 +69,7 @@ function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) return <div className="p-8 text-center text-gray-500 bg-slate-50 dark:bg-[#0b1120] min-h-screen">Cargando...</div>;
   if (user) return <Dashboard />;
-  if (isCapacitorNative()) return <Navigate to="/login" replace />;
-  return <Landing />;
+  return <Navigate to="/login" replace />;
 }
 
 export default function App() {
