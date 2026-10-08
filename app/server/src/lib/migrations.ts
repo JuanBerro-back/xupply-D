@@ -97,7 +97,7 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
       CREATE INDEX IF NOT EXISTS idx_radar_offers_status ON radar_offers(status, valid_until);
       CREATE INDEX IF NOT EXISTS idx_radar_offers_alert ON radar_offers(alert_id);
 
-      // Purchase orders (drafts)
+      -- Purchase orders (drafts)
       DO $$
       BEGIN
         IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'purchase_order_status') THEN
