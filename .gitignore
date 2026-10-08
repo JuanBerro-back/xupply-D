@@ -1,5 +1,7 @@
 # Secrets and local configuration
 app/server/.env
+.env
+.env.production
 *.local
 
 # Dependencies and generated output

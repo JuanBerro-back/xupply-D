@@ -17,6 +17,9 @@ import dashboardRouter from './routes/dashboard';
 import aiRouter from './routes/ai';
 import usersRouter from './routes/users';
 import radarRouter from './routes/radar';
+import purchaseOrdersRouter from './routes/purchaseOrders';
+import agentRouter from './routes/agent';
+import xupaiRouter from './routes/xupai';
 import adminRouter from './routes/admin';
 import { notFound, errorHandler } from './middleware/error';
 
@@ -54,6 +57,9 @@ export function createApp() {
   app.use('/api/ai', aiRouter);
   app.use('/api/users', usersRouter);
   app.use('/api/radar', radarRouter);
+  app.use('/api/purchase-orders', purchaseOrdersRouter);
+  app.use('/api/agent', agentRouter);
+  app.use('/api/xupai', xupaiRouter);
   app.use('/api/admin', adminRouter);
 
   // Endpoint de descarga directa del instalador APK para Android

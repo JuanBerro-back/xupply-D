@@ -1,0 +1,26 @@
+services:
+  n8n:
+    image: n8nio/n8n:latest
+    restart: unless-stopped
+    environment:
+      - N8N_ENCRYPTION_KEY=xupply-n8n-key-please-change
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - GENERIC_TIMEZONE=America/Bogota
+      - TZ=America/Bogota
+      - WEBHOOK_URL=http://localhost:5678/
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    networks:
+      - default
+
+volumes:
+  n8n_data:
+
+networks:
+  default:
+    name: xupply-d-main_default
+    external: true
