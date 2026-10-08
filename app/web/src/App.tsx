@@ -7,6 +7,7 @@ import BottomNav from './components/BottomNav';
 import SideCart from './components/SideCart';
 import Toasts from './components/Toasts';
 import AiFloatingWidget from './components/AiFloatingWidget';
+import CookieConsent from './components/CookieConsent';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
@@ -87,21 +88,21 @@ export default function App() {
           <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
           <Route path="/" element={<RootRoute />} />
           <Route path="/descargar" element={<DownloadApp />} />
-          <Route path="/catalogo" element={<RequireAuth><Catalog /></RequireAuth>} />
-          <Route path="/carrito" element={<RequireAuth><CartPage /></RequireAuth>} />
+          <Route path="/catalogo" element={<RolesAllowed roles={['admin', 'gerente', 'empleado', 'proveedor_admin']}><Catalog /></RolesAllowed>} />
+          <Route path="/carrito" element={<RolesAllowed roles={['admin', 'gerente', 'empleado']}><CartPage /></RolesAllowed>} />
           <Route path="/pedidos" element={<RequireAuth><Orders /></RequireAuth>} />
           <Route path="/pedidos/:id" element={<RequireAuth><OrderDetail /></RequireAuth>} />
           <Route path="/inventario" element={<RolesAllowed roles={['admin', 'gerente', 'empleado']}><Inventory /></RolesAllowed>} />
           <Route path="/radar" element={<RolesAllowed roles={['admin', 'gerente', 'empleado', 'proveedor_admin']}><Radar /></RolesAllowed>} />
-          <Route path="/facturacion" element={<RolesAllowed roles={['admin', 'gerente']}><Invoices /></RolesAllowed>} />
-          <Route path="/contabilidad" element={<RolesAllowed roles={['admin', 'gerente']}><Accounting /></RolesAllowed>} />
+          <Route path="/facturacion" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><Invoices /></RolesAllowed>} />
+          <Route path="/contabilidad" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><Accounting /></RolesAllowed>} />
           <Route path="/proveedores" element={<RequireAuth><Suppliers /></RequireAuth>} />
           <Route path="/clientes" element={<RolesAllowed roles={['proveedor_admin', 'admin']}><PosiblesClientes /></RolesAllowed>} />
           <Route path="/logistica" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin', 'domiciliario']}><Deliveries /></RolesAllowed>} />
           <Route path="/planes" element={<RequireAuth><Plans /></RequireAuth>} />
           <Route path="/xupply-ia" element={<RequireAuth><AiAssistant /></RequireAuth>} />
           <Route path="/equipo" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><TeamManagement /></RolesAllowed>} />
-          <Route path="/repartidor" element={<RequireAuth><DriverDashboard /></RequireAuth>} />
+          <Route path="/repartidor" element={<RolesAllowed roles={['domiciliario', 'admin']}><DriverDashboard /></RolesAllowed>} />
           
           {/* Rutas de Administración */}
           <Route path="/admin" element={<AdminAccessAllowed><AdminLayout /></AdminAccessAllowed>}>
@@ -120,6 +121,7 @@ export default function App() {
       {items.length > 0 && <Toasts />}
       <SideCart />
       {user && <AiFloatingWidget />}
+      <CookieConsent />
     </div>
   );
 }
