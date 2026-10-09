@@ -40,6 +40,7 @@ export default function Catalog() {
   const [editing, setEditing] = useState<Product | null>(null);
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [linkedSupplierIds, setLinkedSupplierIds] = useState<number[]>([]);
+  const [priceSort, setPriceSort] = useState<'asc' | 'desc' | ''>('');
 
   const isSupplier = user?.role === 'proveedor_admin';
 
@@ -70,9 +71,15 @@ export default function Catalog() {
 
   useEffect(load, [supplierFilter, categoryFilter, search]);
 
-  const displayedProducts = isSupplier 
+  const filteredProducts = isSupplier 
     ? products 
     : products.filter(p => p.supplier_id && linkedSupplierIds.includes(p.supplier_id));
+
+  const displayedProducts = [...filteredProducts].sort((a, b) => {
+    if (priceSort === 'asc') return a.price_per_unit - b.price_per_unit;
+    if (priceSort === 'desc') return b.price_per_unit - a.price_per_unit;
+    return 0;
+  });
 
   const openCreate = () => {
     setEditing(null);
@@ -156,6 +163,11 @@ export default function Catalog() {
           {categories.map((c) => (
             <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
           ))}
+        </select>
+        <select value={priceSort} onChange={(e) => setPriceSort(e.target.value as any)} className="rounded border px-3 py-2">
+          <option value="">Ordenar por precio</option>
+          <option value="desc">Mayor a menor</option>
+          <option value="asc">Menor a mayor</option>
         </select>
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar producto..." className="flex-1 rounded border px-3 py-2" />
       </div>

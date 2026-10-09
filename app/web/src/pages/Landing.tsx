@@ -54,51 +54,44 @@ export default function Landing() {
       </header>
 
       <main>
-        <section className="relative pt-24 pb-20 lg:pt-32 lg:pb-24 overflow-hidden">
+        <section className="relative pt-16 pb-16 lg:pt-24 lg:pb-20 overflow-hidden">
           <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[600px] h-[600px] bg-sky-500/20 dark:bg-sky-500/10 blur-[120px] rounded-full pointer-events-none" />
           <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/20 dark:bg-emerald-500/10 blur-[120px] rounded-full pointer-events-none" />
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
             <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
               {/* Text Content */}
-              <div className="text-center lg:text-left pt-10 lg:pt-0">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand/10 text-brand text-sm font-bold mb-6">
-                  <span className="relative flex h-2 w-2">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand opacity-75"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-brand"></span>
-                  </span>
-                  Lanzamiento Oficial
-                </div>
-                <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-slate-400">
-                  El motor operativo de tu restaurante en Bucaramanga
+              <div className="text-center lg:text-left pt-6 lg:pt-0">
+                <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold tracking-tight mb-5 bg-clip-text text-transparent bg-gradient-to-r from-slate-900 via-slate-700 to-slate-900 dark:from-white dark:via-slate-200 dark:to-slate-400 leading-[1.15]">
+                  El motor operativo de tu restaurante
                 </h1>
-                <p className="mt-4 text-xl md:text-2xl text-slate-600 dark:text-slate-400 mb-10 leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                  Catálogo B2B, pedidos con GPS en vivo, inventario inteligente, facturación electrónica y nuestro asistente <span className="text-sky-500 font-semibold">Xupply IA</span>.
+                <p className="text-base md:text-lg text-slate-600 dark:text-slate-400 mb-8 leading-relaxed max-w-xl mx-auto lg:mx-0">
+                  Pedidos B2B, rastreo GPS, inventario inteligente y facturación electrónica — todo en un solo lugar.
                 </p>
-                <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-4">
-                  <Link to="/register" className="text-lg font-medium bg-sky-500 text-white px-8 py-4 rounded-full hover:bg-sky-400 transition-all shadow-[0_0_40px_-10px_rgba(2,132,199,0.5)] hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
+                <div className="flex flex-col sm:flex-row justify-center lg:justify-start gap-3">
+                  <Link to="/register" className="text-base font-semibold bg-sky-500 text-white px-6 py-3 rounded-full hover:bg-sky-400 transition-all shadow-[0_0_30px_-10px_rgba(2,132,199,0.4)] hover:scale-105 active:scale-95 flex items-center justify-center gap-2">
                     Comenzar gratis
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" /></svg>
                   </Link>
-                  <a href="#features" className="text-lg font-medium bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-8 py-4 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-center">
+                  <a href="#features" className="text-base font-semibold bg-white dark:bg-slate-800 text-slate-900 dark:text-white px-6 py-3 rounded-full border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all text-center">
                     Explorar plataforma
                   </a>
                 </div>
                 
-                <div className="mt-8 flex items-center justify-center lg:justify-start gap-4 text-sm text-slate-500 dark:text-slate-400 font-medium">
-                  <div className="flex -space-x-3">
-                    <img className="w-10 h-10 rounded-full border-2 border-white dark:border-slate-900 object-cover" src="https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=100&q=80" alt="Usuario 1" />
-                    <img className="w-10 h-10 rounded-full border-2 border-white dark:border-slate-900 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Usuario 2" />
-                    <img className="w-10 h-10 rounded-full border-2 border-white dark:border-slate-900 object-cover" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80" alt="Usuario 3" />
+                <div className="mt-6 flex items-center justify-center lg:justify-start gap-3 text-xs text-slate-500 dark:text-slate-400 font-medium">
+                  <div className="flex -space-x-2">
+                    <img className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 object-cover" src="https://images.unsplash.com/photo-1583394838336-acd977736f90?auto=format&fit=crop&w=100&q=80" alt="Usuario 1" />
+                    <img className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80" alt="Usuario 2" />
+                    <img className="w-8 h-8 rounded-full border-2 border-white dark:border-slate-900 object-cover" src="https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=100&q=80" alt="Usuario 3" />
                   </div>
-                  <p>Únete a más de <strong className="text-slate-900 dark:text-white">50+</strong> restaurantes y proveedores</p>
+                  <p><strong className="text-slate-900 dark:text-white">50+</strong> restaurantes y proveedores activos</p>
                 </div>
               </div>
 
               {/* Image Composition */}
-              <div className="relative hidden lg:block h-[600px] w-full perspective-1000">
+              <div className="relative hidden lg:block h-[420px] w-full perspective-1000">
                 {/* Main Restaurant Image */}
-                <div className="absolute top-10 right-10 w-[380px] h-[480px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-slate-800 z-10 transform rotate-2 hover:rotate-0 transition-transform duration-500">
+                <div className="absolute top-0 right-5 w-[320px] h-[380px] rounded-3xl overflow-hidden shadow-2xl border-4 border-white dark:border-slate-800 z-10 transform rotate-2 hover:rotate-0 transition-transform duration-500">
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10" />
                   <img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?auto=format&fit=crop&w=600&q=80" alt="Restaurante" className="w-full h-full object-cover" />
                   <div className="absolute bottom-6 left-6 z-20 text-white">
@@ -108,7 +101,7 @@ export default function Landing() {
                 </div>
 
                 {/* Supplier / Ingredients Image */}
-                <div className="absolute bottom-10 left-0 w-[300px] h-[340px] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-4 border-white dark:border-slate-800 z-20 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+                <div className="absolute bottom-0 left-0 w-[250px] h-[280px] rounded-3xl overflow-hidden shadow-[0_20px_50px_rgba(0,0,0,0.3)] border-4 border-white dark:border-slate-800 z-20 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10" />
                   <img src="https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=500&q=80" alt="Proveedores" className="w-full h-full object-cover" />
                   <div className="absolute bottom-5 left-5 z-20 text-white">
@@ -118,7 +111,7 @@ export default function Landing() {
                 </div>
                 
                 {/* Floating UI Element (App widget mockup) */}
-                <div className="absolute top-24 -left-12 bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-xl border border-slate-200 dark:border-slate-700 z-30 flex items-center gap-4 transform -rotate-2 animate-bounce" style={{ animationDuration: '3s' }}>
+                <div className="absolute top-16 -left-8 bg-white dark:bg-slate-900 rounded-2xl p-3 shadow-xl border border-slate-200 dark:border-slate-700 z-30 flex items-center gap-3 transform -rotate-2 animate-bounce" style={{ animationDuration: '3s' }}>
                   <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
                   </div>
@@ -133,9 +126,9 @@ export default function Landing() {
         </section>
 
         {/* Módulos de Identificación por Tipo de Negocio */}
-        <section id="soluciones" className="py-24 bg-white dark:bg-slate-950 relative border-t border-slate-100 dark:border-slate-900">
+        <section id="soluciones" className="py-14 bg-white dark:bg-slate-950 relative border-t border-slate-100 dark:border-slate-900">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <div className="text-center mb-10">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Hecho a la medida de tu operación</h2>
               <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto text-lg">
                 Xupply no es un software genérico. Es un ecosistema gastronómico que conecta cada eslabón de la cadena de suministro.
@@ -221,9 +214,9 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="features" className="py-24 bg-slate-50/50 dark:bg-slate-900/50">
+        <section id="features" className="py-14 bg-slate-50/50 dark:bg-slate-900/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <div className="text-center mb-10">
               <h2 className="text-3xl font-bold mb-4">Todo lo que necesitas, en un solo lugar</h2>
               <p className="text-slate-600 dark:text-slate-400 max-w-2xl mx-auto">
                 Diseñado específicamente para el ecosistema gastronómico, conectando restaurantes con proveedores mayoristas.
@@ -253,16 +246,13 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="xupply-ia" className="py-24 relative overflow-hidden">
+        <section id="xupply-ia" className="py-14 relative overflow-hidden">
           <div className="absolute right-0 top-0 w-[500px] h-[500px] bg-purple-500/10 blur-[100px] rounded-full pointer-events-none" />
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-slate-900 rounded-[3rem] p-8 md:p-16 relative overflow-hidden border border-slate-800">
+            <div className="bg-slate-900 rounded-[2rem] p-6 md:p-10 relative overflow-hidden border border-slate-800">
               <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-indigo-900/50 z-0" />
               <div className="relative z-10 grid lg:grid-cols-2 gap-12 items-center">
                 <div>
-                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-purple-500/20 text-purple-300 text-sm font-medium mb-6">
-                    <Cpu className="w-4 h-4" /> Nuevo
-                  </div>
                   <h2 className="text-4xl font-bold text-white mb-6">Conoce a Xupply IA</h2>
                   <p className="text-lg text-slate-400 mb-8 leading-relaxed">
                     Tu copiloto gastronómico. Pregúntale sobre tu food cost ideal, predicciones de compra, o tendencias de precios mayoristas. Toma decisiones basadas en datos en segundos.
@@ -295,9 +285,9 @@ export default function Landing() {
           </div>
         </section>
 
-        <section id="ventajas" className="py-24 bg-slate-50 dark:bg-[#0b1120]">
+        <section id="ventajas" className="py-14 bg-slate-50 dark:bg-[#0b1120]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-16">
+            <div className="text-center mb-10">
               <h2 className="text-3xl font-bold mb-4">¿Por qué elegir Xupply?</h2>
               <p className="text-slate-600 dark:text-slate-400">Ventajas clave que nos diferencian de otras plataformas genéricas del mercado.</p>
             </div>
@@ -348,20 +338,20 @@ export default function Landing() {
         </section>
 
         {/* Xupply App Mobile Section */}
-        <section id="app" className="py-24 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 relative overflow-hidden">
+        <section id="app" className="py-14 bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 relative overflow-hidden">
           <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 blur-[100px] rounded-full pointer-events-none" />
           
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <div>
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-500/20 text-emerald-400 mb-8 border border-emerald-500/30">
-                  <Smartphone className="w-8 h-8" />
+                <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-emerald-500/20 text-emerald-400 mb-5 border border-emerald-500/30">
+                  <Smartphone className="w-6 h-6" />
                 </div>
-                <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6">
-                  Lleva tu restaurante <br/><span className="text-emerald-400">en tu bolsillo</span>
+                <h2 className="text-3xl md:text-4xl font-extrabold text-white mb-4">
+                  Lleva tu restaurante <span className="text-emerald-400">en tu bolsillo</span>
                 </h2>
-                <p className="text-lg text-slate-300 mb-8 max-w-lg">
-                  Obtén alertas instantáneas, controla tus inventarios, realiza pedidos a distribuidores mayoristas y haz seguimiento satelital de tus entregas, todo desde tu celular Android.
+                <p className="text-base text-slate-300 mb-6 max-w-lg">
+                  Alertas, inventario, pedidos y seguimiento GPS — todo desde tu celular Android.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4">
                   <Link to="/descargar" className="inline-flex items-center justify-center gap-2 px-8 py-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-slate-950 font-black text-lg transition shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:shadow-[0_0_40px_rgba(16,185,129,0.5)]">
@@ -378,7 +368,7 @@ export default function Landing() {
               {/* Decorative Mockup */}
               <div className="relative mx-auto w-full max-w-sm lg:ml-auto">
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10 rounded-[3rem]" />
-                <div className="relative bg-slate-900 border-[8px] border-slate-800 rounded-[3rem] h-[600px] overflow-hidden shadow-2xl">
+                <div className="relative bg-slate-900 border-[8px] border-slate-800 rounded-[3rem] h-[450px] overflow-hidden shadow-2xl">
                   {/* Notch */}
                   <div className="absolute top-0 inset-x-0 h-6 bg-slate-800 rounded-b-3xl mx-16 z-20" />
                   
@@ -414,7 +404,7 @@ export default function Landing() {
         </section>
       </main>
 
-      <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-900 py-12">
+      <footer className="bg-white dark:bg-slate-950 border-t border-slate-200 dark:border-slate-900 py-8">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-lg bg-sky-500 flex items-center justify-center text-white font-bold text-xs">X</div>

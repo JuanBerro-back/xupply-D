@@ -9,6 +9,7 @@ export default function Orders() {
   const { user } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [status, setStatus] = useState('');
+  const [priceSort, setPriceSort] = useState<'asc' | 'desc' | ''>('');
 
   const load = useCallback(() => {
     const qs = status ? `?status=${status}` : '';
@@ -43,12 +44,23 @@ export default function Orders() {
             <option key={s} value={s}>{s === '' ? 'Todos los estados' : s}</option>
           ))}
         </select>
+        <select value={priceSort} onChange={(e) => setPriceSort(e.target.value as any)} className="rounded border px-3 py-2 text-sm ml-2">
+          <option value="">Ordenar por precio</option>
+          <option value="desc">Mayor a menor</option>
+          <option value="asc">Menor a mayor</option>
+        </select>
       </div>
       {orders.length === 0 && <p className="text-gray-500">No hay pedidos.</p>}
       <div className="grid grid-cols-1 gap-4">
-        {orders.map((o) => (
-          <OrderCard key={o.id} order={o} isSupplier={isSupplier} />
-        ))}
+        {[...orders]
+          .sort((a, b) => {
+            if (priceSort === 'asc') return a.total - b.total;
+            if (priceSort === 'desc') return b.total - a.total;
+            return 0;
+          })
+          .map((o) => (
+            <OrderCard key={o.id} order={o} isSupplier={isSupplier} />
+          ))}
       </div>
     </div>
   );
