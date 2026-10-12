@@ -13,9 +13,12 @@ interface ChatMsg {
   tool_calls?: any[];
 }
 
-const XUPAI_API_KEY = process.env.XUPAI_API_KEY || process.env.OPENAI_API_KEY || '';
-const XUPAI_MODEL = process.env.XUPAI_MODEL || 'gpt-4o-mini';
-const XUPAI_BASE_URL = (process.env.XUPAI_BASE_URL || 'https://api.openai.com/v1').replace(/\/+$/, '');
+const XUPAI_API_KEY = process.env.XUPAI_API_KEY || process.env.DEEPSEEK_API_KEY || process.env.OPENAI_API_KEY || '';
+const XUPAI_MODEL = process.env.XUPAI_MODEL || (process.env.DEEPSEEK_API_KEY ? 'deepseek-chat' : 'gpt-4o-mini');
+const XUPAI_BASE_URL = (
+  process.env.XUPAI_BASE_URL ||
+  (process.env.DEEPSEEK_API_KEY ? 'https://api.deepseek.com' : 'https://api.openai.com/v1')
+).replace(/\/+$/, '');
 
 const MAX_LOOP = 8;
 const LLM_TIMEOUT_MS = 60000;
