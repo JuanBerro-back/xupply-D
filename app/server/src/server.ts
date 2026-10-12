@@ -1,14 +1,13 @@
 import http from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
-import { createApp } from './app';
+import app from './app';
 import { setIo, registerSocket, emitToUser } from './lib/realtime';
 import { ensureServerInitialized, expireRadarItems } from './lib/migrations';
 
 dotenv.config();
 
 const PORT = Number(process.env.PORT) || 4000;
-const app = createApp();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: true, credentials: true },
@@ -30,16 +29,12 @@ io.on('connection', (socket) => {
 
 setIo(io);
 
-if (process.env.VERCEL !== '1') {
+if (!process.env.VERCEL) {
   server.listen(PORT, '0.0.0.0', async () => {
     console.log(`Xupply API corriendo en http://0.0.0.0:${PORT}`);
     await ensureServerInitialized();
     // Limpieza horaria de alertas y ofertas vencidas del Radar
     setInterval(expireRadarItems, 60 * 60 * 1000);
-  });
-} else {
-  ensureServerInitialized().catch((err) => {
-    console.error('[Vercel] Error en inicialización DB:', err);
   });
 }
 

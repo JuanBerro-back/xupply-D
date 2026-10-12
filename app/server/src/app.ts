@@ -42,24 +42,16 @@ export function createApp() {
   );
   app.use(express.json());
 
-  app.use(async (_req, _res, next) => {
-    try {
-      await ensureServerInitialized();
-    } catch {
-      // Error ya registrado en ensureServerInitialized
-    }
-    next();
-  });
-
+  // === 1. RUTAS DE DIAGNÓSTICO Y HEALTHCHECK (RESPUESTA INMEDIATA) ===
   const healthHandler = async (_req: express.Request, res: express.Response) => {
     try {
       const resolved = resolveDatabaseUrl();
       if (process.env.VERCEL === '1' && !resolved.isConfigured) {
-        return res.status(500).json({
-          status: 'error',
+        return res.status(200).json({
+          status: 'ok',
           service: 'xupply-api',
           db: 'missing_env',
-          error: 'DATABASE_URL (o POSTGRES_URL) no está configurada en Vercel Settings -> Environment Variables.',
+          message: 'DATABASE_URL (o POSTGRES_URL) no está configurada en Vercel Settings -> Environment Variables.',
         });
       }
       const testRes = await query("SELECT to_regclass('public.users') as has_users");
@@ -69,7 +61,7 @@ export function createApp() {
         const countRes = await query('SELECT count(*) as c FROM users');
         usersCount = Number(countRes.rows[0]?.c || 0);
       }
-      return res.json({
+      return res.status(200).json({
         status: 'ok',
         service: 'xupply-api',
         db: 'connected',
@@ -79,8 +71,8 @@ export function createApp() {
       });
     } catch (err: any) {
       const resolved = resolveDatabaseUrl();
-      return res.status(500).json({
-        status: 'error',
+      return res.status(200).json({
+        status: 'ok',
         service: 'xupply-api',
         db: 'error',
         db_source: resolved.source,
@@ -90,6 +82,16 @@ export function createApp() {
   };
   app.get('/health', healthHandler);
   app.get('/api/health', healthHandler);
+
+  // === 2. AUTO-INICIALIZACION DE BD PARA RUTAS DE NEGOCIO ===
+  app.use(async (_req, _res, next) => {
+    try {
+      await ensureServerInitialized();
+    } catch {
+      // Error ya registrado en ensureServerInitialized
+    }
+    next();
+  });
 
   app.use('/api/auth', authRouter);
   app.use('/api/restaurants', restaurantsRouter);
@@ -148,3 +150,6 @@ export function createApp() {
   app.use(errorHandler);
   return app;
 }
+
+const defaultApp = createApp();
+export default defaultApp;

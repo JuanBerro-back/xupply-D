@@ -30,17 +30,7 @@ function buildPayload(row: {
   };
 }
 
-// Asegurar columnas de categoría culinaria y planes de suscripción
-query(`
-  ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS category VARCHAR(100);
-  ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(50) DEFAULT 'basico';
-  ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_plan VARCHAR(50) DEFAULT 'basico';
-  UPDATE restaurants SET category = 'BBQ & Parrilla' WHERE id = 1 AND category IS NULL;
-  UPDATE restaurants SET category = 'Latino & Comida Típica' WHERE id = 2 AND category IS NULL;
-  UPDATE restaurants SET category = 'BBQ & Parrilla' WHERE id = 3 AND category IS NULL;
-  UPDATE restaurants SET category = 'Latino & Comida Típica' WHERE id = 4 AND category IS NULL;
-  UPDATE restaurants SET category = 'Hamburguesas & Fast Food' WHERE id = 5 AND category IS NULL;
-`).catch(() => undefined);
+
 
 router.post('/register', async (req, res, next) => {
   try {

@@ -58,6 +58,10 @@ export const pool = new Pool({
   ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
 });
 
+pool.on('error', (err) => {
+  console.error('[PostgreSQL Pool Error]', (err as Error)?.message || err);
+});
+
 export const query = (text: string, params?: unknown[]) => pool.query(text, params);
 
 export async function initDatabase() {
