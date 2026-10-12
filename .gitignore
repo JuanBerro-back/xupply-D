@@ -8,6 +8,7 @@ app/server/.env
 **/node_modules/
 **/dist/
 **/.gradle/
+**/.astro/
 *.tsbuildinfo
 app/web/android/app/build/
 app/web/android/.gradle/

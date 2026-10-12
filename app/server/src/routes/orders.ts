@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query, pool } from '../config/db';
 import { authRequired, roleRequired } from '../middleware/auth';
 import { emitOrder, emitToUser, emitInventoryAlert } from '../lib/realtime';
+import { logAudit } from '../lib/audit';
 import { sendEmail } from '../lib/email';
 import { resolveBucaramangaCoords } from '../lib/bucaramangaGeo';
 
@@ -118,12 +119,8 @@ router.post('/', roleRequired('gerente', 'empleado', 'admin'), async (req, res, 
         );
       }
       await client.query('UPDATE orders SET total = $1 WHERE id = $2', [total, orderId]);
-      await client.query(
-        `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_values)
-         VALUES ($1, 'create', 'order', $2, $3::jsonb)`,
-        [user.id, orderId, JSON.stringify({ total })]
-      );
       await client.query('COMMIT');
+      await logAudit(req, 'create', 'order', orderId, null, { total, order_code: code, supplier_id });
       const full = await query(`${orderSelect()} WHERE o.id = $1`, [orderId]);
       const order = { ...full.rows[0], items: (await query('SELECT * FROM order_items WHERE order_id = $1', [orderId])).rows };
       emitOrder('order:created', order);
@@ -253,11 +250,7 @@ router.patch('/:id/status', async (req, res, next) => {
       await query("UPDATE deliveries SET status = 'entregado', actual_delivery_time = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE order_id = $1 AND status != 'entregado'", [order.id]);
     }
 
-    await query(
-      `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_values)
-       VALUES ($1, 'status', 'order', $2, $3::jsonb)`,
-      [user.id, req.params.id, JSON.stringify({ status })]
-    );
+    await logAudit(req, 'update_status', 'order', Number(req.params.id), { status: order.status }, { status });
 
     const updated = await query(`${orderSelect()} WHERE o.id = $1`, [req.params.id]);
     emitOrder('order:updated', updated.rows[0]);

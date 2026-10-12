@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
 import { useCart } from '../context/CartContext';
+import { useLanguage } from '../context/LanguageContext';
 import { Order, Product } from '../types';
 import { ORDER_STATUS, formatMoney, formatDate } from '../lib/constants';
 import RecommendedSuppliersGallery from '../components/RecommendedSuppliersGallery';
@@ -264,6 +265,7 @@ const DEFAULT_DASHBOARD_DATA: DashboardData = {
 export default function Dashboard() {
   const { user } = useAuth();
   const { add } = useCart();
+  const { t, lang } = useLanguage();
   const navigate = useNavigate();
   const [data, setData] = useState<DashboardData>(DEFAULT_DASHBOARD_DATA);
   const [fetchNotice, setFetchNotice] = useState(false);
@@ -314,8 +316,9 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [data.announcements, isPaused]);
 
+  const isAdmin = user?.role === 'admin';
   const isSupplier = user?.role === 'proveedor_admin';
-  const isRestaurant = !isSupplier && (!!user?.restaurant_id || user?.role === 'gerente' || user?.role === 'admin');
+  const isRestaurant = !isSupplier && !isAdmin && (!!user?.restaurant_id || user?.role === 'gerente' || user?.role === 'empleado');
   const isDomiciliario = user?.role === 'domiciliario';
 
   const handleAddSuggestedProduct = (s: SuggestionItem) => {
@@ -372,10 +375,10 @@ return (
       <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 border-b border-slate-200">
         <div>
           <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900">
-            Bienvenido, {user?.name || user?.username || 'Usuario'}
+            {lang === 'es' ? 'Bienvenido' : 'Welcome'}, {user?.name || user?.username || 'Usuario'}
           </h1>
           <p className="text-sm text-slate-500 mt-1 capitalize">
-            Panel Principal • {user?.role?.replace('_', ' ')}
+            {t('nav.dropdown_dashboard')} • {user?.role?.replace('_', ' ')}
           </p>
         </div>
         
@@ -387,15 +390,20 @@ return (
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
             </svg>
-            Menú de Módulos
+            {t('nav.full_drawer')}
           </button>
           
-          {!isDomiciliario && !isSupplier && (
+          {isAdmin ? (
+            <Link to="/admin" className="bg-sky-600 hover:bg-sky-700 text-white font-medium py-2.5 px-5 rounded-xl shadow-sm transition-colors flex items-center gap-2 text-sm">
+              <IconKey className="w-4 h-4" />
+              Panel Maestro Administrador
+            </Link>
+          ) : !isDomiciliario && !isSupplier ? (
             <Link to="/catalogo" className="bg-sky-500 hover:bg-sky-600 text-white font-medium py-2.5 px-5 rounded-xl shadow-sm transition-colors flex items-center gap-2 text-sm">
               <IconBox className="w-4 h-4" />
               Nueva Orden B2B
             </Link>
-          )}
+          ) : null}
         </div>
       </header>
 
@@ -482,8 +490,22 @@ return (
               </div>
             </section>
 
-            {/* Card 2: Estado del Inventario */}
-            {isRestaurant ? (
+            {/* Card 2: Estado del Inventario o Auditoría para Admin */}
+            {isAdmin ? (
+              <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
+                <div className="flex justify-between items-start mb-4">
+                  <h2 className="text-sm font-bold text-slate-700">Auditoría & Trazabilidad</h2>
+                  <div className="p-2 bg-purple-50 rounded-lg text-purple-600">
+                    <IconKey className="w-5 h-5" />
+                  </div>
+                </div>
+                <div className="mb-2">
+                  <span className="text-xl font-black text-slate-900 tracking-tight">Supervisión en Vivo</span>
+                </div>
+                <p className="text-xs text-slate-500 font-medium mb-3">Movimientos y auditoría de cada usuario en tiempo real.</p>
+                <Link to="/admin/auditoria" className="text-xs font-bold text-sky-600 hover:underline">Ver auditoría completa →</Link>
+              </section>
+            ) : isRestaurant ? (
               <section className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
                 <div className="flex justify-between items-start mb-4">
                   <h2 className="text-sm font-bold text-slate-700">Stock Crítico (ROP)</h2>

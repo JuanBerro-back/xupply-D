@@ -3,6 +3,7 @@ import { query } from '../config/db';
 import { authRequired, clearPermissionCache, requirePermission } from '../middleware/auth';
 import bcrypt from 'bcryptjs';
 import { logAudit } from '../lib/audit';
+import { emitToUser, emitToRole } from '../lib/realtime';
 
 const router = Router();
 router.use(authRequired);
@@ -222,6 +223,7 @@ router.patch('/users/:id/deactivate', requirePermission('config'), async (req: R
     );
     
     await logAudit(req, 'deactivate', 'user', Number(id), userToDeactivate, result.rows[0]);
+    emitToUser('auth:session_invalidated', Number(id), { message: 'Tu cuenta ha sido desactivada por el administrador.' });
     res.json({ ok: true, user: result.rows[0] });
   } catch (err) {
     next(err);
@@ -243,6 +245,7 @@ router.patch('/users/:id/password', requirePermission('config'), async (req: Req
     await query('UPDATE users SET password_hash = $1, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, id]);
     
     await logAudit(req, 'change_password', 'user', Number(id), null, { message: 'Password updated' });
+    emitToUser('auth:session_invalidated', Number(id), { message: 'Tu contraseña fue actualizada por el administrador. Inicia sesión nuevamente.' });
     res.json({ ok: true });
   } catch (err) {
     next(err);
@@ -254,6 +257,7 @@ router.post('/users/:id/force-logout', requirePermission('config'), async (req: 
     // Invalidamos el token directamente iterando su version
     await query('UPDATE users SET token_version = token_version + 1 WHERE id = $1', [Number(req.params.id)]);
     await logAudit(req, 'force_logout', 'user', Number(req.params.id), null, { note: 'JWT successfully invalidated via token_version' });
+    emitToUser('auth:session_invalidated', Number(req.params.id), { message: 'Tu sesión ha sido revocada por el administrador.' });
     res.json({ 
       ok: true, 
       message: 'Sesión cerrada con éxito. Los tokens actuales del usuario han sido invalidados en tiempo real.' 
@@ -581,6 +585,7 @@ router.put('/roles/:id/permissions', requirePermission('config'), async (req: Re
       { permissions }
     );
     await clearPermissionCache();
+    emitToRole(target.rows[0].name, 'auth:session_invalidated', { message: 'Los permisos de tu rol han sido actualizados por el administrador.' });
     
     res.json({ ok: true, count: permissions.length });
   } catch (err) {

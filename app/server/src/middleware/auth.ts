@@ -10,6 +10,7 @@ export interface AuthUser {
   restaurant_id: number | null;
   supplier_id: number | null;
   branch_id: number | null;
+  name?: string;
   token_version?: number;
 }
 

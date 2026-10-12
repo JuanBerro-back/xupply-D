@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import { query } from '../config/db';
 import { authRequired, signToken } from '../middleware/auth';
 import { emitToUser } from '../lib/realtime';
+import { logAudit } from '../lib/audit';
 
 const router = Router();
 
@@ -103,6 +104,7 @@ router.post('/register', async (req, res, next) => {
       permissions = perms.rows.map((r: any) => r.name);
     }
     const payload = buildPayload({ ...row, role: roleName });
+    await logAudit(req, 'register', 'user', row.id, null, { username, role: roleName, name });
     res.status(201).json({ token: signToken(payload), user: { ...payload, permissions } });
   } catch (err) {
     next(err);
@@ -140,6 +142,7 @@ router.post('/login', async (req, res, next) => {
       permissions = perms.rows.map((r: any) => r.name);
     }
     await query('UPDATE users SET last_login = CURRENT_TIMESTAMP WHERE id = $1', [row.id]);
+    await logAudit(req, 'login', 'user', row.id, null, { username: row.username, role: row.role, name: row.name });
     res.json({ token: signToken(buildPayload(row)), user: { ...buildPayload(row), permissions } });
   } catch (err) {
     next(err);

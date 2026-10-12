@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { query, pool } from '../config/db';
 import { authRequired, roleRequired } from '../middleware/auth';
 import { emitRadarOffer, emitToUser } from '../lib/realtime';
+import { logAudit } from '../lib/audit';
 
 const router = Router();
 router.use(authRequired);
@@ -165,12 +166,8 @@ router.post('/alerts/:id/offers', roleRequired('proveedor_admin'), async (req, r
         `UPDATE radar_alerts SET status = 'ofertada' WHERE id = $1 AND status = 'abierta'`,
         [req.params.id]
       );
-      await client.query(
-        `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_values)
-         VALUES ($1, 'offer', 'radar_alert', $2, $3::jsonb)`,
-        [user.id, req.params.id, JSON.stringify({ offered_price: Number(offered_price) })]
-      );
       await client.query('COMMIT');
+      await logAudit(req, 'offer', 'radar_alert', Number(req.params.id), null, { offered_price: Number(offered_price) });
 
       emitRadarOffer(alert.rows[0].restaurant_id, {
         offer_id: offer.rows[0].id,
@@ -298,12 +295,8 @@ router.post('/offers/:id/accept', roleRequired('gerente', 'admin'), async (req, 
           [off.inventory_id, Number(off.offered_qty), off.id, user.id]
         );
       }
-      await client.query(
-        `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_values)
-         VALUES ($1, 'accept_offer', 'radar_offer', $2, $3::jsonb)`,
-        [user.id, off.id, JSON.stringify({ order_id: orderId, total })]
-      );
       await client.query('COMMIT');
+      await logAudit(req, 'accept_offer', 'radar_offer', Number(off.id), null, { order_id: orderId, total });
     } catch (err) {
       await client.query('ROLLBACK');
       throw err;

@@ -5,15 +5,22 @@ let socket: Socket | null = null;
 
 export function connectSocket(opts: {
   userId?: number | null;
+  role?: string | null;
   restaurantId?: number | null;
   supplierId?: number | null;
 }): Socket {
-  if (socket) return socket;
+  if (socket) {
+    if (socket.connected) {
+      socket.emit('client:identify', opts);
+    }
+    return socket;
+  }
   const origin = getApiOrigin() || undefined;
   socket = io(origin, {
     auth: { token: getToken() },
     query: {
       ...(opts.userId ? { userId: String(opts.userId) } : {}),
+      ...(opts.role ? { role: String(opts.role) } : {}),
       ...(opts.restaurantId ? { restaurantId: String(opts.restaurantId) } : {}),
       ...(opts.supplierId ? { supplierId: String(opts.supplierId) } : {}),
     },

@@ -18,6 +18,7 @@ import {
   IconSuppliers,
   IconPlans,
   IconAi,
+  IconKey,
   IconInvoice,
   IconAccounting,
   IconSettings,
@@ -117,7 +118,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           {!isAdmin && (
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-                {lang === 'es' ? 'Módulos Principales' : 'Main Modules'}
+                {t('nav.main_modules')}
               </p>
             <div className="space-y-1" onClick={onClose}>
               <Link to="/" className={linkItemClass}>
@@ -173,7 +174,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           {!isAdmin && (
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-                {lang === 'es' ? 'Operaciones & Cadena de Suministro' : 'Operations & Supply Chain'}
+                {t('nav.ops_supply')}
               </p>
             <div className="space-y-1" onClick={onClose}>
               {isRestaurant && (
@@ -205,7 +206,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span>{lang === 'es' ? 'Radar de Stock' : 'Stock Radar'}</span>
+                    <span>{t('nav.stock_radar')}</span>
                   </span>
                   <span className="text-[10px] text-rose-700 bg-rose-100 dark:bg-rose-900/50 dark:text-rose-300 font-bold px-2 py-0.5 rounded-md">
                     {isSupplier ? (lang === 'es' ? 'OFERTAR' : 'BID') : 'RADAR'}
@@ -218,9 +219,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                   <span className="flex items-center gap-3">
                     <IconTeam className="w-4 h-4 text-purple-600 dark:text-purple-400" />
                     <span>
-                      {isSupplier
-                        ? lang === 'es' ? 'Flota de Domiciliarios' : 'Driver Fleet'
-                        : lang === 'es' ? 'Equipo de Empleados' : 'Staff Team'}
+                      {isSupplier ? t('nav.driver_fleet') : t('nav.staff_team')}
                     </span>
                   </span>
                   <span className="text-[10px] text-purple-700 bg-purple-100 dark:bg-purple-900/50 dark:text-purple-300 font-bold px-2 py-0.5 rounded-md">
@@ -243,7 +242,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           {!isAdmin && (
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-                {lang === 'es' ? 'Finanzas & Automatización' : 'Finance & Automation'}
+                {t('nav.finance_auto')}
               </p>
             <div className="space-y-1" onClick={onClose}>
               {isOwner && !isDomiciliario && (
@@ -288,16 +287,43 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           {isAdmin && (
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-                Administración
+                {t('nav.admin_control')}
               </p>
               <div className="space-y-1" onClick={onClose}>
                 <Link to="/admin" className={linkItemClass}>
                   <span className="flex items-center gap-3">
-                    <IconSettings className="w-4 h-4 text-slate-600 dark:text-slate-400" />
-                    <span>Panel de Control</span>
+                    <IconDashboard className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                    <span>Panel Principal (Actividades)</span>
                   </span>
-                  <span className="text-[10px] text-slate-700 bg-slate-200 dark:bg-slate-700 dark:text-slate-300 font-bold px-2 py-0.5 rounded-md">
-                    ADMIN
+                  <span className="text-[10px] text-brand font-bold bg-brand/10 px-2 py-0.5 rounded-md">
+                    KPIs
+                  </span>
+                </Link>
+                <Link to="/admin/usuarios" className={linkItemClass}>
+                  <span className="flex items-center gap-3">
+                    <IconTeam className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                    <span>Gestión de Usuarios</span>
+                  </span>
+                </Link>
+                <Link to="/admin/roles" className={linkItemClass}>
+                  <span className="flex items-center gap-3">
+                    <IconKey className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                    <span>Roles del Sistema</span>
+                  </span>
+                </Link>
+                <Link to="/admin/permisos" className={linkItemClass}>
+                  <span className="flex items-center gap-3">
+                    <IconSettings className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Gestión de Permisos</span>
+                  </span>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-100 dark:bg-emerald-900/50 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
+                    RBAC
+                  </span>
+                </Link>
+                <Link to="/admin/comercios" className={linkItemClass}>
+                  <span className="flex items-center gap-3">
+                    <IconSuppliers className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+                    <span>Directorio de Comercios</span>
                   </span>
                 </Link>
               </div>
@@ -310,27 +336,16 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
               {t('settings.title')}
             </p>
             <div className="space-y-1">
-              {/* Settings Toggle */}
-              <button
-                type="button"
-                onClick={() => setSettingsOpen(!settingsOpen)}
-                className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 font-medium transition text-left text-xs sm:text-sm dark:text-slate-200 dark:hover:bg-slate-800 cursor-pointer"
+              {/* Mi Perfil Link */}
+              <Link
+                to="/mi-perfil"
+                className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-slate-700 hover:bg-slate-100 font-medium transition text-left text-xs sm:text-sm dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                <span className="flex items-center gap-3">
-                  <IconSettings className="w-4 h-4 text-slate-500" />
-                  <span>{t('settings.profile')}</span>
-                </span>
-                <span className="text-xs text-slate-400">{settingsOpen ? '▲' : '▼'}</span>
-              </button>
+                <IconSettings className="w-4 h-4 text-slate-500" />
+                <span>{t('settings.profile')}</span>
+              </Link>
 
-              {settingsOpen && (
-                <div className="pl-9 pr-3 py-2 bg-slate-50 rounded-xl space-y-1 text-xs text-slate-600 dark:bg-slate-800/60 dark:text-slate-300 animate-in fade-in">
-                  <p><b>{lang === 'es' ? 'Negocio' : 'Business'}:</b> {tenant?.name || 'Xupply'}</p>
-                  <p><b>{lang === 'es' ? 'Tipo' : 'Type'}:</b> {isSupplier ? 'Proveedor Mayorista' : 'Restaurante'}</p>
-                  <p><b>{lang === 'es' ? 'Usuario' : 'User'}:</b> @{user?.username}</p>
-                  <p><b>{lang === 'es' ? 'Rol' : 'Role'}:</b> {user?.role}</p>
-                </div>
-              )}
+
 
               {/* Preferencias Toggle */}
               <button
@@ -359,18 +374,20 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                       className="rounded text-brand"
                     />
                   </label>
-                  <label className="flex items-center justify-between cursor-pointer">
-                    <span>{lang === 'es' ? 'Aviso de stock bajo' : 'Low stock notices'}</span>
-                    <input
-                      type="checkbox"
-                      checked={stockAlerts}
-                      onChange={(e) => {
-                        setStockAlerts(e.target.checked);
-                        localStorage.setItem('pref_stock', String(e.target.checked));
-                      }}
-                      className="rounded text-brand"
-                    />
-                  </label>
+                  {!isAdmin && (
+                    <label className="flex items-center justify-between cursor-pointer">
+                      <span>{lang === 'es' ? 'Aviso de stock bajo' : 'Low stock notices'}</span>
+                      <input
+                        type="checkbox"
+                        checked={stockAlerts}
+                        onChange={(e) => {
+                          setStockAlerts(e.target.checked);
+                          localStorage.setItem('pref_stock', String(e.target.checked));
+                        }}
+                        className="rounded text-brand"
+                      />
+                    </label>
+                  )}
                 </div>
               )}
 
@@ -389,7 +406,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           {/* Accesibilidad, Modo Oscuro & Idioma */}
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
-              {lang === 'es' ? 'Accesibilidad & Visualización' : 'Accessibility & Display'}
+              {t('nav.access_visuals')}
             </p>
             <div className="space-y-2.5 bg-slate-50 dark:bg-slate-800/40 p-3 rounded-2xl border border-slate-100 dark:border-slate-800">
               {/* Modo Oscuro / Claro Switch */}

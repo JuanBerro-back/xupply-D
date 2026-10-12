@@ -44,7 +44,7 @@ export default function PosiblesClientes() {
               <div key={r.id} className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-sm flex flex-col hover:shadow-md transition">
                 <div className="flex items-start gap-4 mb-3">
                   <div className="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden shrink-0 flex items-center justify-center font-bold text-brand text-xl">
-                    {r.logo_url ? <img src={r.logo_url} alt={r.name} className="w-full h-full object-cover" /> : r.name[0]}
+                    {r.logo_url ? <img src={r.logo_url} alt={r.name} className="w-full h-full object-cover" /> : (r.name || 'R')[0]}
                   </div>
                   <div>
                     <h3 className="font-bold text-slate-900 dark:text-white leading-tight">{r.name}</h3>

@@ -94,20 +94,22 @@ function destinationPositionFor(delivery: Delivery) {
 function MapRecenter({
   center,
   bounds,
+  zoom,
 }: {
   center?: [number, number];
   bounds?: [[number, number], [number, number]];
+  zoom?: number;
 }) {
   const map = useMap();
   useEffect(() => {
-    if (bounds && bounds.length === 2) {
+    if (bounds && bounds.length === 2 && !zoom) {
       try {
         map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: true });
       } catch {
         if (center) map.setView(center, map.getZoom(), { animate: true });
       }
     } else if (center) {
-      map.setView(center, map.getZoom(), { animate: true });
+      map.setView(center, zoom || map.getZoom(), { animate: true });
     }
   }, [
     center ? center[0] : null,
@@ -116,6 +118,7 @@ function MapRecenter({
     bounds ? bounds[0][1] : null,
     bounds ? bounds[1][0] : null,
     bounds ? bounds[1][1] : null,
+    zoom,
     map,
   ]);
   return null;
@@ -230,6 +233,30 @@ function LiveMap({
     };
   }, [activeTarget, myCoords, isDriver, active.length]);
 
+  const [osrmRoute, setOsrmRoute] = useState<[number, number][] | null>(null);
+
+  useEffect(() => {
+    if (!proximityData) {
+      setOsrmRoute(null);
+      return;
+    }
+    const fetchRoute = async () => {
+      const p = proximityData;
+      const url = `https://router.project-osrm.org/route/v1/driving/${p.driverPos.lng},${p.driverPos.lat};${p.destPos.lng},${p.destPos.lat}?overview=full&geometries=geojson`;
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.code === 'Ok' && data.routes?.length > 0) {
+          const coords = data.routes[0].geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
+          setOsrmRoute(coords);
+        }
+      } catch (e) {
+        console.error('OSRM fail', e);
+      }
+    };
+    fetchRoute();
+  }, [proximityData?.driverPos.lat, proximityData?.driverPos.lng, proximityData?.destPos.lat, proximityData?.destPos.lng]);
+
   const mapCenter: [number, number] = proximityData
     ? [proximityData.driverPos.lat, proximityData.driverPos.lng]
     : myCoords
@@ -244,24 +271,37 @@ function LiveMap({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         {proximityData ? (
-          <MapRecenter bounds={proximityData.route} center={[proximityData.driverPos.lat, proximityData.driverPos.lng]} />
+          <MapRecenter 
+            bounds={activeTarget?.status === 'en_camino' ? undefined : proximityData.route} 
+            center={activeTarget?.status === 'en_camino' && myCoords ? [myCoords.lat, myCoords.lng] : [proximityData.driverPos.lat, proximityData.driverPos.lng]}
+            zoom={activeTarget?.status === 'en_camino' ? 17 : undefined}
+          />
         ) : myCoords ? (
-          <MapRecenter center={[myCoords.lat, myCoords.lng]} />
+          <MapRecenter center={[myCoords.lat, myCoords.lng]} zoom={17} />
         ) : null}
 
         <RecenterControl target={myCoords} />
 
-        {/* Línea de proximidad estilo DiDi / Rappi entre el domiciliario y el destino */}
+        {/* Línea de proximidad OSRM o respaldo recto */}
         {proximityData && (
           <>
-            <Polyline
-              positions={proximityData.route}
-              pathOptions={{ color: '#1e40af', weight: 6, opacity: 0.3 }}
-            />
-            <Polyline
-              positions={proximityData.route}
-              pathOptions={{ color: '#2563eb', weight: 4, dashArray: '8, 8', opacity: 0.95 }}
-            />
+            {osrmRoute ? (
+              <Polyline
+                positions={osrmRoute}
+                pathOptions={{ color: '#2563eb', weight: 6, opacity: 0.85 }}
+              />
+            ) : (
+              <>
+                <Polyline
+                  positions={proximityData.route}
+                  pathOptions={{ color: '#1e40af', weight: 6, opacity: 0.3 }}
+                />
+                <Polyline
+                  positions={proximityData.route}
+                  pathOptions={{ color: '#2563eb', weight: 4, dashArray: '8, 8', opacity: 0.95 }}
+                />
+              </>
+            )}
           </>
         )}
 
@@ -696,6 +736,15 @@ export default function Deliveries() {
 
   const changeStatus = async (id: number, status: string) => {
     try {
+      if (id >= 9990) { // Mocks
+        setDeliveries(prev => prev.map(d => d.id === id ? { ...d, status: status as Delivery['status'] } : d));
+        if (selected?.id === id) {
+          setSelected(prev => prev ? { ...prev, status: status as Delivery['status'] } : null);
+        }
+        push({ message: `[Modo Prueba] Viaje iniciado, reenfocando GPS...`, at: new Date().toISOString() });
+        return;
+      }
+
       await api(`/deliveries/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
       push({ message: `Estado de entrega actualizado → ${status}`, at: new Date().toISOString() });
       load();

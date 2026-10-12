@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api } from '../../lib/api';
+import { getSocket } from '../../lib/socket';
 import { IconDocument, IconTeam } from '../../components/Icons';
 
 function IconAlertTriangle({ className }: { className?: string }) {
@@ -22,10 +23,39 @@ export default function DashboardAdmin() {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [dateRange, setDateRange] = useState('30d');
+  const [livePulse, setLivePulse] = useState(false);
 
   useEffect(() => {
     loadStats(dateRange);
   }, [dateRange]);
+
+  useEffect(() => {
+    const socket = getSocket();
+    if (!socket) return;
+
+    const handleNewActivity = (act: any) => {
+      if (!act) return;
+      setStats((prev: any) => {
+        if (!prev) return prev;
+        const currentRecent = prev.recent_activity || [];
+        if (currentRecent.some((a: any) => a.id === act.id)) return prev;
+        return {
+          ...prev,
+          recent_activity: [act, ...currentRecent.slice(0, 9)],
+        };
+      });
+      setLivePulse(true);
+      setTimeout(() => setLivePulse(false), 3000);
+    };
+
+    socket.on('audit:new_entry', handleNewActivity);
+    socket.on('user:activity', handleNewActivity);
+
+    return () => {
+      socket.off('audit:new_entry', handleNewActivity);
+      socket.off('user:activity', handleNewActivity);
+    };
+  }, []);
 
   const loadStats = async (range: string) => {
     try {
@@ -190,9 +220,15 @@ export default function DashboardAdmin() {
 
       {/* Actividad Reciente */}
       <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
-        <h2 className="text-lg font-bold text-slate-800 dark:text-white mb-4 flex items-center gap-2">
-          <IconTrendingUp className="w-5 h-5 text-slate-400" /> Actividad Reciente
-        </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <IconTrendingUp className="w-5 h-5 text-slate-400" /> Actividad Reciente
+          </h2>
+          <div className="flex items-center gap-2 px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300 text-[11px] font-bold border border-emerald-200 dark:border-emerald-800">
+            <span className={`w-2 h-2 rounded-full bg-emerald-500 ${livePulse ? 'animate-ping' : 'animate-pulse'}`}></span>
+            <span>WebSocket en Vivo</span>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>

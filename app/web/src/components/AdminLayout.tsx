@@ -22,11 +22,10 @@ export default function AdminLayout() {
   }
 
   const navItems = [
-    { to: '/admin', label: 'Panel Principal', end: true, icon: IconDashboard },
+    { to: '/admin', label: 'Actividades de Usuarios', end: true, icon: IconDashboard },
     { to: '/admin/usuarios', label: 'Usuarios', icon: IconTeam },
     { to: '/admin/roles', label: 'Roles', icon: IconKey },
     { to: '/admin/permisos', label: 'Permisos', icon: IconShield },
-    { to: '/admin/auditoria', label: 'Auditoría', icon: IconDocument },
     { to: '/admin/comercios', label: 'Comercios', icon: IconTeam }, // Usando IconTeam como icono de comercios
   ];
 

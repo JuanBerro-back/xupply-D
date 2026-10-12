@@ -1,0 +1,13 @@
+{
+  "name": "xupply-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Xupply - Plataforma B2B para Restaurantes y Proveedores",
+  "scripts": {
+    "landing": "npm run dev --prefix landing",
+    "landing:build": "npm run build --prefix landing",
+    "landing:preview": "npm run preview --prefix landing",
+    "web": "npm run dev --prefix app/web",
+    "server": "npm run dev --prefix app/server"
+  }
+}

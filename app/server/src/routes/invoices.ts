@@ -92,12 +92,8 @@ router.post('/', roleRequired('gerente', 'admin'), async (req, res, next) => {
           [invoiceId, it.description, it.quantity, it.unit_price, Number(it.quantity) * Number(it.unit_price)]
         );
       }
-      await client.query(
-        `INSERT INTO audit_log (user_id, action, entity_type, entity_id, new_values)
-         VALUES ($1, 'create', 'invoice', $2, $3::jsonb)`,
-        [user.id, invoiceId, JSON.stringify({ code, total })]
-      );
       await client.query('COMMIT');
+      await logAudit(req, 'create', 'invoice', invoiceId, null, { code, total });
       const invoice = await query('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
       if (client_email) {
         sendEmail({

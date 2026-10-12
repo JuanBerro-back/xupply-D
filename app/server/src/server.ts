@@ -19,9 +19,14 @@ const io = new Server(server, {
 io.on('connection', (socket) => {
   registerSocket(socket);
   const userId = Number(socket.handshake.query.userId);
+  const role = String(socket.handshake.query.role || '');
   if (Number.isInteger(userId) && userId > 0) {
     socket.join(`user:${userId}`);
     emitToUser('notification:created', userId, { message: 'Conexión en tiempo real establecida' });
+  }
+  if (role === 'admin') {
+    socket.join('admins');
+    socket.join('role:admin');
   }
 });
 

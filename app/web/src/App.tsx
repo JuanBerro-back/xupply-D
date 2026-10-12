@@ -29,13 +29,13 @@ import Radar from './pages/Radar';
 import DriverDashboard from './pages/DriverDashboard';
 import DownloadApp from './pages/DownloadApp';
 import AdminLayout from './components/AdminLayout';
-import DashboardAdmin from './pages/admin/DashboardAdmin';
 import UsuariosAdmin from './pages/admin/UsuariosAdmin';
 import RolesAdmin from './pages/admin/RolesAdmin';
 import PermisosAdmin from './pages/admin/PermisosAdmin';
 import AuditoriaAdmin from './pages/admin/AuditoriaAdmin';
 import ComerciosAdmin from './pages/admin/ComerciosAdmin';
 import ComercioProfile from './pages/ComercioProfile';
+import MyProfile from './pages/MyProfile';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -70,7 +70,11 @@ function AdminAccessAllowed({ children }: { children: React.ReactNode }) {
 function RootRoute() {
   const { user, loading } = useAuth();
   if (loading) return <div className="p-8 text-center text-gray-500 bg-slate-50 dark:bg-[#0b1120] min-h-screen">Cargando...</div>;
-  if (user) return <Dashboard />;
+  if (user) {
+    if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (localStorage.getItem('xupply_new_user')) return <Navigate to="/mi-perfil" replace />;
+    return <Dashboard />;
+  }
   if (isCapacitorNative()) return <Navigate to="/login" replace />;
   return <Landing />;
 }
@@ -89,10 +93,10 @@ export default function App() {
           <Route path="/" element={<RootRoute />} />
           <Route path="/descargar" element={<DownloadApp />} />
           <Route path="/catalogo" element={<RolesAllowed roles={['admin', 'gerente', 'empleado', 'proveedor_admin']}><Catalog /></RolesAllowed>} />
-          <Route path="/carrito" element={<RolesAllowed roles={['admin', 'gerente', 'empleado']}><CartPage /></RolesAllowed>} />
+          <Route path="/carrito" element={<RolesAllowed roles={['gerente', 'empleado']}><CartPage /></RolesAllowed>} />
           <Route path="/pedidos" element={<RequireAuth><Orders /></RequireAuth>} />
           <Route path="/pedidos/:id" element={<RequireAuth><OrderDetail /></RequireAuth>} />
-          <Route path="/inventario" element={<RolesAllowed roles={['admin', 'gerente', 'empleado']}><Inventory /></RolesAllowed>} />
+          <Route path="/inventario" element={<RolesAllowed roles={['gerente', 'empleado']}><Inventory /></RolesAllowed>} />
           <Route path="/radar" element={<RolesAllowed roles={['admin', 'gerente', 'empleado', 'proveedor_admin']}><Radar /></RolesAllowed>} />
           <Route path="/facturacion" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><Invoices /></RolesAllowed>} />
           <Route path="/contabilidad" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><Accounting /></RolesAllowed>} />
@@ -106,20 +110,20 @@ export default function App() {
           
           {/* Rutas de Administración */}
           <Route path="/admin" element={<AdminAccessAllowed><AdminLayout /></AdminAccessAllowed>}>
-            <Route index element={<DashboardAdmin />} />
+            <Route index element={<AuditoriaAdmin />} />
             <Route path="usuarios" element={<UsuariosAdmin />} />
             <Route path="roles" element={<RolesAdmin />} />
             <Route path="permisos" element={<PermisosAdmin />} />
-            <Route path="auditoria" element={<AuditoriaAdmin />} />
             <Route path="comercios" element={<ComerciosAdmin />} />
           </Route>
           <Route path="/comercio/:type/:id" element={<RequireAuth><ComercioProfile /></RequireAuth>} />
+          <Route path="/mi-perfil" element={<RequireAuth><MyProfile /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
       {user && <BottomNav />}
       {items.length > 0 && <Toasts />}
-      <SideCart />
+      {user && user.role !== 'admin' && <SideCart />}
       {user && <AiFloatingWidget />}
       <CookieConsent />
     </div>

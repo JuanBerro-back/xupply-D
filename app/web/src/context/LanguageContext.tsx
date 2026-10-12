@@ -23,6 +23,34 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     'nav.full_drawer': 'Menú Lateral',
     'nav.notifications': 'Notificaciones',
     'nav_notifications': 'Notificaciones',
+    
+    // Navbar additions
+    'nav.home': 'Inicio',
+    'nav.directory': 'Directorio',
+    'nav.my_catalog': 'Mi Catálogo',
+    'nav.market': 'Mercado',
+    'nav.clients': 'Clientes',
+    'nav.panel': 'Panel',
+    'nav.users': 'Usuarios',
+    'nav.roles': 'Roles',
+    'nav.permissions': 'Permisos',
+    'nav.audit': 'Auditoría',
+    'nav.stores': 'Comercios',
+    'nav.cart_btn': 'Carrito',
+    'nav.brand_admin': 'Super Administrador (Control Global)',
+    'nav.brand_supplier': 'Portal Proveedor (Mayorista)',
+    'nav.brand_driver': 'App Domiciliario',
+    'nav.brand_restaurant': 'Plataforma Gastronómica B2B',
+    
+    // Hamburger additions
+    'nav.main_modules': 'Módulos Principales',
+    'nav.ops_supply': 'Operaciones & Cadena de Suministro',
+    'nav.stock_radar': 'Radar de Stock',
+    'nav.driver_fleet': 'Flota de Domiciliarios',
+    'nav.staff_team': 'Equipo de Empleados',
+    'nav.finance_auto': 'Finanzas & Automatización',
+    'nav.admin_control': 'Control Maestro del Sistema',
+    'nav.access_visuals': 'Accesibilidad & Visualización',
 
     // Themes & Accessibility
     'theme.dark': 'Modo Oscuro',
@@ -86,6 +114,34 @@ const DICTIONARY: Record<Language, Record<string, string>> = {
     'nav.full_drawer': 'Side Drawer',
     'nav.notifications': 'Notifications',
     'nav_notifications': 'Notifications',
+
+    // Navbar additions
+    'nav.home': 'Home',
+    'nav.directory': 'Directory',
+    'nav.my_catalog': 'My Catalog',
+    'nav.market': 'Market',
+    'nav.clients': 'Clients',
+    'nav.panel': 'Panel',
+    'nav.users': 'Users',
+    'nav.roles': 'Roles',
+    'nav.permissions': 'Permissions',
+    'nav.audit': 'Audit',
+    'nav.stores': 'Stores',
+    'nav.cart_btn': 'Cart',
+    'nav.brand_admin': 'Super Administrator (Global Control)',
+    'nav.brand_supplier': 'Supplier Portal (Wholesale)',
+    'nav.brand_driver': 'Driver App',
+    'nav.brand_restaurant': 'B2B Gastronomic Platform',
+
+    // Hamburger additions
+    'nav.main_modules': 'Main Modules',
+    'nav.ops_supply': 'Operations & Supply Chain',
+    'nav.stock_radar': 'Stock Radar',
+    'nav.driver_fleet': 'Driver Fleet',
+    'nav.staff_team': 'Staff Team',
+    'nav.finance_auto': 'Finance & Automation',
+    'nav.admin_control': 'Master System Control',
+    'nav.access_visuals': 'Accessibility & Display',
 
     // Themes & Accessibility
     'theme.dark': 'Dark Mode',

@@ -15,9 +15,14 @@ export default function Modal({
   zIndex?: number;
 }) {
   return (
-    <div className={`fixed inset-0 z-[${zIndex}] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4`} onClick={onClose}>
+    <div 
+      className="fixed inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4" 
+      style={{ zIndex }}
+      onClick={onClose}
+    >
       <div
-        className={`relative z-[${zIndex + 1}] max-h-[85vh] w-full ${maxWidth} overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 dark:bg-slate-900 dark:border-slate-700`}
+        className={`relative max-h-[85vh] w-full ${maxWidth} overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 dark:bg-slate-900 dark:border-slate-700`}
+        style={{ zIndex: zIndex + 1 }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-3">

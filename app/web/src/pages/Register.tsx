@@ -38,6 +38,7 @@ export default function Register() {
     setError('');
     setLoading(true);
     try {
+      localStorage.setItem('xupply_new_user', 'true');
       await register({
         ...form,
         category: form.type === 'restaurante' ? form.category || 'latino' : undefined,

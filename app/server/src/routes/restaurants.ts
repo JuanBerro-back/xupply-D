@@ -5,6 +5,27 @@ import { authRequired, roleRequired } from '../middleware/auth';
 const router = Router();
 router.use(authRequired);
 
+router.get('/', async (req, res, next) => {
+  try {
+    const { category, search } = req.query;
+    const params: unknown[] = [];
+    let sql = 'SELECT id, name, category, city, is_active, logo_url, description FROM restaurants WHERE is_active = TRUE';
+    if (category) {
+      params.push(category);
+      sql += ` AND category ILIKE $${params.length}`;
+    }
+    if (search) {
+      params.push(`%${search}%`);
+      sql += ` AND (name ILIKE $${params.length} OR city ILIKE $${params.length})`;
+    }
+    sql += ' ORDER BY name';
+    const result = await query(sql, params);
+    res.json(result.rows);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.get('/me', async (req, res, next) => {
   try {
     const user = req.user!;
