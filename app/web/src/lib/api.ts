@@ -73,12 +73,26 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   if (token) headers.Authorization = `Bearer ${token}`;
   const origin = getApiOrigin();
   const res = await fetch(`${origin}/api${path}`, { ...options, headers });
-  const body = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const errorBody = body as { error?: string; detail?: string };
-    const detailPart = errorBody?.detail ? `: ${errorBody.detail}` : '';
-    const errorMsg = errorBody?.error ? `${errorBody.error}${detailPart}` : `Error ${res.status}`;
-    throw new Error(errorMsg);
+  
+  const text = await res.text();
+  let body: any = null;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = null;
   }
-  return body as T;
+
+  if (!res.ok) {
+    if (body && typeof body === 'object') {
+      const errorMsg = body.error || body.message || `Error ${res.status}`;
+      const detailMsg = body.detail ? `: ${body.detail}` : '';
+      throw new Error(`${errorMsg}${detailMsg}`);
+    }
+    if (text && text.includes('FUNCTION_INVOCATION_FAILED')) {
+      throw new Error('Error 500 (Vercel): La función backend falló al invocarse.');
+    }
+    throw new Error(text && text.length < 150 ? text : `Error ${res.status}`);
+  }
+
+  return (body !== null ? body : {}) as T;
 }

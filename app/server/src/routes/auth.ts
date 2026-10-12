@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { query } from '../config/db';
+import { query, hasCustomDbUrl } from '../config/db';
 import { authRequired, signToken } from '../middleware/auth';
 import { emitToUser } from '../lib/realtime';
 import { logAudit } from '../lib/audit';
@@ -108,6 +108,14 @@ router.post('/login', async (req, res, next) => {
     if (!username || !password) {
       return res.status(400).json({ error: 'username y password son requeridos' });
     }
+
+    if (process.env.VERCEL === '1' && !hasCustomDbUrl) {
+      return res.status(500).json({
+        error: 'Base de datos no configurada en Vercel',
+        detail: 'Falta configurar la variable DATABASE_URL en Settings -> Environment Variables de tu proyecto en Vercel con la URL de Neon.',
+      });
+    }
+
     let result;
     try {
       result = await query(
@@ -119,15 +127,25 @@ router.post('/login', async (req, res, next) => {
     } catch (queryErr: any) {
       if (queryErr?.message?.includes('users') || queryErr?.code === '42P01') {
         console.warn('[Auth Login] Tabla users no encontrada. Inicializando BD y reintentando...');
-        await ensureServerInitialized();
-        result = await query(
-          `SELECT u.*, r.name AS role FROM users u
-           JOIN roles r ON r.id = u.role_id
-           WHERE u.username = $1 AND u.is_active = TRUE`,
-          [username]
-        );
+        try {
+          await ensureServerInitialized();
+          result = await query(
+            `SELECT u.*, r.name AS role FROM users u
+             JOIN roles r ON r.id = u.role_id
+             WHERE u.username = $1 AND u.is_active = TRUE`,
+            [username]
+          );
+        } catch (initErr: any) {
+          return res.status(500).json({
+            error: 'Error inicializando esquema de base de datos',
+            detail: initErr?.message || String(initErr),
+          });
+        }
       } else {
-        throw queryErr;
+        return res.status(500).json({
+          error: 'Error de conexión a la base de datos',
+          detail: queryErr?.message || String(queryErr),
+        });
       }
     }
     const row = result.rows[0];
