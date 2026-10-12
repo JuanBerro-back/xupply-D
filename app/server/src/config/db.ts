@@ -4,14 +4,44 @@ import { SCHEMA_SQL } from './schemaSql';
 
 dotenv.config();
 
-const hasCustomDbUrl = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.trim());
-const databaseUrl = hasCustomDbUrl
-  ? process.env.DATABASE_URL!.trim()
-  : 'postgres://postgres:postgres@127.0.0.1:5432/xupply';
+export function resolveDatabaseUrl(): { url: string; isConfigured: boolean; source: string } {
+  if (process.env.DATABASE_URL && process.env.DATABASE_URL.trim()) {
+    return { url: process.env.DATABASE_URL.trim(), isConfigured: true, source: 'DATABASE_URL' };
+  }
+  if (process.env.POSTGRES_URL && process.env.POSTGRES_URL.trim()) {
+    return { url: process.env.POSTGRES_URL.trim(), isConfigured: true, source: 'POSTGRES_URL' };
+  }
+  if (process.env.POSTGRES_URL_NON_POOLING && process.env.POSTGRES_URL_NON_POOLING.trim()) {
+    return { url: process.env.POSTGRES_URL_NON_POOLING.trim(), isConfigured: true, source: 'POSTGRES_URL_NON_POOLING' };
+  }
+  if (process.env.POSTGRES_PRISMA_URL && process.env.POSTGRES_PRISMA_URL.trim()) {
+    return { url: process.env.POSTGRES_PRISMA_URL.trim(), isConfigured: true, source: 'POSTGRES_PRISMA_URL' };
+  }
+  if (process.env.POSTGRES_HOST && process.env.POSTGRES_USER && process.env.POSTGRES_DATABASE) {
+    const user = encodeURIComponent(process.env.POSTGRES_USER);
+    const pass = process.env.POSTGRES_PASSWORD ? `:${encodeURIComponent(process.env.POSTGRES_PASSWORD)}` : '';
+    const host = process.env.POSTGRES_HOST;
+    const db = process.env.POSTGRES_DATABASE;
+    return {
+      url: `postgresql://${user}${pass}@${host}/${db}?sslmode=require`,
+      isConfigured: true,
+      source: 'POSTGRES_HOST/USER/DATABASE',
+    };
+  }
+  return {
+    url: 'postgres://postgres:postgres@127.0.0.1:5432/xupply',
+    isConfigured: false,
+    source: 'default_localhost',
+  };
+}
+
+const resolvedDb = resolveDatabaseUrl();
+export const hasCustomDbUrl = resolvedDb.isConfigured;
+export const databaseUrl = resolvedDb.url;
 
 if (process.env.VERCEL === '1' && !hasCustomDbUrl) {
   console.warn(
-    '[DB WARNING] DATABASE_URL no detectada en Vercel. Ve a Vercel -> Settings -> Environment Variables y agrégala con la conexión de Neon.'
+    '[DB WARNING] Ni DATABASE_URL ni POSTGRES_URL fueron detectadas en Vercel. Ve a Vercel -> Settings -> Environment Variables y agrégala.'
   );
 }
 

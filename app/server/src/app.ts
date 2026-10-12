@@ -22,7 +22,7 @@ import agentRouter from './routes/agent';
 import xupaiRouter from './routes/xupai';
 import adminRouter from './routes/admin';
 import { ensureServerInitialized } from './lib/migrations';
-import { query } from './config/db';
+import { query, resolveDatabaseUrl } from './config/db';
 import { notFound, errorHandler } from './middleware/error';
 
 export function createApp() {
@@ -53,13 +53,13 @@ export function createApp() {
 
   const healthHandler = async (_req: express.Request, res: express.Response) => {
     try {
-      const hasDbUrl = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.trim());
-      if (process.env.VERCEL === '1' && !hasDbUrl) {
+      const resolved = resolveDatabaseUrl();
+      if (process.env.VERCEL === '1' && !resolved.isConfigured) {
         return res.status(500).json({
           status: 'error',
           service: 'xupply-api',
           db: 'missing_env',
-          error: 'DATABASE_URL no está configurada en Vercel Settings -> Environment Variables.',
+          error: 'DATABASE_URL (o POSTGRES_URL) no está configurada en Vercel Settings -> Environment Variables.',
         });
       }
       const testRes = await query("SELECT to_regclass('public.users') as has_users");
@@ -73,14 +73,17 @@ export function createApp() {
         status: 'ok',
         service: 'xupply-api',
         db: 'connected',
+        db_source: resolved.source,
         tables_ready: hasUsers,
         users_count: usersCount,
       });
     } catch (err: any) {
+      const resolved = resolveDatabaseUrl();
       return res.status(500).json({
         status: 'error',
         service: 'xupply-api',
         db: 'error',
+        db_source: resolved.source,
         error: err?.message || String(err),
       });
     }
