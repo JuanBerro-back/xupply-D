@@ -199,3 +199,22 @@ export async function dropLegacyPlatformViews(): Promise<void> {
     console.error('[DB] Error borrando vistas de KPIs:', err);
   }
 }
+
+let initPromise: Promise<void> | null = null;
+export async function ensureServerInitialized(): Promise<void> {
+  if (!initPromise) {
+    initPromise = (async () => {
+      try {
+        const { initDatabase } = await import('../config/db');
+        await initDatabase();
+        await ensureRadarAndGpsSchema();
+        await dropLegacyPlatformViews();
+        await expireRadarItems();
+      } catch (err) {
+        console.error('[DB] Error inicializando servidor y base de datos:', err);
+      }
+    })();
+  }
+  return initPromise;
+}
+

@@ -10,15 +10,39 @@ interface SimulatorProduct {
   price: number;
   supplier: string;
   fefoDiscount: number;
+  defaultQty?: number;
 }
 
-const simulatorProducts: SimulatorProduct[] = [
-  { id: 1, name: 'Carne de Res Angus (Corte Parrilla)', unit: 'Kg', price: 34000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.15 },
-  { id: 2, name: 'Queso Mozzarella Bloque', unit: 'Barra 2.5Kg', price: 46000, supplier: 'Lácteos Santander', fefoDiscount: 0.10 },
-  { id: 3, name: 'Pan Brioche Artesanal', unit: 'Bolsa x30', price: 28000, supplier: 'Panadería La Gran Vía', fefoDiscount: 0.20 },
-  { id: 4, name: 'Aceite Vegetal de Cocina', unit: 'Bidón 20L', price: 92000, supplier: 'Distribuciones Bucaramanga', fefoDiscount: 0.05 },
-  { id: 5, name: 'Pechuga de Pollo Desmechada', unit: 'Kg', price: 21000, supplier: 'Avícola Metropolitana', fefoDiscount: 0.12 },
-];
+const simulatorProductsByType: Record<string, SimulatorProduct[]> = {
+  burger: [
+    { id: 101, name: 'Carne de Res Angus (Corte Parrilla)', unit: 'Kg', price: 34000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.15, defaultQty: 3 },
+    { id: 102, name: 'Queso Cheddar Americano Tajado', unit: 'Bloque 1Kg', price: 26000, supplier: 'Lácteos Santander', fefoDiscount: 0.10, defaultQty: 2 },
+    { id: 103, name: 'Pan Brioche Artesanal', unit: 'Bolsa x30', price: 28000, supplier: 'Panadería La Gran Vía', fefoDiscount: 0.20, defaultQty: 4 },
+    { id: 104, name: 'Aceite Vegetal de Cocina', unit: 'Bidón 20L', price: 92000, supplier: 'Distribuciones Bucaramanga', fefoDiscount: 0.05, defaultQty: 1 },
+    { id: 105, name: 'Tocineta Ahumada Tajada', unit: 'Paquete 1Kg', price: 31000, supplier: 'Avícola & Porcinos del Oriente', fefoDiscount: 0.12, defaultQty: 2 },
+  ],
+  pizza: [
+    { id: 201, name: 'Harina de Trigo Especial Pizza 00', unit: 'Bulto 25Kg', price: 78000, supplier: 'Molinos del Oriente', fefoDiscount: 0.15, defaultQty: 2 },
+    { id: 202, name: 'Queso Mozzarella en Bloque', unit: 'Barra 2.5Kg', price: 46000, supplier: 'Lácteos Santander', fefoDiscount: 0.10, defaultQty: 4 },
+    { id: 203, name: 'Pasta de Tomate / Salsa Pizzera', unit: 'Bidón 5Kg', price: 32000, supplier: 'Salsas & Conservas Andinas', fefoDiscount: 0.12, defaultQty: 3 },
+    { id: 204, name: 'Orégano Entero Seco Aromático', unit: 'Bolsa 1Kg', price: 18000, supplier: 'Especias & Aromas BGA', fefoDiscount: 0.20, defaultQty: 2 },
+    { id: 205, name: 'Pepperoni Madurado Tajado', unit: 'Paquete 1Kg', price: 38000, supplier: 'Embutidos del Oriente', fefoDiscount: 0.08, defaultQty: 3 },
+  ],
+  cafe: [
+    { id: 301, name: 'Café Especial Grano Tostado', unit: 'Bolsa 2.5Kg', price: 65000, supplier: 'Café Mesa de los Santos', fefoDiscount: 0.15, defaultQty: 2 },
+    { id: 302, name: 'Leche Entera Barista Especial', unit: 'Caja x12 Litros', price: 42000, supplier: 'Lácteos Santander', fefoDiscount: 0.10, defaultQty: 3 },
+    { id: 303, name: 'Harina de Trigo Pastelera Fina', unit: 'Bulto 25Kg', price: 72000, supplier: 'Molinos del Oriente', fefoDiscount: 0.15, defaultQty: 1 },
+    { id: 304, name: 'Mantequilla Sin Sal Pura', unit: 'Bloque 5Kg', price: 58000, supplier: 'Lácteos del Oriente', fefoDiscount: 0.10, defaultQty: 1 },
+    { id: 305, name: 'Azúcar Refinada de Alta Pureza', unit: 'Bulto 25Kg', price: 62000, supplier: 'Distribuciones Bucaramanga', fefoDiscount: 0.05, defaultQty: 1 },
+  ],
+  grill: [
+    { id: 401, name: 'Punta de Anca / Picanha Premium', unit: 'Kg', price: 42000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.15, defaultQty: 4 },
+    { id: 402, name: 'Bife de Chorizo Angus', unit: 'Kg', price: 45000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.12, defaultQty: 3 },
+    { id: 403, name: 'Costilla de Cerdo Especial BBQ', unit: 'Kg', price: 26000, supplier: 'Porcinos del Oriente', fefoDiscount: 0.18, defaultQty: 3 },
+    { id: 404, name: 'Carbón Vegetal de Quebracho', unit: 'Bulto 15Kg', price: 28000, supplier: 'Distribuciones del Oriente', fefoDiscount: 0.05, defaultQty: 2 },
+    { id: 405, name: 'Sal Marina Gruesa Parrillera', unit: 'Bolsa 5Kg', price: 14000, supplier: 'Especias & Sales BGA', fefoDiscount: 0.10, defaultQty: 2 },
+  ],
+};
 
 const statuses = [
   { id: 'recibido', label: 'Pedido recibido', time: '10:14 AM', desc: 'Restaurante confirma compra', speed: '0 km/h', eta: '28 min' },
@@ -276,27 +300,26 @@ export default function Landing() {
 
   // 5. Simulator State
   const [selectedType, setSelectedType] = useState('burger');
+  const currentProducts = simulatorProductsByType[selectedType] || simulatorProductsByType.burger;
+
   const [quantities, setQuantities] = useState<Record<number, number>>({
-    1: 3,
-    2: 2,
-    3: 4,
-    4: 1,
-    5: 0,
+    101: 3,
+    102: 2,
+    103: 4,
+    104: 1,
+    105: 2,
   });
   const [cufeCode, setCufeCode] = useState('8f3b92c47a1098e21054de74b39a...01cb');
   const [orderTransmittedMsg, setOrderTransmittedMsg] = useState(false);
 
   const handleTypeChange = (type: string) => {
     setSelectedType(type);
-    if (type === 'burger') {
-      setQuantities({ 1: 3, 2: 2, 3: 4, 4: 1, 5: 0 });
-    } else if (type === 'pizza') {
-      setQuantities({ 1: 0, 2: 5, 3: 0, 4: 2, 5: 2 });
-    } else if (type === 'cafe') {
-      setQuantities({ 1: 0, 2: 2, 3: 6, 4: 1, 5: 0 });
-    } else {
-      setQuantities({ 1: 6, 2: 1, 3: 1, 4: 2, 5: 4 });
-    }
+    const prods = simulatorProductsByType[type] || simulatorProductsByType.burger;
+    const initialQty: Record<number, number> = {};
+    prods.forEach(p => {
+      initialQty[p.id] = p.defaultQty !== undefined ? p.defaultQty : 1;
+    });
+    setQuantities(initialQty);
   };
 
   const handleQuantity = (id: number, delta: number) => {
@@ -307,8 +330,8 @@ export default function Landing() {
   };
 
   // Simulator calculations
-  const rawSubtotal = simulatorProducts.reduce((acc, p) => acc + p.price * (quantities[p.id] || 0), 0);
-  const fefoSavings = simulatorProducts.reduce((acc, p) => acc + p.price * (quantities[p.id] || 0) * p.fefoDiscount, 0);
+  const rawSubtotal = currentProducts.reduce((acc, p) => acc + p.price * (quantities[p.id] || 0), 0);
+  const fefoSavings = currentProducts.reduce((acc, p) => acc + p.price * (quantities[p.id] || 0) * p.fefoDiscount, 0);
   const subtotalAfterFefo = rawSubtotal - fefoSavings;
   const tax = Math.round(subtotalAfterFefo * 0.08); // 8% Impoconsumo
   const totalPayable = subtotalAfterFefo + tax;
@@ -380,7 +403,7 @@ export default function Landing() {
               Iniciar Sesión
             </Link>
             <Link className="btn sm" to="/register">
-              Abrir App Web
+              Registrarse
             </Link>
           </div>
         </div>
@@ -728,7 +751,7 @@ export default function Landing() {
 
               <h4>2. Configurar insumos requeridos:</h4>
               <div className="sim-items">
-                {simulatorProducts.map(prod => (
+                {currentProducts.map(prod => (
                   <div key={prod.id} className="sim-item">
                     <div className="sim-item-info">
                       <span className="sim-item-name">{prod.name}</span>
@@ -1000,16 +1023,12 @@ export default function Landing() {
 
             <div className="cta-buttons">
               <Link className="btn" to="/register">
-                <span>Abrir Plataforma Web</span>
+                <span>Registrarse</span>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14" />
                   <path d="m12 5 7 7-7 7" />
                 </svg>
               </Link>
-
-              <a className="btn ghost" href="https://xupply-d-production.up.railway.app/" target="_blank" rel="noreferrer">
-                <span>Servidor Cloud Demo</span>
-              </a>
 
               <a className="btn ghost sm" href="/Xupply.apk" download>
                 <span>Descargar APK Android</span>

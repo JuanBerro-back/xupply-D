@@ -3,9 +3,7 @@ import { Server } from 'socket.io';
 import dotenv from 'dotenv';
 import { createApp } from './app';
 import { setIo, registerSocket, emitToUser } from './lib/realtime';
-import { ensureRadarAndGpsSchema, expireRadarItems, dropLegacyPlatformViews } from './lib/migrations';
-
-import { initDatabase } from './config/db';
+import { ensureServerInitialized, expireRadarItems } from './lib/migrations';
 
 dotenv.config();
 
@@ -32,12 +30,18 @@ io.on('connection', (socket) => {
 
 setIo(io);
 
-server.listen(PORT, '0.0.0.0', async () => {
-  console.log(`Xupply API corriendo en http://0.0.0.0:${PORT}`);
-  await initDatabase();
-  await ensureRadarAndGpsSchema();
-  await dropLegacyPlatformViews();
-  await expireRadarItems();
-  // Limpieza horaria de alertas y ofertas vencidas del Radar
-  setInterval(expireRadarItems, 60 * 60 * 1000);
-});
+if (process.env.VERCEL !== '1') {
+  server.listen(PORT, '0.0.0.0', async () => {
+    console.log(`Xupply API corriendo en http://0.0.0.0:${PORT}`);
+    await ensureServerInitialized();
+    // Limpieza horaria de alertas y ofertas vencidas del Radar
+    setInterval(expireRadarItems, 60 * 60 * 1000);
+  });
+} else {
+  ensureServerInitialized().catch((err) => {
+    console.error('[Vercel] Error en inicialización DB:', err);
+  });
+}
+
+export default app;
+export { app, server, io };

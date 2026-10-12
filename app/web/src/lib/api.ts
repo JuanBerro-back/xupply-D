@@ -34,12 +34,7 @@ export function getApiOrigin(): string {
     return DEFAULT_RENDER_URL;
   }
 
-  // Si estamos corriendo el frontend en local (npm run dev), apuntamos al backend de Render
-  if (import.meta.env.DEV) {
-    return DEFAULT_RENDER_URL;
-  }
-
-  // En la web servida por el backend en Render, origen relativo ""
+  // En la web (despliegue en Vercel, vercel dev o proxy de Vite), origen relativo ""
   return '';
 }
 

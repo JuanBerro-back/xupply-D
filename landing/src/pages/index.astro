@@ -48,8 +48,8 @@ const chips = [...x.chips, ...x.chips];
         </div>
 
         <div class="nav-actions">
-          <a class="btn ghost sm" href={s.loginUrl} target="_blank" rel="noreferrer">Iniciar Sesión</a>
-          <a class="btn sm" href={s.appUrl} target="_blank" rel="noreferrer">Abrir App Web</a>
+          <a class="btn ghost sm" href={s.loginUrl} rel="noreferrer">Iniciar Sesión</a>
+          <a class="btn sm" href={s.registerUrl} rel="noreferrer">Registrarse</a>
         </div>
       </div>
     </nav>
@@ -565,16 +565,12 @@ const chips = [...x.chips, ...x.chips];
           </p>
 
           <div class="cta-buttons">
-            <a class="btn" href={s.appUrl} target="_blank" rel="noreferrer">
-              <span>Abrir Plataforma Web</span>
+            <a class="btn" href={s.registerUrl} rel="noreferrer">
+              <span>Registrarse</span>
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M5 12h14"></path>
                 <path d="m12 5 7 7-7 7"></path>
               </svg>
-            </a>
-
-            <a class="btn ghost" href={s.cloudAppUrl} target="_blank" rel="noreferrer">
-              <span>Servidor Cloud Demo</span>
             </a>
 
             <a class="btn ghost sm" href={s.apkUrl} download>
@@ -597,14 +593,14 @@ const chips = [...x.chips, ...x.chips];
           <a href="#features">Características</a>
           <a href="#simulador">Simulador</a>
           <a href="#roles">Roles</a>
-          <a href={s.appUrl} target="_blank" rel="noreferrer">App Web</a>
-          <a href={s.cloudAppUrl} target="_blank" rel="noreferrer">Cloud</a>
+          <a href={s.loginUrl} rel="noreferrer">Iniciar Sesión</a>
+          <a href={s.registerUrl} rel="noreferrer">Registrarse</a>
         </div>
       </div>
     </footer>
 
     <!-- Client-Side Scripts (Typewriter, Stepper, Simulator, Canvas) -->
-    <script define:vars={{ words: x.words, statuses: s.statuses, simulatorProducts: s.simulatorProducts }}>
+    <script define:vars={{ words: x.words, statuses: s.statuses, simulatorProductsByType: s.simulatorProductsByType }}>
       // 1. Typewriter Effect in Hero
       const tw = document.getElementById('tw');
       let wordIdx = 0, charIdx = 0, deleting = false;
@@ -754,11 +750,21 @@ const chips = [...x.chips, ...x.chips];
         });
       });
 
-      // 7. Interactive Simulator
+      // 7. Interactive Simulator by Establishment Type
       const quantities = {};
-      simulatorProducts.forEach((p) => {
-        quantities[p.id] = 1;
-      });
+      let currentProducts = simulatorProductsByType.burger || [];
+
+      function initQuantitiesForType(type) {
+        const prods = simulatorProductsByType[type] || simulatorProductsByType.burger || [];
+        currentProducts = prods;
+        prods.forEach((p) => {
+          if (quantities[p.id] === undefined) {
+            quantities[p.id] = p.defaultQty !== undefined ? p.defaultQty : 1;
+          }
+        });
+      }
+
+      initQuantitiesForType('burger');
 
       const rcSubtotal = document.getElementById('rc-subtotal');
       const rcFefo = document.getElementById('rc-fefo');
@@ -766,12 +772,13 @@ const chips = [...x.chips, ...x.chips];
       const rcTotal = document.getElementById('rc-total');
       const rcCufe = document.getElementById('rc-cufe');
       const btnPlaceDemoOrder = document.getElementById('btn-place-demo-order');
+      const simProductList = document.getElementById('sim-product-list');
 
       function calculateSim() {
         let rawSubtotal = 0;
         let fefoSavings = 0;
 
-        simulatorProducts.forEach((p) => {
+        currentProducts.forEach((p) => {
           const qty = quantities[p.id] || 0;
           const itemTotal = p.price * qty;
           rawSubtotal += itemTotal;
@@ -788,62 +795,60 @@ const chips = [...x.chips, ...x.chips];
         if (rcTotal) rcTotal.textContent = `$${Math.round(total).toLocaleString('es-CO')} COP`;
       }
 
-      document.querySelectorAll('.qty-btn').forEach((btn) => {
-        btn.addEventListener('click', () => {
-          const id = +btn.dataset.id;
-          const isInc = btn.classList.contains('inc');
-          if (isInc) {
-            quantities[id] = (quantities[id] || 0) + 1;
-          } else {
-            quantities[id] = Math.max(0, (quantities[id] || 0) - 1);
-          }
-          const valEl = document.getElementById(`qty-${id}`);
-          if (valEl) valEl.textContent = quantities[id];
-          calculateSim();
+      function bindQtyButtons() {
+        if (!simProductList) return;
+        simProductList.querySelectorAll('.qty-btn').forEach((btn) => {
+          btn.onclick = () => {
+            const id = +btn.dataset.id;
+            const isInc = btn.classList.contains('inc');
+            if (isInc) {
+              quantities[id] = (quantities[id] || 0) + 1;
+            } else {
+              quantities[id] = Math.max(0, (quantities[id] || 0) - 1);
+            }
+            const valEl = document.getElementById(`qty-${id}`);
+            if (valEl) valEl.textContent = quantities[id];
+            calculateSim();
+          };
         });
-      });
+      }
+
+      function renderSimulatorItems(type) {
+        initQuantitiesForType(type);
+        if (!simProductList) return;
+        simProductList.innerHTML = currentProducts.map((prod) => `
+          <div class="sim-item" data-id="${prod.id}" data-price="${prod.price}" data-fefo="${prod.fefoDiscount}">
+            <div class="sim-item-info">
+              <span class="sim-item-name">${prod.name}</span>
+              <span class="sim-item-meta">
+                $${prod.price.toLocaleString('es-CO')} COP / ${prod.unit} •
+                <span class="sim-item-fefo">
+                  Lote FEFO (-${Math.round(prod.fefoDiscount * 100)}%)
+                </span>
+              </span>
+            </div>
+            <div class="sim-qty-control">
+              <button class="qty-btn dec" data-id="${prod.id}" aria-label="Disminuir">-</button>
+              <span class="qty-val" id="qty-${prod.id}">${quantities[prod.id] || 0}</span>
+              <button class="qty-btn inc" data-id="${prod.id}" aria-label="Aumentar">+</button>
+            </div>
+          </div>
+        `).join('');
+
+        bindQtyButtons();
+        calculateSim();
+      }
 
       document.querySelectorAll('.type-btn').forEach((btn) => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('.type-btn').forEach((b) => b.classList.remove('active'));
           btn.classList.add('active');
-          const t = btn.dataset.type;
-
-          if (t === 'burger') {
-            quantities[1] = 3;
-            quantities[2] = 2;
-            quantities[3] = 4;
-            quantities[4] = 1;
-            quantities[5] = 0;
-          } else if (t === 'pizza') {
-            quantities[1] = 0;
-            quantities[2] = 5;
-            quantities[3] = 0;
-            quantities[4] = 2;
-            quantities[5] = 2;
-          } else if (t === 'cafe') {
-            quantities[1] = 0;
-            quantities[2] = 2;
-            quantities[3] = 6;
-            quantities[4] = 1;
-            quantities[5] = 0;
-          } else {
-            quantities[1] = 6;
-            quantities[2] = 1;
-            quantities[3] = 1;
-            quantities[4] = 2;
-            quantities[5] = 4;
-          }
-
-          simulatorProducts.forEach((p) => {
-            const el = document.getElementById(`qty-${p.id}`);
-            if (el) el.textContent = quantities[p.id];
-          });
-          calculateSim();
+          const t = btn.dataset.type || 'burger';
+          renderSimulatorItems(t);
         });
       });
 
-      calculateSim();
+      renderSimulatorItems('burger');
 
       if (btnPlaceDemoOrder) {
         btnPlaceDemoOrder.addEventListener('click', () => {

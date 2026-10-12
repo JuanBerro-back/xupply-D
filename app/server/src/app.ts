@@ -21,6 +21,7 @@ import purchaseOrdersRouter from './routes/purchaseOrders';
 import agentRouter from './routes/agent';
 import xupaiRouter from './routes/xupai';
 import adminRouter from './routes/admin';
+import { ensureServerInitialized } from './lib/migrations';
 import { notFound, errorHandler } from './middleware/error';
 
 export function createApp() {
@@ -40,7 +41,19 @@ export function createApp() {
   );
   app.use(express.json());
 
-  app.get('/health', (_req, res) => res.json({ status: 'ok', service: 'xupply-api' }));
+  app.use(async (_req, _res, next) => {
+    try {
+      await ensureServerInitialized();
+    } catch {
+      // Error ya registrado en ensureServerInitialized
+    }
+    next();
+  });
+
+  const healthHandler = (_req: express.Request, res: express.Response) =>
+    res.json({ status: 'ok', service: 'xupply-api' });
+  app.get('/health', healthHandler);
+  app.get('/api/health', healthHandler);
 
   app.use('/api/auth', authRouter);
   app.use('/api/restaurants', restaurantsRouter);

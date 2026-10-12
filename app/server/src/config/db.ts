@@ -5,11 +5,17 @@ dotenv.config();
 
 const databaseUrl = process.env.DATABASE_URL || 'postgres://postgres:postgres@127.0.0.1:5432/xupply';
 
+const requiresSsl =
+  databaseUrl.includes('neon.tech') ||
+  databaseUrl.includes('render.com') ||
+  databaseUrl.includes('vercel-storage.com') ||
+  databaseUrl.includes('supabase.co') ||
+  databaseUrl.includes('sslmode=require') ||
+  process.env.PGSSLMODE === 'require';
+
 export const pool = new Pool({
   connectionString: databaseUrl,
-  ssl: databaseUrl.includes('neon.tech') || databaseUrl.includes('render.com')
-    ? { rejectUnauthorized: false }
-    : undefined,
+  ssl: requiresSsl ? { rejectUnauthorized: false } : undefined,
 });
 
 import path from 'path';
