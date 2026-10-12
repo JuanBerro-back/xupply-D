@@ -6,7 +6,8 @@ app/server/.env
 
 # Dependencies and generated output
 **/node_modules/
-**/dist/
+app/web/dist/
+landing/dist/
 **/.gradle/
 **/.astro/
 *.tsbuildinfo
