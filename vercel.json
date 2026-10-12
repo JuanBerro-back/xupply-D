@@ -5,11 +5,14 @@
       "root": "app/server",
       "framework": "express",
       "entrypoint": "index.js",
+      "installCommand": "npm install",
       "buildCommand": "npm run build"
     },
     "web": {
       "root": "app/web",
-      "framework": "vite"
+      "framework": "vite",
+      "installCommand": "npm install",
+      "buildCommand": "npm run build"
     }
   },
   "rewrites": [
