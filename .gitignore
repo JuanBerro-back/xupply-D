@@ -11,6 +11,7 @@ landing/dist/
 **/.gradle/
 **/.astro/
 *.tsbuildinfo
+package-lock.json
 app/web/android/app/build/
 app/web/android/.gradle/
 app/web/android/build/
