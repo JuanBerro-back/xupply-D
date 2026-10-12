@@ -14,6 +14,7 @@ interface ProductForm {
   price_per_unit: string;
   min_order_qty: string;
   stock_available: string;
+  image_url: string;
 }
 
 const emptyForm: ProductForm = {
@@ -24,7 +25,60 @@ const emptyForm: ProductForm = {
   price_per_unit: '',
   min_order_qty: '1',
   stock_available: '0',
+  image_url: '',
 };
+
+const CATEGORY_FALLBACK_IMAGES: Record<string, string> = {
+  Carnes: 'https://images.unsplash.com/photo-1603048588665-791ca8aea617?auto=format&fit=crop&w=600&q=80',
+  Pollo: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?auto=format&fit=crop&w=600&q=80',
+  Cerdo: 'https://images.unsplash.com/photo-1544025162-d76694265947?auto=format&fit=crop&w=600&q=80',
+  Mariscos: 'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?auto=format&fit=crop&w=600&q=80',
+  Lacteos: 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=600&q=80',
+  'Lácteos': 'https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?auto=format&fit=crop&w=600&q=80',
+  Verduras: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80',
+  Frutas: 'https://images.unsplash.com/photo-1619566636858-adf3ef46400b?auto=format&fit=crop&w=600&q=80',
+  Bebidas: 'https://images.unsplash.com/photo-1551024709-8f23befc6f87?auto=format&fit=crop&w=600&q=80',
+  Granos: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=600&q=80',
+  Condimentos: 'https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=600&q=80',
+};
+
+export function getProductImage(product: Product): string {
+  if (product.image_url && product.image_url.trim().startsWith('http')) {
+    return product.image_url.trim();
+  }
+  const cat = (product.category || '').toLowerCase();
+  const name = (product.name || '').toLowerCase();
+  for (const [key, url] of Object.entries(CATEGORY_FALLBACK_IMAGES)) {
+    if (cat.includes(key.toLowerCase()) || name.includes(key.toLowerCase())) {
+      return url;
+    }
+  }
+  if (name.includes('res') || name.includes('carne') || name.includes('lomo') || name.includes('costilla')) {
+    return CATEGORY_FALLBACK_IMAGES.Carnes;
+  }
+  if (name.includes('pollo') || name.includes('pechuga') || name.includes('muslo')) {
+    return CATEGORY_FALLBACK_IMAGES.Pollo;
+  }
+  if (name.includes('chicharron') || name.includes('cerdo')) {
+    return CATEGORY_FALLBACK_IMAGES.Cerdo;
+  }
+  if (name.includes('queso') || name.includes('leche') || name.includes('mantequilla')) {
+    return CATEGORY_FALLBACK_IMAGES.Lacteos;
+  }
+  if (name.includes('camaron') || name.includes('pescado') || name.includes('atun')) {
+    return CATEGORY_FALLBACK_IMAGES.Mariscos;
+  }
+  if (name.includes('tomate') || name.includes('cebolla') || name.includes('pimenton') || name.includes('papa')) {
+    return CATEGORY_FALLBACK_IMAGES.Verduras;
+  }
+  if (name.includes('agua') || name.includes('gaseosa') || name.includes('jugo') || name.includes('bebida')) {
+    return CATEGORY_FALLBACK_IMAGES.Bebidas;
+  }
+  return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
+}
+
+const CORTE_OPCIONES = ['Corte grueso (2cm)', 'Corte fino/mariposa', 'Molido fino', 'Porcionado individual', 'Entero sin cortar', 'Maduración óptima'];
+const EMPAQUE_OPCIONES = ['Sellado al vacío', 'Canastilla plástica', 'Caja térmica con hielo', 'Bolsas selladas de 1kg', 'Empaque estándar'];
 
 export default function Catalog() {
   const { user } = useAuth();
@@ -41,6 +95,15 @@ export default function Catalog() {
   const [form, setForm] = useState<ProductForm>(emptyForm);
   const [linkedSupplierIds, setLinkedSupplierIds] = useState<number[]>([]);
   const [priceSort, setPriceSort] = useState<'asc' | 'desc' | ''>('');
+
+  // Cantidades interactivas por producto
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
+  // Modal de personalización de pedido
+  const [customizingProduct, setCustomizingProduct] = useState<Product | null>(null);
+  const [customCorte, setCustomCorte] = useState<string>('');
+  const [customEmpaque, setCustomEmpaque] = useState<string>('Sellado al vacío');
+  const [customNotes, setCustomNotes] = useState<string>('');
+  const [customQty, setCustomQty] = useState<number>(1);
 
   const isSupplier = user?.role === 'proveedor_admin';
 
@@ -97,8 +160,34 @@ export default function Catalog() {
       price_per_unit: String(p.price_per_unit),
       min_order_qty: String(p.min_order_qty),
       stock_available: String(p.stock_available),
+      image_url: p.image_url ?? '',
     });
     setModal(true);
+  };
+
+  const openCustomization = (p: Product) => {
+    setCustomizingProduct(p);
+    const initialQty = quantities[p.id] || Math.max(p.min_order_qty || 1, 1);
+    setCustomQty(initialQty);
+    setCustomCorte('');
+    setCustomEmpaque('Sellado al vacío');
+    setCustomNotes('');
+  };
+
+  const handleAddCustomized = () => {
+    if (!customizingProduct) return;
+    const parts = [
+      customCorte ? `Corte: ${customCorte}` : '',
+      customEmpaque ? `Empaque: ${customEmpaque}` : '',
+      customNotes ? customNotes.trim() : ''
+    ].filter(Boolean);
+    const fullCustomization = parts.join(' • ');
+    add(customizingProduct, customQty, fullCustomization || undefined);
+    push({
+      message: `¡${customizingProduct.name} personalizado agregado al carrito!`,
+      at: new Date().toISOString()
+    });
+    setCustomizingProduct(null);
   };
 
   const submit = async (e: FormEvent) => {
@@ -111,6 +200,7 @@ export default function Catalog() {
       price_per_unit: Number(form.price_per_unit),
       min_order_qty: Number(form.min_order_qty),
       stock_available: Number(form.stock_available),
+      image_url: form.image_url ? form.image_url.trim() : null,
     };
     try {
       await api(
@@ -141,8 +231,8 @@ export default function Catalog() {
   const set = (k: keyof ProductForm) => (e: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
 
-  const input = 'w-full rounded border px-3 py-2';
-  const label = 'mb-1 block text-sm font-medium';
+  const input = 'w-full rounded-xl border border-slate-700 bg-slate-900 px-3 py-2 text-white focus:border-brand focus:outline-none';
+  const label = 'mb-1 block text-sm font-semibold text-slate-300';
 
   return (
     <div>
@@ -172,36 +262,136 @@ export default function Catalog() {
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar producto..." className="flex-1 rounded border px-3 py-2" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {displayedProducts.map((p) => (
-          <div key={p.id} className="flex flex-col rounded-lg border bg-white p-4 shadow-sm">
-            <div className="mb-1 flex items-start justify-between gap-2">
-              <h3 className="font-semibold">{p.name}</h3>
-              <span className="rounded bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">{p.category}</span>
+          <div
+            key={p.id}
+            className="group flex flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-[#0f172a] shadow-sm hover:shadow-xl dark:shadow-none hover:border-brand/50 transition-all duration-300 overflow-hidden"
+          >
+            {/* Product Image Banner */}
+            <div className="relative h-44 w-full overflow-hidden bg-slate-100 dark:bg-slate-900">
+              <img
+                src={getProductImage(p)}
+                alt={p.name}
+                className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                loading="lazy"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = CATEGORY_FALLBACK_IMAGES.Carnes;
+                }}
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity" />
+              
+              {/* Category Badge */}
+              <span className="absolute top-3 left-3 rounded-full bg-slate-900/80 backdrop-blur-md px-2.5 py-1 text-[11px] font-bold text-orange-400 border border-orange-500/30 shadow-sm">
+                {p.category || 'General'}
+              </span>
+
+              {/* Stock Badge */}
+              <span className="absolute top-3 right-3 rounded-full bg-slate-900/80 backdrop-blur-md px-2.5 py-1 text-[11px] font-bold text-emerald-400 border border-emerald-500/30 shadow-sm">
+                Disp: {p.stock_available} {p.unit}
+              </span>
             </div>
-            <p className="mb-2 text-xs text-gray-500">{p.supplier_name}</p>
-            <p className="mb-1 text-xs text-gray-600">Disp: {p.stock_available} {p.unit} · Min: {p.min_order_qty}</p>
-            <p className="mb-3 text-lg font-bold text-brand">
-              {p.price_per_unit.toLocaleString('es-CO')} / {p.unit}
-            </p>
-            {isSupplier ? (
-              <div className="mt-auto flex gap-2">
-                <button onClick={() => openEdit(p)} className="flex-1 rounded border border-brand py-2 text-sm font-medium text-brand hover:bg-brand hover:text-white">
-                  Editar
-                </button>
-                <button onClick={() => removeProduct(p.id)} className="flex-1 rounded border border-red-500 py-2 text-sm font-medium text-red-500 hover:bg-red-500 hover:text-white">
-                  Desactivar
-                </button>
+
+            {/* Product Card Content */}
+            <div className="p-4 flex flex-col flex-1">
+              <div className="mb-1 flex items-start justify-between gap-2">
+                <h3 className="font-bold text-slate-900 dark:text-white text-base leading-snug line-clamp-1">{p.name}</h3>
               </div>
-            ) : user?.role === 'gerente' || user?.role === 'restaurante_admin' ? (
-              <button onClick={() => add(p, Math.max(p.min_order_qty, 1))} className="mt-auto rounded bg-brand py-2 text-sm font-medium text-white hover:bg-brand-dark">
-                Agregar al carrito
-              </button>
-            ) : (
-              <div className="mt-auto py-2 text-center text-xs text-slate-500 font-bold bg-slate-100 rounded">
-                Solo los gerentes pueden comprar
+              <p className="mb-2 text-xs font-medium text-slate-500 dark:text-slate-400">{p.supplier_name}</p>
+              {p.description && (
+                <p className="mb-3 text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed">
+                  {p.description}
+                </p>
+              )}
+
+              <div className="mt-auto mb-3.5 pt-2.5 border-t border-slate-100 dark:border-slate-800 flex items-baseline justify-between">
+                <div>
+                  <span className="text-[11px] text-slate-400 font-medium block">Precio mayorista</span>
+                  <span className="text-lg font-black text-brand tracking-tight">
+                    ${p.price_per_unit.toLocaleString('es-CO')}{' '}
+                    <span className="text-xs font-normal text-slate-400">/ {p.unit}</span>
+                  </span>
+                </div>
+                <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
+                  Mín: {p.min_order_qty} {p.unit}
+                </span>
               </div>
-            )}
+
+              {isSupplier ? (
+                <div className="flex gap-2">
+                  <button onClick={() => openEdit(p)} className="flex-1 rounded-xl border border-brand py-2 text-sm font-semibold text-brand hover:bg-brand hover:text-white transition">
+                    Editar
+                  </button>
+                  <button onClick={() => removeProduct(p.id)} className="flex-1 rounded-xl border border-red-500 py-2 text-sm font-semibold text-red-500 hover:bg-red-500 hover:text-white transition">
+                    Desactivar
+                  </button>
+                </div>
+              ) : user?.role === 'gerente' || user?.role === 'restaurante_admin' ? (
+                <div className="space-y-2">
+                  {/* Selector rápido de cantidad */}
+                  <div className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/80 rounded-xl p-1.5 border border-slate-200 dark:border-slate-700/60">
+                    <span className="text-xs text-slate-600 dark:text-slate-300 font-medium pl-1.5">Cantidad ({p.unit}):</span>
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setQuantities((prev) => ({
+                            ...prev,
+                            [p.id]: Math.max(p.min_order_qty || 1, (prev[p.id] || p.min_order_qty || 1) - 1),
+                          }))
+                        }
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min={p.min_order_qty || 1}
+                        value={quantities[p.id] ?? (p.min_order_qty || 1)}
+                        onChange={(e) =>
+                          setQuantities((prev) => ({ ...prev, [p.id]: Math.max(1, Number(e.target.value)) }))
+                        }
+                        className="w-12 text-center text-xs font-bold text-slate-900 dark:text-white bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded py-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setQuantities((prev) => ({
+                            ...prev,
+                            [p.id]: (prev[p.id] || p.min_order_qty || 1) + 1,
+                          }))
+                        }
+                        className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-white font-bold hover:bg-slate-300 dark:hover:bg-slate-600 transition"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => openCustomization(p)}
+                      className="px-3 rounded-xl border border-sky-500/40 bg-sky-50 dark:bg-sky-500/10 py-2 text-xs font-bold text-sky-600 dark:text-sky-400 hover:bg-sky-100 dark:hover:bg-sky-500/20 transition flex items-center justify-center gap-1 shrink-0"
+                      title="Personalizar especificaciones de corte o empaque"
+                    >
+                      <span>⚙ Personalizar</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => add(p, quantities[p.id] || Math.max(p.min_order_qty || 1, 1))}
+                      className="flex-1 rounded-xl bg-brand py-2 text-xs sm:text-sm font-bold text-white hover:bg-brand-dark transition shadow-md shadow-brand/20"
+                    >
+                      Agregar al carrito
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="py-2 text-center text-xs text-slate-500 font-bold bg-slate-100 dark:bg-slate-800 rounded-xl">
+                  Solo los gerentes pueden comprar
+                </div>
+              )}
+            </div>
           </div>
         ))}
         {displayedProducts.length === 0 && (
@@ -216,6 +406,142 @@ export default function Catalog() {
         )}
       </div>
 
+      {/* Modal de Personalización de Pedido */}
+      {customizingProduct && (
+        <Modal
+          title={`Personalizar: ${customizingProduct.name}`}
+          onClose={() => setCustomizingProduct(null)}
+        >
+          <div className="space-y-4">
+            <div className="flex items-center gap-3 p-3 bg-slate-50 dark:bg-slate-800/80 rounded-xl border border-slate-200 dark:border-slate-700/60">
+              <img
+                src={getProductImage(customizingProduct)}
+                alt={customizingProduct.name}
+                className="w-16 h-16 rounded-lg object-cover"
+              />
+              <div>
+                <h4 className="font-bold text-slate-900 dark:text-white">{customizingProduct.name}</h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400">{customizingProduct.supplier_name}</p>
+                <p className="text-sm font-bold text-brand mt-0.5">
+                  ${customizingProduct.price_per_unit.toLocaleString('es-CO')} COP / {customizingProduct.unit}
+                </p>
+              </div>
+            </div>
+
+            {/* Cantidad a pedir */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Cantidad a ordenar ({customizingProduct.unit}):
+              </label>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setCustomQty((q) => Math.max(customizingProduct.min_order_qty || 1, q - 1))}
+                  className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-slate-700 text-lg font-bold text-slate-800 dark:text-white"
+                >
+                  -
+                </button>
+                <input
+                  type="number"
+                  min={customizingProduct.min_order_qty || 1}
+                  value={customQty}
+                  onChange={(e) => setCustomQty(Math.max(1, Number(e.target.value)))}
+                  className="w-24 text-center font-bold rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-900 py-1.5 text-slate-900 dark:text-white"
+                />
+                <button
+                  type="button"
+                  onClick={() => setCustomQty((q) => q + 1)}
+                  className="w-9 h-9 rounded-lg bg-slate-200 dark:bg-slate-700 text-lg font-bold text-slate-800 dark:text-white"
+                >
+                  +
+                </button>
+                <span className="text-xs text-slate-500 pl-2">
+                  Subtotal: <b>${(customQty * customizingProduct.price_per_unit).toLocaleString('es-CO')} COP</b>
+                </span>
+              </div>
+            </div>
+
+            {/* Opciones de corte / preparación */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Tipo de corte o preparación:
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {CORTE_OPCIONES.map((op) => (
+                  <button
+                    key={op}
+                    type="button"
+                    onClick={() => setCustomCorte(customCorte === op ? '' : op)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                      customCorte === op
+                        ? 'bg-brand text-white border-brand'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    {op}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Opciones de empaque */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Tipo de empaque requerido:
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {EMPAQUE_OPCIONES.map((op) => (
+                  <button
+                    key={op}
+                    type="button"
+                    onClick={() => setCustomEmpaque(op)}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                      customEmpaque === op
+                        ? 'bg-emerald-600 text-white border-emerald-600'
+                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                    }`}
+                  >
+                    {op}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Notas especiales adicionales */}
+            <div>
+              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                Instrucciones adicionales para el proveedor (opcional):
+              </label>
+              <textarea
+                value={customNotes}
+                onChange={(e) => setCustomNotes(e.target.value)}
+                placeholder="Ej. Porcionar en paquetes de 2kg y etiquetar con fecha de entrega..."
+                rows={2}
+                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand"
+              />
+            </div>
+
+            <div className="pt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={() => setCustomizingProduct(null)}
+                className="flex-1 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 text-xs font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleAddCustomized}
+                className="flex-[2] py-2.5 rounded-xl bg-brand text-white text-xs font-bold hover:bg-brand-dark transition shadow-md shadow-brand/20"
+              >
+                Agregar al Carrito con Personalización
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal Proveedor: Crear / Editar producto */}
       {modal && (
         <Modal title={editing ? `Editar ${editing.name}` : 'Nuevo producto'} onClose={() => setModal(false)}>
           <form onSubmit={submit} className="space-y-3">
@@ -231,6 +557,16 @@ export default function Catalog() {
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className={label}>URL de la Imagen (Opcional)</label>
+              <input
+                type="url"
+                placeholder="https://images.unsplash.com/... o enlace de tu foto"
+                value={form.image_url}
+                onChange={set('image_url')}
+                className={input}
+              />
             </div>
             <div>
               <label className={label}>Descripción</label>
@@ -259,7 +595,7 @@ export default function Catalog() {
                 <input type="number" step="0.01" min="0" value={form.stock_available} onChange={set('stock_available')} className={input} />
               </div>
             </div>
-            <button className="w-full rounded bg-brand py-2 font-medium text-white hover:bg-brand-dark">
+            <button className="w-full rounded-xl bg-brand py-2.5 font-bold text-white hover:bg-brand-dark transition shadow-md shadow-brand/20">
               {editing ? 'Guardar cambios' : 'Crear producto'}
             </button>
           </form>

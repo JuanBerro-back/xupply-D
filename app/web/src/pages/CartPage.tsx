@@ -5,6 +5,7 @@ import { useNotifications } from '../context/NotificationContext';
 import { api } from '../lib/api';
 import { Order } from '../types';
 import { formatMoney } from '../lib/constants';
+import { getProductImage } from './Catalog';
 
 export default function CartPage() {
   const { items, setQuantity, remove, total, clear } = useCart();
@@ -28,11 +29,19 @@ export default function CartPage() {
     setSubmitting(true);
     try {
       for (const [supplierId, list] of groupBySupplier()) {
+        const itemCustomizations = list
+          .filter((i) => i.customization)
+          .map((i) => `• ${i.product.name}: ${i.customization}`)
+          .join('\n');
+        const finalNotes = [notes.trim(), itemCustomizations ? `Personalizaciones:\n${itemCustomizations}` : '']
+          .filter(Boolean)
+          .join('\n\n');
+
         const order = await api<Order>('/orders', {
           method: 'POST',
           body: JSON.stringify({
             supplier_id: supplierId,
-            notes,
+            notes: finalNotes,
             delivery_address: deliveryAddress,
             items: list.map((i) => ({ product_id: i.product.id, quantity: i.quantity })),
           }),
@@ -62,24 +71,36 @@ export default function CartPage() {
     <div className="grid gap-6 lg:grid-cols-3">
       <div className="lg:col-span-2">
         {groupBySupplier().map(([supplierId, list]) => (
-          <div key={supplierId} className="mb-4 rounded-lg border bg-white p-4">
-            <h3 className="mb-3 font-semibold">{list[0].product.supplier_name}</h3>
+          <div key={supplierId} className="mb-4 rounded-lg border bg-white p-4 shadow-sm">
+            <h3 className="mb-3 font-semibold text-gray-800 border-b pb-2">{list[0].product.supplier_name}</h3>
             {list.map((i) => (
-              <div key={i.product.id} className="mb-2 flex items-center justify-between gap-2 border-b pb-2">
-                <div className="min-w-0">
-                  <p className="truncate font-medium">{i.product.name}</p>
-                  <p className="text-xs text-gray-500">{formatMoney(i.product.price_per_unit)} / {i.product.unit}</p>
+              <div key={i.product.id} className="mb-3 flex flex-wrap sm:flex-nowrap items-center justify-between gap-3 border-b pb-3 last:border-b-0 last:pb-0">
+                <div className="flex items-center gap-3 min-w-0">
+                  <img
+                    src={getProductImage(i.product)}
+                    alt={i.product.name}
+                    className="h-14 w-14 rounded-lg object-cover flex-shrink-0 border border-gray-100 shadow-xs"
+                  />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-gray-900">{i.product.name}</p>
+                    <p className="text-xs text-gray-500">{formatMoney(i.product.price_per_unit)} / {i.product.unit}</p>
+                    {i.customization && (
+                      <p className="mt-1 inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-800 border border-amber-200">
+                        <span>⚙️</span> {i.customization}
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 ml-auto sm:ml-0">
                   <input
                     type="number"
                     min={1}
                     value={i.quantity}
-                    onChange={(e) => setQuantity(i.product.id, Number(e.target.value))}
-                    className="w-16 rounded border px-2 py-1 text-center"
+                    onChange={(e) => setQuantity(i.product.id, Math.max(1, Number(e.target.value)))}
+                    className="w-16 rounded border px-2 py-1 text-center font-medium"
                   />
-                  <span className="w-24 text-right font-semibold">{formatMoney(i.product.price_per_unit * i.quantity)}</span>
-                  <button onClick={() => remove(i.product.id)} className="text-sm text-red-500">Eliminar</button>
+                  <span className="w-24 text-right font-semibold text-brand-dark">{formatMoney(i.product.price_per_unit * i.quantity)}</span>
+                  <button onClick={() => remove(i.product.id)} className="text-sm text-red-500 hover:text-red-700">Eliminar</button>
                 </div>
               </div>
             ))}

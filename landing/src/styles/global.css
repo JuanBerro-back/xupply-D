@@ -593,7 +593,7 @@ h2 {
 /* Features Grid */
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 20px;
 }
 
@@ -1087,15 +1087,28 @@ h2 {
   line-height: 1.5;
 }
 
+.roles-glass {
+  padding: 28px;
+}
+
 /* Comparison Table */
-.compare-table {
+.compare-table-wrapper {
   width: 100%;
-  border-collapse: separate;
-  border-spacing: 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   border-radius: 18px;
-  overflow: hidden;
   border: 1px solid var(--line-strong);
   background: var(--bg-card);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.35);
+}
+
+.compare-table {
+  width: 100%;
+  min-width: 580px;
+  border-collapse: separate;
+  border-spacing: 0;
+  border: none;
+  background: transparent;
 }
 
 .compare-table th, .compare-table td {
@@ -1104,7 +1117,7 @@ h2 {
 }
 
 .compare-table th {
-  background: rgba(30, 41, 59, 0.5);
+  background: rgba(30, 41, 59, 0.6);
   font-size: 0.92rem;
   font-weight: 700;
   color: var(--text);
@@ -1128,6 +1141,17 @@ h2 {
 .compare-good {
   color: var(--emerald-light) !important;
   font-weight: 600;
+}
+
+.table-scroll-hint {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--brand-light);
+  margin-top: 10px;
+  font-weight: 500;
 }
 
 /* CTA Box */
@@ -1242,15 +1266,18 @@ footer {
     grid-template-columns: 1fr;
     min-height: auto;
     padding: 36px 0 54px;
+    gap: 32px;
   }
   .stats {
     grid-template-columns: repeat(2, 1fr);
   }
   .simulator-box {
     grid-template-columns: 1fr;
+    gap: 20px;
   }
   .role-panel.active {
     grid-template-columns: 1fr;
+    gap: 24px;
   }
   .nav-links {
     display: none;
@@ -1258,6 +1285,9 @@ footer {
 }
 
 @media (max-width: 640px) {
+  .wrap {
+    padding: 0 16px;
+  }
   .stats {
     grid-template-columns: 1fr;
   }
@@ -1268,8 +1298,59 @@ footer {
   .hero-actions .btn {
     width: 100%;
   }
-  .compare-table {
-    display: block;
-    overflow-x: auto;
+  .table-scroll-hint {
+    display: flex;
+  }
+  .roles-glass {
+    padding: 16px 12px !important;
+    border-radius: 16px;
+  }
+  .role-info .btn {
+    width: 100%;
+    margin-bottom: 4px;
+  }
+  .mockup-preview {
+    padding: 14px 12px;
+    border-radius: 14px;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .mockup-metrics {
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+  .m-metric {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding: 10px 12px !important;
+    border-radius: 8px !important;
+  }
+  .m-metric span {
+    margin-bottom: 0 !important;
+    font-size: 0.8rem !important;
+  }
+  .m-metric b {
+    font-size: 0.92rem !important;
+    white-space: nowrap !important;
+    text-align: right !important;
+  }
+  .simulator-box {
+    padding: 16px 14px !important;
+    border-radius: 18px !important;
+  }
+  .sim-receipt {
+    padding: 16px 14px !important;
+    border-radius: 14px !important;
+  }
+  .cta-box {
+    padding: 40px 18px !important;
+    border-radius: 20px !important;
+  }
+  .cta-box h2 {
+    font-size: 1.85rem !important;
+  }
+  .cta-buttons .btn {
+    width: 100% !important;
   }
 }

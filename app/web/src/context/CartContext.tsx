@@ -3,9 +3,10 @@ import { CartItem, Product } from '../types';
 
 interface CartContextValue {
   items: CartItem[];
-  add: (product: Product, quantity: number) => void;
+  add: (product: Product, quantity: number, customization?: string) => void;
   remove: (productId: number) => void;
   setQuantity: (productId: number, quantity: number) => void;
+  setCustomization: (productId: number, customization: string) => void;
   clear: () => void;
   total: number;
   count: number;
@@ -41,15 +42,22 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const closeCart = () => setIsOpen(false);
   const toggleCart = () => setIsOpen((prev) => !prev);
 
-  const add = (product: Product, quantity: number) => {
+  const add = (product: Product, quantity: number, customization?: string) => {
     setItems((prev) => {
       const found = prev.find((i) => i.product.id === product.id);
       if (found) {
         return prev.map((i) =>
-          i.product.id === product.id ? { ...i, quantity: i.quantity + quantity } : i
+          i.product.id === product.id
+            ? {
+                ...i,
+                quantity: i.quantity + quantity,
+                customization: customization !== undefined ? customization : i.customization,
+                notes: customization !== undefined ? customization : i.notes,
+              }
+            : i
         );
       }
-      return [...prev, { product, quantity }];
+      return [...prev, { product, quantity, customization, notes: customization }];
     });
     setIsOpen(true);
   };
@@ -59,6 +67,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const setQuantity = (productId: number, quantity: number) =>
     setItems((prev) =>
       prev.map((i) => (i.product.id === productId ? { ...i, quantity } : i)).filter((i) => i.quantity > 0)
+    );
+
+  const setCustomization = (productId: number, customization: string) =>
+    setItems((prev) =>
+      prev.map((i) => (i.product.id === productId ? { ...i, customization, notes: customization } : i))
     );
 
   const clear = () => setItems([]);
@@ -73,6 +86,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         add,
         remove,
         setQuantity,
+        setCustomization,
         clear,
         total,
         count,

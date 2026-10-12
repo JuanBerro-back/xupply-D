@@ -69,6 +69,8 @@ export interface Category {
 export interface CartItem {
   product: Product;
   quantity: number;
+  customization?: string;
+  notes?: string;
 }
 
 export interface OrderItem {

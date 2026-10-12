@@ -851,7 +851,7 @@ export default function Landing() {
           </div>
 
           {/* Role Panels */}
-          <div className="glass" style={{ padding: '28px' }}>
+          <div className="glass roles-glass">
             {rolesData.map(role => (
               <div
                 key={role.key}
@@ -946,42 +946,48 @@ export default function Landing() {
             <p className="sub">Compara la operación tradicional frente a la plataforma Xupply.</p>
           </div>
 
-          <table className="compare-table">
-            <thead>
-              <tr>
-                <th style={{ width: '30%' }}>Aspecto Operativo</th>
-                <th style={{ width: '35%' }}>Método Tradicional</th>
-                <th style={{ width: '35%' }}>Con Xupply B2B</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><b>Pedidos y Compras</b></td>
-                <td className="compare-bad">Llamadas telefónicas y chats de mensajería dispersos</td>
-                <td className="compare-good">Catálogo digital con confirmación instantánea</td>
-              </tr>
-              <tr>
-                <td><b>Control de Vencimiento</b></td>
-                <td className="compare-bad">Alimentos vencen en bodega; mermas del 8% al 15%</td>
-                <td className="compare-good">Algoritmo FEFO estricto: rotación prioritaria y 0% mermas</td>
-              </tr>
-              <tr>
-                <td><b>Rastreo de Entregas</b></td>
-                <td className="compare-bad">Llamadas frecuentes al conductor durante la ruta</td>
-                <td className="compare-good">GPS satelital en vivo con telemetría y ETA en tiempo real</td>
-              </tr>
-              <tr>
-                <td><b>Facturación e Impuestos</b></td>
-                <td className="compare-bad">Facturas manuales en papel, errores en IVA e INC</td>
-                <td className="compare-good">Facturación electrónica DIAN con CUFE y QR al instante</td>
-              </tr>
-              <tr>
-                <td><b>Decisiones de Compra</b></td>
-                <td className="compare-bad">Estimaciones sin datos históricos de rotación</td>
-                <td className="compare-good">Copiloto XupAI analiza consumos históricos y sugiere la orden</td>
-              </tr>
-            </tbody>
-          </table>
+          <div className="compare-table-wrapper">
+            <table className="compare-table">
+              <thead>
+                <tr>
+                  <th style={{ width: '30%' }}>Aspecto Operativo</th>
+                  <th style={{ width: '35%' }}>Método Tradicional</th>
+                  <th style={{ width: '35%' }}>Con Xupply B2B</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><b>Pedidos y Compras</b></td>
+                  <td className="compare-bad">Llamadas telefónicas y chats de mensajería dispersos</td>
+                  <td className="compare-good">Catálogo digital con confirmación instantánea</td>
+                </tr>
+                <tr>
+                  <td><b>Control de Vencimiento</b></td>
+                  <td className="compare-bad">Alimentos vencen en bodega; mermas del 8% al 15%</td>
+                  <td className="compare-good">Algoritmo FEFO estricto: rotación prioritaria y 0% mermas</td>
+                </tr>
+                <tr>
+                  <td><b>Rastreo de Entregas</b></td>
+                  <td className="compare-bad">Llamadas frecuentes al conductor durante la ruta</td>
+                  <td className="compare-good">GPS satelital en vivo con telemetría y ETA en tiempo real</td>
+                </tr>
+                <tr>
+                  <td><b>Facturación e Impuestos</b></td>
+                  <td className="compare-bad">Facturas manuales en papel, errores en IVA e INC</td>
+                  <td className="compare-good">Facturación electrónica DIAN con CUFE y QR al instante</td>
+                </tr>
+                <tr>
+                  <td><b>Decisiones de Compra</b></td>
+                  <td className="compare-bad">Estimaciones sin datos históricos de rotación</td>
+                  <td className="compare-good">Copiloto XupAI analiza consumos históricos y sugiere la orden</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div className="table-scroll-hint">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+            <span>Desliza horizontalmente para ver la tabla completa</span>
+          </div>
         </section>
 
         {/* Testimonials */}
@@ -990,7 +996,7 @@ export default function Landing() {
             <h2>Respaldado por el sector gastronómico de Bucaramanga</h2>
           </div>
 
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))' }}>
+          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))' }}>
             <div className="glass tilt feat" onMouseMove={handleCardMouseMove} onMouseLeave={handleCardMouseLeave}>
               <p style={{ fontStyle: 'italic', fontSize: '0.98rem', marginBottom: '16px', color: 'var(--text)' }}>
                 "Antes perdíamos hasta un 12% en mermas por vencimiento. Con el inventario FEFO de Xupply y el seguimiento GPS, las compras llegan justo a tiempo y las mermas bajaron a cero."

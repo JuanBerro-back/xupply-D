@@ -418,7 +418,7 @@ const chips = [...x.chips, ...x.chips];
         </div>
 
         <!-- Role Panels -->
-        <div class="glass" style="padding: 28px;">
+        <div class="glass roles-glass">
           {s.roles.map((role, i) => (
             <div class={'role-panel' + (i === 0 ? ' active' : '')} data-panel={role.key}>
               <div class="role-info">
@@ -497,42 +497,48 @@ const chips = [...x.chips, ...x.chips];
           <p class="sub">Compara la operación tradicional frente a la plataforma Xupply.</p>
         </div>
 
-        <table class="compare-table">
-          <thead>
-            <tr>
-              <th style="width: 30%;">Aspecto Operativo</th>
-              <th style="width: 35%;">Método Tradicional</th>
-              <th style="width: 35%;">Con Xupply B2B</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><b>Pedidos y Compras</b></td>
-              <td class="compare-bad">Llamadas telefónicas y chats de mensajería dispersos</td>
-              <td class="compare-good">Catálogo digital con confirmación instantánea</td>
-            </tr>
-            <tr>
-              <td><b>Control de Vencimiento</b></td>
-              <td class="compare-bad">Alimentos vencen en bodega; mermas del 8% al 15%</td>
-              <td class="compare-good">Algoritmo FEFO estricto: rotación prioritaria y 0% mermas</td>
-            </tr>
-            <tr>
-              <td><b>Rastreo de Entregas</b></td>
-              <td class="compare-bad">Llamadas frecuentes al conductor durante la ruta</td>
-              <td class="compare-good">GPS satelital en vivo con telemetría y ETA en tiempo real</td>
-            </tr>
-            <tr>
-              <td><b>Facturación e Impuestos</b></td>
-              <td class="compare-bad">Facturas manuales en papel, errores en IVA e INC</td>
-              <td class="compare-good">Facturación electrónica DIAN con CUFE y QR al instante</td>
-            </tr>
-            <tr>
-              <td><b>Decisiones de Compra</b></td>
-              <td class="compare-bad">Estimaciones sin datos históricos de rotación</td>
-              <td class="compare-good">Copiloto XupAI analiza consumos históricos y sugiere la orden</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="compare-table-wrapper">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th style="width: 30%;">Aspecto Operativo</th>
+                <th style="width: 35%;">Método Tradicional</th>
+                <th style="width: 35%;">Con Xupply B2B</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><b>Pedidos y Compras</b></td>
+                <td class="compare-bad">Llamadas telefónicas y chats de mensajería dispersos</td>
+                <td class="compare-good">Catálogo digital con confirmación instantánea</td>
+              </tr>
+              <tr>
+                <td><b>Control de Vencimiento</b></td>
+                <td class="compare-bad">Alimentos vencen en bodega; mermas del 8% al 15%</td>
+                <td class="compare-good">Algoritmo FEFO estricto: rotación prioritaria y 0% mermas</td>
+              </tr>
+              <tr>
+                <td><b>Rastreo de Entregas</b></td>
+                <td class="compare-bad">Llamadas frecuentes al conductor durante la ruta</td>
+                <td class="compare-good">GPS satelital en vivo con telemetría y ETA en tiempo real</td>
+              </tr>
+              <tr>
+                <td><b>Facturación e Impuestos</b></td>
+                <td class="compare-bad">Facturas manuales en papel, errores en IVA e INC</td>
+                <td class="compare-good">Facturación electrónica DIAN con CUFE y QR al instante</td>
+              </tr>
+              <tr>
+                <td><b>Decisiones de Compra</b></td>
+                <td class="compare-bad">Estimaciones sin datos históricos de rotación</td>
+                <td class="compare-good">Copiloto XupAI analiza consumos históricos y sugiere la orden</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-scroll-hint">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M13 5l7 7-7 7"/></svg>
+          <span>Desliza horizontalmente para ver la tabla completa</span>
+        </div>
       </section>
 
       <!-- Testimonials -->
@@ -541,7 +547,7 @@ const chips = [...x.chips, ...x.chips];
           <h2>Respaldado por el sector gastronómico de Bucaramanga</h2>
         </div>
 
-        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));">
+        <div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
           {s.testimonials.map((t, i) => (
             <div class="glass tilt feat rv" style={`--i:${i}`}>
               <p style="font-style: italic; font-size: 0.98rem; margin-bottom: 16px; color: var(--text);">
