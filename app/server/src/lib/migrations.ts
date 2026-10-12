@@ -149,8 +149,11 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
       INSERT INTO role_permissions (role_id, permission_id)
       SELECT r.id, p.id FROM roles r, permissions p
       WHERE r.name = 'admin' AND p.name = 'analytics'
-      ON CONFLICT DO NOTHING;
-
+      -- Garantizar que usuarios proveedor tengan supplier_id asignado
+      UPDATE users SET supplier_id = 1 WHERE username IN ('proveedor', 'domiciliario') AND supplier_id IS NULL;
+      UPDATE users u
+      SET supplier_id = (SELECT s.id FROM suppliers s ORDER BY s.id ASC LIMIT 1)
+      WHERE u.role_id = 4 AND u.supplier_id IS NULL AND EXISTS (SELECT 1 FROM suppliers);
     `);
     console.log('[DB] Esquema Radar de Stock + GPS verificado.');
     

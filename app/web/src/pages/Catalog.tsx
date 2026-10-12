@@ -9,6 +9,7 @@ import Modal from '../components/Modal';
 interface ProductForm {
   name: string;
   category_id: string;
+  supplier_id: string;
   description: string;
   unit: string;
   price_per_unit: string;
@@ -20,6 +21,7 @@ interface ProductForm {
 const emptyForm: ProductForm = {
   name: '',
   category_id: '',
+  supplier_id: '',
   description: '',
   unit: 'kg',
   price_per_unit: '',
@@ -77,8 +79,173 @@ export function getProductImage(product: Product): string {
   return 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?auto=format&fit=crop&w=600&q=80';
 }
 
-const CORTE_OPCIONES = ['Corte grueso (2cm)', 'Corte fino/mariposa', 'Molido fino', 'Porcionado individual', 'Entero sin cortar', 'Maduración óptima'];
-const EMPAQUE_OPCIONES = ['Sellado al vacío', 'Canastilla plástica', 'Caja térmica con hielo', 'Bolsas selladas de 1kg', 'Empaque estándar'];
+interface CustomizationConfig {
+  typeLabel: string;
+  typeOptions: string[];
+  packLabel: string;
+  packOptions: string[];
+  notesPlaceholder: string;
+}
+
+export function getProductCustomizationConfig(product: Product): CustomizationConfig {
+  const cat = (product.category || '').toLowerCase();
+  const name = (product.name || '').toLowerCase();
+
+  // Bebidas, Jugos, Aguas, Gaseosas
+  if (
+    cat.includes('bebida') ||
+    cat.includes('jugo') ||
+    name.includes('jugo') ||
+    name.includes('agua') ||
+    name.includes('gaseosa') ||
+    name.includes('bebida') ||
+    name.includes('cerveza') ||
+    name.includes('refresco')
+  ) {
+    return {
+      typeLabel: 'Presentación y temperatura:',
+      typeOptions: [
+        'Refrigerado / Frío',
+        'Temperatura ambiente',
+        'Sin azúcar añadida',
+        'Pulpa natural 100%',
+        'Concentrado para diluir',
+        'Listo para servir',
+      ],
+      packLabel: 'Tipo de empaque requerido:',
+      packOptions: [
+        'Botella individual',
+        'Galón institucional',
+        'Caja máster / Paca',
+        'Canastilla plástica retornable',
+        'Bolsa pouch hermética',
+      ],
+      notesPlaceholder: 'Ej. Servir frío, pulpa sin colar, empacar en pacas de 6 unidades...',
+    };
+  }
+
+  // Lácteos, Quesos, Leches, Yogures
+  if (
+    cat.includes('lacteo') ||
+    cat.includes('lácteo') ||
+    name.includes('queso') ||
+    name.includes('leche') ||
+    name.includes('mantequilla') ||
+    name.includes('yogurt') ||
+    name.includes('crema')
+  ) {
+    return {
+      typeLabel: 'Presentación y maduración:',
+      typeOptions: [
+        'Bloque entero',
+        'Tajado / Laminado',
+        'Rallado fino',
+        'Porcionado x 500g',
+        'Maduración óptima',
+        'Refrigerado estricto',
+      ],
+      packLabel: 'Tipo de empaque requerido:',
+      packOptions: [
+        'Sellado al vacío',
+        'Bolsa hermética',
+        'Canastilla plástica',
+        'Caja térmica con hielo',
+        'Empaque estándar',
+      ],
+      notesPlaceholder: 'Ej. Separar tajadas con papel film, lote con más de 15 días de vencimiento...',
+    };
+  }
+
+  // Verduras, Frutas, Hortalizas
+  if (
+    cat.includes('verdura') ||
+    cat.includes('fruta') ||
+    name.includes('tomate') ||
+    name.includes('cebolla') ||
+    name.includes('papa') ||
+    name.includes('pimenton') ||
+    name.includes('limon') ||
+    name.includes('aguacate') ||
+    name.includes('platano') ||
+    name.includes('lechuga')
+  ) {
+    return {
+      typeLabel: 'Selección y maduración:',
+      typeOptions: [
+        'Maduro (consumo inmediato)',
+        'Pintón / Firme (rotación 3-5 días)',
+        'Verde para conservar',
+        'Lavado y desinfectado',
+        'Pelado y picado',
+        'Selección primera calidad',
+      ],
+      packLabel: 'Tipo de empaque requerido:',
+      packOptions: [
+        'Canastilla plástica',
+        'Bolsas perforadas respirables',
+        'Caja de cartón ventilada',
+        'Malla protectora',
+        'Empaque estándar',
+      ],
+      notesPlaceholder: 'Ej. Aguacates listos para usar en 2 días, tomates calibre mediano parejos...',
+    };
+  }
+
+  // Granos, Abarrotes, Condimentos
+  if (
+    cat.includes('grano') ||
+    cat.includes('condimento') ||
+    name.includes('arroz') ||
+    name.includes('frijol') ||
+    name.includes('lenteja') ||
+    name.includes('aceite') ||
+    name.includes('sal') ||
+    name.includes('azucar') ||
+    name.includes('harina')
+  ) {
+    return {
+      typeLabel: 'Presentación y granulometría:',
+      typeOptions: [
+        'Grano entero seleccionado',
+        'Molido fino',
+        'Bolsa sellada de 1kg',
+        'Saco 25kg institucional',
+        'Limpieza y secado óptimo',
+      ],
+      packLabel: 'Tipo de empaque requerido:',
+      packOptions: [
+        'Saco de polipropileno',
+        'Bolsa plástica sellada',
+        'Caja máster',
+        'Empaque al vacío',
+        'Empaque estándar',
+      ],
+      notesPlaceholder: 'Ej. Bultos limpios y secos, estibados para fácil descargue...',
+    };
+  }
+
+  // Por defecto: Carnes, Pollo, Cerdo, Pescados, Mariscos
+  return {
+    typeLabel: 'Tipo de corte o preparación:',
+    typeOptions: [
+      'Corte grueso (2cm)',
+      'Corte fino / mariposa',
+      'Molido fino',
+      'Porcionado individual',
+      'Entero sin cortar',
+      'Deshuesado / Limpio',
+    ],
+    packLabel: 'Tipo de empaque requerido:',
+    packOptions: [
+      'Sellado al vacío',
+      'Bandeja con film',
+      'Caja térmica con hielo',
+      'Bolsas selladas de 1kg',
+      'Empaque estándar',
+    ],
+    notesPlaceholder: 'Ej. Porcionar en paquetes de 2kg y etiquetar con fecha de entrega...',
+  };
+}
 
 export default function Catalog() {
   const { user } = useAuth();
@@ -105,7 +272,7 @@ export default function Catalog() {
   const [customNotes, setCustomNotes] = useState<string>('');
   const [customQty, setCustomQty] = useState<number>(1);
 
-  const isSupplier = user?.role === 'proveedor_admin';
+  const isSupplier = user?.role === 'proveedor_admin' || user?.role === 'admin';
 
   const load = () => {
     const qs = new URLSearchParams();
@@ -146,7 +313,10 @@ export default function Catalog() {
 
   const openCreate = () => {
     setEditing(null);
-    setForm(emptyForm);
+    setForm({
+      ...emptyForm,
+      supplier_id: user?.supplier_id ? String(user.supplier_id) : (suppliers[0]?.id ? String(suppliers[0].id) : ''),
+    });
     setModal(true);
   };
 
@@ -155,6 +325,7 @@ export default function Catalog() {
     setForm({
       name: p.name,
       category_id: String(p.category_id ?? ''),
+      supplier_id: String(p.supplier_id ?? user?.supplier_id ?? ''),
       description: p.description ?? '',
       unit: p.unit,
       price_per_unit: String(p.price_per_unit),
@@ -166,18 +337,19 @@ export default function Catalog() {
   };
 
   const openCustomization = (p: Product) => {
+    const cfg = getProductCustomizationConfig(p);
     setCustomizingProduct(p);
     const initialQty = quantities[p.id] || Math.max(p.min_order_qty || 1, 1);
     setCustomQty(initialQty);
-    setCustomCorte('');
-    setCustomEmpaque('Sellado al vacío');
+    setCustomCorte(cfg.typeOptions[0] || '');
+    setCustomEmpaque(cfg.packOptions[0] || 'Empaque estándar');
     setCustomNotes('');
   };
 
   const handleAddCustomized = () => {
     if (!customizingProduct) return;
     const parts = [
-      customCorte ? `Corte: ${customCorte}` : '',
+      customCorte ? customCorte : '',
       customEmpaque ? `Empaque: ${customEmpaque}` : '',
       customNotes ? customNotes.trim() : ''
     ].filter(Boolean);
@@ -194,6 +366,7 @@ export default function Catalog() {
     e.preventDefault();
     const payload = {
       name: form.name,
+      supplier_id: form.supplier_id ? Number(form.supplier_id) : (user?.supplier_id || (suppliers[0]?.id ? Number(suppliers[0].id) : undefined)),
       category_id: form.category_id ? Number(form.category_id) : null,
       description: form.description,
       unit: form.unit,
@@ -461,65 +634,71 @@ export default function Catalog() {
               </div>
             </div>
 
-            {/* Opciones de corte / preparación */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Tipo de corte o preparación:
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {CORTE_OPCIONES.map((op) => (
-                  <button
-                    key={op}
-                    type="button"
-                    onClick={() => setCustomCorte(customCorte === op ? '' : op)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
-                      customCorte === op
-                        ? 'bg-brand text-white border-brand'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'
-                    }`}
-                  >
-                    {op}
-                  </button>
-                ))}
-              </div>
-            </div>
+            {/* Opciones dinámicas según tipo de producto (Bebidas, Lácteos, Carnes, Verduras, etc.) */}
+            {customizingProduct && (() => {
+              const cfg = getProductCustomizationConfig(customizingProduct);
+              return (
+                <>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      {cfg.typeLabel}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {cfg.typeOptions.map((op) => (
+                        <button
+                          key={op}
+                          type="button"
+                          onClick={() => setCustomCorte(customCorte === op ? '' : op)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                            customCorte === op
+                              ? 'bg-brand text-white border-brand'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                          }`}
+                        >
+                          {op}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-            {/* Opciones de empaque */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Tipo de empaque requerido:
-              </label>
-              <div className="flex flex-wrap gap-1.5">
-                {EMPAQUE_OPCIONES.map((op) => (
-                  <button
-                    key={op}
-                    type="button"
-                    onClick={() => setCustomEmpaque(op)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
-                      customEmpaque === op
-                        ? 'bg-emerald-600 text-white border-emerald-600'
-                        : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'
-                    }`}
-                  >
-                    {op}
-                  </button>
-                ))}
-              </div>
-            </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      {cfg.packLabel}
+                    </label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {cfg.packOptions.map((op) => (
+                        <button
+                          key={op}
+                          type="button"
+                          onClick={() => setCustomEmpaque(op)}
+                          className={`px-2.5 py-1 rounded-lg text-xs font-medium border transition ${
+                            customEmpaque === op
+                              ? 'bg-emerald-600 text-white border-emerald-600'
+                              : 'bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'
+                          }`}
+                        >
+                          {op}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
 
-            {/* Notas especiales adicionales */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
-                Instrucciones adicionales para el proveedor (opcional):
-              </label>
-              <textarea
-                value={customNotes}
-                onChange={(e) => setCustomNotes(e.target.value)}
-                placeholder="Ej. Porcionar en paquetes de 2kg y etiquetar con fecha de entrega..."
-                rows={2}
-                className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand"
-              />
-            </div>
+                  {/* Notas especiales adicionales */}
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">
+                      Instrucciones adicionales para el proveedor (opcional):
+                    </label>
+                    <textarea
+                      value={customNotes}
+                      onChange={(e) => setCustomNotes(e.target.value)}
+                      placeholder={cfg.notesPlaceholder}
+                      rows={2}
+                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:border-brand"
+                    />
+                  </div>
+                </>
+              );
+            })()}
 
             <div className="pt-2 flex gap-2">
               <button
@@ -549,6 +728,17 @@ export default function Catalog() {
               <label className={label}>Nombre</label>
               <input value={form.name} onChange={set('name')} className={input} required />
             </div>
+            {(user?.role === 'admin' || !user?.supplier_id) && suppliers.length > 0 && (
+              <div>
+                <label className={label}>Proveedor asignado</label>
+                <select value={form.supplier_id} onChange={set('supplier_id')} className={input}>
+                  <option value="">Selecciona el proveedor...</option>
+                  {suppliers.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className={label}>Categoría</label>
               <select value={form.category_id} onChange={set('category_id')} className={input}>
