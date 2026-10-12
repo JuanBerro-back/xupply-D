@@ -79,6 +79,12 @@ Espejo en `.env.production.example` y `app/server/.env.example`:
 
 El endpoint `/health` responde `{"status":"ok","service":"xupply-api"}`.
 
+## Creadores y Contacto
+
+- **Creadores:** Juan Berroteran y Fabio Chamorro
+- **Correo de contacto:** [jdbpberroteran@gmail.com](mailto:jdbpberroteran@gmail.com)
+- **Ubicación:** Bucaramanga, Santander, Colombia • ADSO SENA
+
 ---
 
 Documentacion adicional: `RENDER.md`, `DIGITALOCEAN.md`, `app/LEER-ESCRITORIO.md` y `LEER-YA.txt`.

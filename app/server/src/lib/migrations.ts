@@ -211,6 +211,7 @@ export async function ensureServerInitialized(): Promise<void> {
         await dropLegacyPlatformViews();
         await expireRadarItems();
       } catch (err) {
+        initPromise = null;
         console.error('[DB] Error inicializando servidor y base de datos:', err);
       }
     })();

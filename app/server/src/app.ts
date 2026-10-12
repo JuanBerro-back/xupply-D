@@ -22,6 +22,7 @@ import agentRouter from './routes/agent';
 import xupaiRouter from './routes/xupai';
 import adminRouter from './routes/admin';
 import { ensureServerInitialized } from './lib/migrations';
+import { query } from './config/db';
 import { notFound, errorHandler } from './middleware/error';
 
 export function createApp() {
@@ -50,8 +51,40 @@ export function createApp() {
     next();
   });
 
-  const healthHandler = (_req: express.Request, res: express.Response) =>
-    res.json({ status: 'ok', service: 'xupply-api' });
+  const healthHandler = async (_req: express.Request, res: express.Response) => {
+    try {
+      const hasDbUrl = Boolean(process.env.DATABASE_URL && process.env.DATABASE_URL.trim());
+      if (process.env.VERCEL === '1' && !hasDbUrl) {
+        return res.status(500).json({
+          status: 'error',
+          service: 'xupply-api',
+          db: 'missing_env',
+          error: 'DATABASE_URL no está configurada en Vercel Settings -> Environment Variables.',
+        });
+      }
+      const testRes = await query("SELECT to_regclass('public.users') as has_users");
+      const hasUsers = Boolean(testRes.rows[0]?.has_users);
+      let usersCount = 0;
+      if (hasUsers) {
+        const countRes = await query('SELECT count(*) as c FROM users');
+        usersCount = Number(countRes.rows[0]?.c || 0);
+      }
+      return res.json({
+        status: 'ok',
+        service: 'xupply-api',
+        db: 'connected',
+        tables_ready: hasUsers,
+        users_count: usersCount,
+      });
+    } catch (err: any) {
+      return res.status(500).json({
+        status: 'error',
+        service: 'xupply-api',
+        db: 'error',
+        error: err?.message || String(err),
+      });
+    }
+  };
   app.get('/health', healthHandler);
   app.get('/api/health', healthHandler);
 

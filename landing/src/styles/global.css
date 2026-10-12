@@ -1180,11 +1180,32 @@ footer {
   font-size: 0.88rem;
 }
 
+.footer-left .creators {
+  color: #38bdf8;
+  font-size: 0.82rem;
+  margin-top: 4px;
+}
+
+.footer-left .creators strong {
+  color: #f8fafc;
+  font-weight: 600;
+}
+
+.footer-left .footer-email {
+  color: #38bdf8;
+  text-decoration: underline;
+  transition: color 0.2s ease;
+}
+
+.footer-left .footer-email:hover {
+  color: #7dd3fc;
+}
+
 .footer-left span {
   display: block;
   color: var(--text-dim);
   font-size: 0.78rem;
-  margin-top: 3px;
+  margin-top: 4px;
 }
 
 .footer-right {

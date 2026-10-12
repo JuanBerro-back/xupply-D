@@ -74,6 +74,11 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
   const origin = getApiOrigin();
   const res = await fetch(`${origin}/api${path}`, { ...options, headers });
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error((body as { error?: string }).error || `Error ${res.status}`);
+  if (!res.ok) {
+    const errorBody = body as { error?: string; detail?: string };
+    const detailPart = errorBody?.detail ? `: ${errorBody.detail}` : '';
+    const errorMsg = errorBody?.error ? `${errorBody.error}${detailPart}` : `Error ${res.status}`;
+    throw new Error(errorMsg);
+  }
   return body as T;
 }

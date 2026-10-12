@@ -4,6 +4,7 @@ import { query } from '../config/db';
 import { authRequired, signToken } from '../middleware/auth';
 import { emitToUser } from '../lib/realtime';
 import { logAudit } from '../lib/audit';
+import { ensureServerInitialized } from '../lib/migrations';
 
 const router = Router();
 
@@ -117,12 +118,28 @@ router.post('/login', async (req, res, next) => {
     if (!username || !password) {
       return res.status(400).json({ error: 'username y password son requeridos' });
     }
-    const result = await query(
-      `SELECT u.*, r.name AS role FROM users u
-       JOIN roles r ON r.id = u.role_id
-       WHERE u.username = $1 AND u.is_active = TRUE`,
-      [username]
-    );
+    let result;
+    try {
+      result = await query(
+        `SELECT u.*, r.name AS role FROM users u
+         JOIN roles r ON r.id = u.role_id
+         WHERE u.username = $1 AND u.is_active = TRUE`,
+        [username]
+      );
+    } catch (queryErr: any) {
+      if (queryErr?.message?.includes('users') || queryErr?.code === '42P01') {
+        console.warn('[Auth Login] Tabla users no encontrada. Inicializando BD y reintentando...');
+        await ensureServerInitialized();
+        result = await query(
+          `SELECT u.*, r.name AS role FROM users u
+           JOIN roles r ON r.id = u.role_id
+           WHERE u.username = $1 AND u.is_active = TRUE`,
+          [username]
+        );
+      } else {
+        throw queryErr;
+      }
+    }
     const row = result.rows[0];
     if (!row) return res.status(401).json({ error: 'Credenciales inválidas' });
 

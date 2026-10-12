@@ -220,6 +220,8 @@ export const site = {
   ],
   footer: {
     copy: 'Xupply © 2026 • Plataforma B2B para Restaurantes y Proveedores',
+    creators: 'Juan Berroteran y Fabio Chamorro',
+    email: 'jdbpberroteran@gmail.com',
     location: 'Bucaramanga, Santander, Colombia',
     sub: 'Proyecto de Innovación Tecnológica • ADSO SENA',
   },
