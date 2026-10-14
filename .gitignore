@@ -1,3 +1,6 @@
+# Local project guide (personal, not for repo)
+GUIA-PROYECTO.md
+
 # Secrets and local configuration
 app/server/.env
 .env
