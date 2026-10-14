@@ -2,6 +2,7 @@ import { useState, FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Eye, EyeOff } from 'lucide-react';
+import './Login.css';
 
 export default function Login() {
   const { login } = useAuth();
@@ -21,16 +22,16 @@ export default function Login() {
   };
 
   return (
-    <div className="relative flex min-h-screen items-center justify-center overflow-hidden p-4 bg-slate-100">
-      <video
-        autoPlay
-        muted
-        loop
-        playsInline
-        className="absolute inset-0 h-full w-full object-cover"
-        src="/login-bg.mp4"
-      />
-      <div className="absolute inset-0 bg-black/40" />
+    <div className="login-bg relative flex min-h-screen items-center justify-center overflow-hidden p-4">
+      {/* Estrellas + fugaces (base de prueba.txt, tintadas al brand) */}
+      <div className="login-stars" aria-hidden="true" />
+      <div className="login-shooting-star" aria-hidden="true" />
+      <div className="login-shooting-star" aria-hidden="true" />
+      <div className="login-shooting-star" aria-hidden="true" />
+      {/* Orbes brand + viñeta para dar profundidad y sensación de confianza */}
+      <div className="pointer-events-none absolute -left-32 -top-32 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute -bottom-40 -right-32 h-[28rem] w-[28rem] rounded-full bg-brand/30 blur-3xl" aria-hidden="true" />
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#020617]/60 via-transparent to-[#082f49]/30" aria-hidden="true" />
       <div className="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 sm:p-8 shadow-2xl backdrop-blur-sm border border-slate-200">
         <div className="flex items-center justify-between mb-2">
           <h1 className="text-3xl font-extrabold text-brand tracking-tight">Xupply</h1>

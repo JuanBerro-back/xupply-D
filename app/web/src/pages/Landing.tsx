@@ -15,32 +15,32 @@ interface SimulatorProduct {
 
 const simulatorProductsByType: Record<string, SimulatorProduct[]> = {
   burger: [
-    { id: 101, name: 'Carne de Res Angus (Corte Parrilla)', unit: 'Kg', price: 34000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.15, defaultQty: 3 },
-    { id: 102, name: 'Queso Cheddar Americano Tajado', unit: 'Bloque 1Kg', price: 26000, supplier: 'Lácteos Santander', fefoDiscount: 0.10, defaultQty: 2 },
-    { id: 103, name: 'Pan Brioche Artesanal', unit: 'Bolsa x30', price: 28000, supplier: 'Panadería La Gran Vía', fefoDiscount: 0.20, defaultQty: 4 },
-    { id: 104, name: 'Aceite Vegetal de Cocina', unit: 'Bidón 20L', price: 92000, supplier: 'Distribuciones Bucaramanga', fefoDiscount: 0.05, defaultQty: 1 },
-    { id: 105, name: 'Tocineta Ahumada Tajada', unit: 'Paquete 1Kg', price: 31000, supplier: 'Avícola & Porcinos del Oriente', fefoDiscount: 0.12, defaultQty: 2 },
+    { id: 101, name: 'Carne de Res Angus (Corte Parrilla)', unit: 'Kg', price: 34000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.15, defaultQty: 0 },
+    { id: 102, name: 'Queso Cheddar Americano Tajado', unit: 'Bloque 1Kg', price: 26000, supplier: 'Lácteos Santander', fefoDiscount: 0.10, defaultQty: 0 },
+    { id: 103, name: 'Pan Brioche Artesanal', unit: 'Bolsa x30', price: 28000, supplier: 'Panadería La Gran Vía', fefoDiscount: 0.20, defaultQty: 0 },
+    { id: 104, name: 'Aceite Vegetal de Cocina', unit: 'Bidón 20L', price: 92000, supplier: 'Distribuciones Bucaramanga', fefoDiscount: 0.05, defaultQty: 0 },
+    { id: 105, name: 'Tocineta Ahumada Tajada', unit: 'Paquete 1Kg', price: 31000, supplier: 'Avícola & Porcinos del Oriente', fefoDiscount: 0.12, defaultQty: 0 },
   ],
   pizza: [
-    { id: 201, name: 'Harina de Trigo Especial Pizza 00', unit: 'Bulto 25Kg', price: 78000, supplier: 'Molinos del Oriente', fefoDiscount: 0.15, defaultQty: 2 },
-    { id: 202, name: 'Queso Mozzarella en Bloque', unit: 'Barra 2.5Kg', price: 46000, supplier: 'Lácteos Santander', fefoDiscount: 0.10, defaultQty: 4 },
-    { id: 203, name: 'Pasta de Tomate / Salsa Pizzera', unit: 'Bidón 5Kg', price: 32000, supplier: 'Salsas & Conservas Andinas', fefoDiscount: 0.12, defaultQty: 3 },
-    { id: 204, name: 'Orégano Entero Seco Aromático', unit: 'Bolsa 1Kg', price: 18000, supplier: 'Especias & Aromas BGA', fefoDiscount: 0.20, defaultQty: 2 },
-    { id: 205, name: 'Pepperoni Madurado Tajado', unit: 'Paquete 1Kg', price: 38000, supplier: 'Embutidos del Oriente', fefoDiscount: 0.08, defaultQty: 3 },
+    { id: 201, name: 'Harina de Trigo Especial Pizza 00', unit: 'Bulto 25Kg', price: 78000, supplier: 'Molinos del Oriente', fefoDiscount: 0.15, defaultQty: 0 },
+    { id: 202, name: 'Queso Mozzarella en Bloque', unit: 'Barra 2.5Kg', price: 46000, supplier: 'Lácteos Santander', fefoDiscount: 0.10, defaultQty: 0 },
+    { id: 203, name: 'Pasta de Tomate / Salsa Pizzera', unit: 'Bidón 5Kg', price: 32000, supplier: 'Salsas & Conservas Andinas', fefoDiscount: 0.12, defaultQty: 0 },
+    { id: 204, name: 'Orégano Entero Seco Aromático', unit: 'Bolsa 1Kg', price: 18000, supplier: 'Especias & Aromas BGA', fefoDiscount: 0.20, defaultQty: 0 },
+    { id: 205, name: 'Pepperoni Madurado Tajado', unit: 'Paquete 1Kg', price: 38000, supplier: 'Embutidos del Oriente', fefoDiscount: 0.08, defaultQty: 0 },
   ],
   cafe: [
-    { id: 301, name: 'Café Especial Grano Tostado', unit: 'Bolsa 2.5Kg', price: 65000, supplier: 'Café Mesa de los Santos', fefoDiscount: 0.15, defaultQty: 2 },
-    { id: 302, name: 'Leche Entera Barista Especial', unit: 'Caja x12 Litros', price: 42000, supplier: 'Lácteos Santander', fefoDiscount: 0.10, defaultQty: 3 },
-    { id: 303, name: 'Harina de Trigo Pastelera Fina', unit: 'Bulto 25Kg', price: 72000, supplier: 'Molinos del Oriente', fefoDiscount: 0.15, defaultQty: 1 },
-    { id: 304, name: 'Mantequilla Sin Sal Pura', unit: 'Bloque 5Kg', price: 58000, supplier: 'Lácteos del Oriente', fefoDiscount: 0.10, defaultQty: 1 },
-    { id: 305, name: 'Azúcar Refinada de Alta Pureza', unit: 'Bulto 25Kg', price: 62000, supplier: 'Distribuciones Bucaramanga', fefoDiscount: 0.05, defaultQty: 1 },
+    { id: 301, name: 'Café Especial Grano Tostado', unit: 'Bolsa 2.5Kg', price: 65000, supplier: 'Café Mesa de los Santos', fefoDiscount: 0.15, defaultQty: 0 },
+    { id: 302, name: 'Leche Entera Barista Especial', unit: 'Caja x12 Litros', price: 42000, supplier: 'Lácteos Santander', fefoDiscount: 0.10, defaultQty: 0 },
+    { id: 303, name: 'Harina de Trigo Pastelera Fina', unit: 'Bulto 25Kg', price: 72000, supplier: 'Molinos del Oriente', fefoDiscount: 0.15, defaultQty: 0 },
+    { id: 304, name: 'Mantequilla Sin Sal Pura', unit: 'Bloque 5Kg', price: 58000, supplier: 'Lácteos del Oriente', fefoDiscount: 0.10, defaultQty: 0 },
+    { id: 305, name: 'Azúcar Refinada de Alta Pureza', unit: 'Bulto 25Kg', price: 62000, supplier: 'Distribuciones Bucaramanga', fefoDiscount: 0.05, defaultQty: 0 },
   ],
   grill: [
-    { id: 401, name: 'Punta de Anca / Picanha Premium', unit: 'Kg', price: 42000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.15, defaultQty: 4 },
-    { id: 402, name: 'Bife de Chorizo Angus', unit: 'Kg', price: 45000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.12, defaultQty: 3 },
-    { id: 403, name: 'Costilla de Cerdo Especial BBQ', unit: 'Kg', price: 26000, supplier: 'Porcinos del Oriente', fefoDiscount: 0.18, defaultQty: 3 },
-    { id: 404, name: 'Carbón Vegetal de Quebracho', unit: 'Bulto 15Kg', price: 28000, supplier: 'Distribuciones del Oriente', fefoDiscount: 0.05, defaultQty: 2 },
-    { id: 405, name: 'Sal Marina Gruesa Parrillera', unit: 'Bolsa 5Kg', price: 14000, supplier: 'Especias & Sales BGA', fefoDiscount: 0.10, defaultQty: 2 },
+    { id: 401, name: 'Punta de Anca / Picanha Premium', unit: 'Kg', price: 42000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.15, defaultQty: 0 },
+    { id: 402, name: 'Bife de Chorizo Angus', unit: 'Kg', price: 45000, supplier: 'Cárnicos del Oriente', fefoDiscount: 0.12, defaultQty: 0 },
+    { id: 403, name: 'Costilla de Cerdo Especial BBQ', unit: 'Kg', price: 26000, supplier: 'Porcinos del Oriente', fefoDiscount: 0.18, defaultQty: 0 },
+    { id: 404, name: 'Carbón Vegetal de Quebracho', unit: 'Bulto 15Kg', price: 28000, supplier: 'Distribuciones del Oriente', fefoDiscount: 0.05, defaultQty: 0 },
+    { id: 405, name: 'Sal Marina Gruesa Parrillera', unit: 'Bolsa 5Kg', price: 14000, supplier: 'Especias & Sales BGA', fefoDiscount: 0.10, defaultQty: 0 },
   ],
 };
 
@@ -302,13 +302,7 @@ export default function Landing() {
   const [selectedType, setSelectedType] = useState('burger');
   const currentProducts = simulatorProductsByType[selectedType] || simulatorProductsByType.burger;
 
-  const [quantities, setQuantities] = useState<Record<number, number>>({
-    101: 3,
-    102: 2,
-    103: 4,
-    104: 1,
-    105: 2,
-  });
+  const [quantities, setQuantities] = useState<Record<number, number>>({});
   const [cufeCode, setCufeCode] = useState('8f3b92c47a1098e21054de74b39a...01cb');
   const [orderTransmittedMsg, setOrderTransmittedMsg] = useState(false);
 
@@ -317,7 +311,7 @@ export default function Landing() {
     const prods = simulatorProductsByType[type] || simulatorProductsByType.burger;
     const initialQty: Record<number, number> = {};
     prods.forEach(p => {
-      initialQty[p.id] = p.defaultQty !== undefined ? p.defaultQty : 1;
+      initialQty[p.id] = 0;
     });
     setQuantities(initialQty);
   };

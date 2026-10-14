@@ -1,0 +1,92 @@
+/* Fondo exclusivo del Login — adaptado de prueba.txt a los colores de Xupply (brand #0284c7) */
+
+.login-bg {
+  background:
+    radial-gradient(900px 450px at 15% 10%, rgba(56, 189, 248, 0.22), transparent 60%),
+    radial-gradient(800px 420px at 85% 85%, rgba(2, 132, 199, 0.28), transparent 60%),
+    linear-gradient(to bottom, #082f49, #0c4a6e 60%, #020617);
+}
+
+.login-stars {
+  width: 2px;
+  height: 2px;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: white;
+  box-shadow: 2vw 5vh 2px white, 10vw 8vh 2px white, 15vw 15vh 1px white,
+    22vw 22vh 1px white, 28vw 12vh 2px white, 32vw 32vh 1px #bae6fd,
+    38vw 18vh 2px white, 42vw 35vh 1px white, 48vw 25vh 2px #7dd3fc,
+    53vw 42vh 1px white, 58vw 15vh 2px white, 63vw 38vh 1px white,
+    68vw 28vh 2px white, 73vw 45vh 1px #bae6fd, 78vw 32vh 2px white,
+    83vw 48vh 1px white, 88vw 20vh 2px white, 93vw 52vh 1px white,
+    98vw 35vh 2px white, 5vw 60vh 1px white, 12vw 65vh 2px #7dd3fc,
+    18vw 72vh 1px white, 25vw 78vh 2px white, 30vw 85vh 1px white,
+    35vw 68vh 2px white, 40vw 82vh 1px white, 45vw 92vh 2px white,
+    50vw 75vh 1px white, 55vw 88vh 2px white, 60vw 95vh 1px white,
+    65vw 72vh 2px white, 70vw 85vh 1px white, 75vw 78vh 2px white,
+    80vw 92vh 1px white, 85vw 82vh 2px white, 90vw 88vh 1px white,
+    95vw 75vh 2px white;
+  animation: login-twinkle 8s infinite linear;
+}
+
+.login-stars::after {
+  content: "";
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  box-shadow: 8vw 12vh 2px white, 16vw 18vh 1px #bae6fd, 24vw 25vh 2px white,
+    33vw 15vh 1px white, 41vw 28vh 2px white, 49vw 35vh 1px #7dd3fc,
+    57vw 22vh 2px white, 65vw 42vh 1px white, 73vw 28vh 2px white,
+    81vw 48vh 1px white, 89vw 32vh 2px white, 97vw 45vh 1px white,
+    3vw 68vh 2px white, 11vw 75vh 1px white, 19vw 82vh 2px white,
+    27vw 88vh 1px white, 35vw 72vh 2px white, 43vw 85vh 1px white,
+    51vw 92vh 2px white, 59vw 78vh 1px white;
+  animation: login-twinkle 6s infinite linear reverse;
+}
+
+.login-shooting-star {
+  position: absolute;
+  width: 120px;
+  height: 2px;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #e0f2fe, rgba(56, 189, 248, 0));
+  animation: login-shoot 7s infinite ease-in;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.login-shooting-star:nth-child(1) { top: 18%; left: -140px; animation-delay: 0s; }
+.login-shooting-star:nth-child(2) { top: 34%; left: -140px; animation-delay: 2.2s; }
+.login-shooting-star:nth-child(3) { top: 52%; left: -140px; animation-delay: 4.4s; }
+
+@keyframes login-twinkle {
+  0%, 100% { opacity: 0.85; }
+  50% { opacity: 0.35; }
+}
+
+@keyframes login-shoot {
+  0% {
+    transform: translateX(0) translateY(0) rotate(18deg);
+    opacity: 0;
+  }
+  5% { opacity: 1; }
+  30% {
+    transform: translateX(120vw) translateY(40vh) rotate(18deg);
+    opacity: 0;
+  }
+  100% {
+    transform: translateX(120vw) translateY(40vh) rotate(18deg);
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-stars,
+  .login-stars::after,
+  .login-shooting-star {
+    animation: none;
+  }
+  .login-shooting-star { display: none; }
+}
