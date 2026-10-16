@@ -72,12 +72,50 @@ Espejo en `.env.production.example` y `app/server/.env.example`:
 | `POSTGRES_USER` | Usuario de base de datos.                     |
 | `POSTGRES_PASSWORD` | Contrasena de base de datos.              |
 | `DATABASE_URL`  | Cadena de conexion PostgreSQL.                |
-| `JWT_SECRET`    | Secreto para tokens.                          |
-| `CLIENT_ORIGIN` | Origen permitido (CORS) para la PWA/Socket.IO.|
+| `JWT_SECRET`    | **Obligatorio.** Secreto para firmar tokens. En produccion el servidor no arranca si falta. Genera uno aleatorio largo. |
+| `CLIENT_ORIGIN` | Lista blanca de origenes permitidos (CORS para HTTP y Socket.IO), separados por coma. Recomendado/obligatorio en produccion. |
 
 ## Verificacion de salud
 
-El endpoint `/health` responde `{"status":"ok","service":"xupply-api"}`.
+El endpoint `/health` responde `{"status":"ok","service":"xupply-api","db":"connected"}`. Ya no expone conteos de usuarios ni mensajes de error de la base de datos.
+
+## Seguridad
+
+> Ultima revision: **2026-10-16**. Se corrigieron vulnerabilidades en los modulos de **pedidos**, **entregas** y **usuarios**. Detalle y estado por hallazgo:
+
+### Criticas
+
+- **Backdoor de autenticacion (`demo1234`)**: eliminada la validacion por prefijo de hash en `POST /api/auth/login`. El login ahora solo acepta contrasenas que superen `bcrypt.compare`. Los hashes semilla se reemplazaron por un hash bcrypt real y una migracion repara bases de datos antiguas.
+- **Escalada de privilegios en el registro**: `POST /api/auth/register` ya no crea una cuenta oculta `<usuario>_admin` con `role_id = 1`. El propietario de un comercio queda con rol `gerente` (rol 2), nunca como administrador global.
+- **Secreto JWT por defecto**: eliminado el fallback `xupply-secret-change-me`. Si `JWT_SECRET` no esta definido en produccion, el servidor **no arranca** (falla cerrado).
+- **IDOR de pedidos**: `GET /api/orders/:id` ahora valida que el pedido pertenezca al restaurante o proveedor del usuario.
+
+### Altas
+
+- **Cancelacion cruzada de pedidos**: `PATCH /api/orders/:id/status` ya no permite cancelar pedidos de otro inquilino y exige un rol autorizado.
+- **Escritura/lectura cruzada de entregas**: `GET /api/deliveries/:id`, `PATCH /:id/status`, `PATCH /:id/position`, `POST /:id/confirm`, `POST /api/deliveries` y `GET /:id/track` validan el alcance (proveedor, restaurante o domiciliario asignado).
+- **Historial de pedidos sin control**: `GET /api/orders/:id/history` verifica el acceso al pedido antes de devolver la auditoria.
+- **Sesiones no invalidadas**: los cambios de rol, inquilino o contrasena incrementan `token_version`; `authRequired` compara siempre la version. Un token antiguo o de una sesion revocada se rechaza.
+
+### Medias y bajas
+
+- **Fuga de usuarios**: el listado de usuarios ya no expone domiciliarios sin proveedor (`OR supplier_id IS NULL`) y deniega acceso sin inquilino.
+- **Asignacion de conductores**: `PATCH /api/deliveries/:id/assign` valida la pertenencia de la entrega y que el conductor sea `domiciliario` del mismo proveedor.
+- **Integridad de pedidos**: se validan cantidades (finitas y `> 0`), la existencia del proveedor y que los productos pertenezcan al proveedor declarado. El total se calcula en el servidor.
+- **CORS**: `CLIENT_ORIGIN` se aplica como lista blanca tanto en HTTP como en Socket.IO.
+- **Higiene**: politica minima de contrasena (8 caracteres) en todos los altas, rate limiting en `login`/`register`, y `/health` sin fuga de informacion.
+- **Concurrencia**: el cambio de estado del pedido es atomico (evita dobles transiciones y descuentos de stock duplicados).
+
+### Notas de despliegue
+
+1. **Define `JWT_SECRET`** en todos los entornos (Render, DigitalOcean, Vercel, Docker). Genera uno con:
+   ```bash
+   node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+   ```
+2. **Define `CLIENT_ORIGIN`** con el dominio real del frontend (varios separados por coma).
+3. **Las sesiones activas se invalidaran una vez** (los tokens antiguos no llevan `token_version`); los usuarios deberan iniciar sesion de nuevo.
+4. Las cuentas demo (`admin`, `gerente`, `empleado`, `proveedor`, `domiciliario` / `demo1234`) siguen funcionando con hash real, pero **cambia sus contrasenas en produccion**.
+5. Los despliegues que compilan desde `src/` (Vercel, Render, Docker) toman los cambios automaticamente.
 
 ## Creadores y Contacto
 

@@ -1,6 +1,13 @@
 import { query } from '../config/db';
 
 /**
+ * Hash bcrypt real para la contraseña demo `demo1234`.
+ * Reemplaza el placeholder inválido `$2b$10$DefaulthashForDemo...` que
+ * permitía entrar sin validar el hash (backdoor) en bases de datos antiguas.
+ */
+const DEMO_PASSWORD_HASH = '$2a$10$oeMFaVfquf/BWyFhkKmh.upF3lNucd/f8.jq4pajD5Sl10zCwwU.e';
+
+/**
  * Migraciones idempotentes (patrón del repo: ALTER/CREATE ... IF NOT EXISTS).
  * Se ejecutan una vez al arrancar el servidor.
  */
@@ -172,8 +179,24 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
   }
 }
 
-/** Cierra alertas y ofertas vencidas. Se ejecuta cada hora. */
-export async function expireRadarItems(): Promise<void> {
+/** Repara hashes de cuentas semilla antiguas que usaban un placeholder inválido (backdoor). */
+export async function repairLegacySeedPasswords(): Promise<void> {
+  try {
+    const res = await query(
+      `UPDATE users
+          SET password_hash = $1, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP
+        WHERE password_hash LIKE '$2b$10$DefaulthashForDemo%'`,
+      [DEMO_PASSWORD_HASH]
+    );
+    if (res.rowCount) {
+      console.log(`[DB] Hashes semilla heredados reparados: ${res.rowCount}`);
+    }
+  } catch (err) {
+    console.error('[DB] Error reparando contraseñas semilla antiguas:', err);
+  }
+}
+
+/** Cierra alertas y ofertas vencidas. Se ejecuta cada hora. */export async function expireRadarItems(): Promise<void> {
   try {
     await query(
       `UPDATE radar_alerts SET status = 'expirada'
@@ -211,6 +234,7 @@ export async function ensureServerInitialized(): Promise<void> {
         const { initDatabase } = await import('../config/db');
         await initDatabase();
         await ensureRadarAndGpsSchema();
+        await repairLegacySeedPasswords();
         await dropLegacyPlatformViews();
         await expireRadarItems();
       } catch (err) {

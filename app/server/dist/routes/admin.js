@@ -97,6 +97,9 @@ router.post('/users', (0, auth_1.requirePermission)('config'), async (req, res, 
         if (!username || !password || !name || !role_id) {
             return res.status(400).json({ error: 'username, password, name y role_id son obligatorios' });
         }
+        if (String(password).length < 8) {
+            return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+        }
         const exists = await (0, db_1.query)('SELECT id FROM users WHERE username = $1', [username.trim()]);
         if (exists.rowCount)
             return res.status(409).json({ error: 'El nombre de usuario ya existe' });
@@ -149,7 +152,10 @@ router.put('/users/:id', (0, auth_1.requirePermission)('config'), async (req, re
            supplier_id = COALESCE($8, supplier_id),
            vehicle_type = COALESCE($9, vehicle_type),
            vehicle_plate = COALESCE($10, vehicle_plate),
-           token_version = CASE WHEN role_id != COALESCE($5, role_id) THEN token_version + 1 ELSE token_version END,
+           token_version = CASE WHEN role_id IS DISTINCT FROM COALESCE($5, role_id)
+                                  OR restaurant_id IS DISTINCT FROM COALESCE($6, restaurant_id)
+                                  OR supplier_id IS DISTINCT FROM COALESCE($8, supplier_id)
+                                THEN token_version + 1 ELSE token_version END,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING id, username, name, email, phone, role_id, restaurant_id, branch_id, supplier_id, vehicle_type, vehicle_plate, is_active, updated_at`, [id, name, email, phone, role_id, restaurant_id, branch_id, supplier_id, vehicle_type, vehicle_plate]);

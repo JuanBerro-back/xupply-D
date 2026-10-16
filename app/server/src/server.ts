@@ -9,8 +9,13 @@ dotenv.config();
 
 const PORT = Number(process.env.PORT) || 4000;
 const server = http.createServer(app);
+const socketOrigins = (process.env.CLIENT_ORIGIN ?? '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 const io = new Server(server, {
-  cors: { origin: true, credentials: true },
+  // En producción, restringir a la lista blanca de CLIENT_ORIGIN.
+  cors: { origin: socketOrigins.length === 0 ? true : socketOrigins, credentials: true },
 });
 
 io.on('connection', (socket) => {

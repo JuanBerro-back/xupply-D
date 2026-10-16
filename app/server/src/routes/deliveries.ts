@@ -26,6 +26,25 @@ function deliverySelect() {
           LEFT JOIN users u ON u.id = d.driver_id`;
 }
 
+/** Restringe una entrega al inquilino del usuario (proveedor, restaurante o domiciliario). */
+function deliveryAccessWhere(user: {
+  role: string;
+  id: number;
+  supplier_id: number | null;
+  restaurant_id: number | null;
+}, startIndex = 1) {
+  if (user.role === 'proveedor_admin') {
+    return { clause: ` AND o.supplier_id = $${startIndex}`, params: [user.supplier_id] as unknown[] };
+  }
+  if (user.role === 'domiciliario') {
+    return { clause: ` AND d.driver_id = $${startIndex}`, params: [user.id] as unknown[] };
+  }
+  if (user.restaurant_id) {
+    return { clause: ` AND d.restaurant_id = $${startIndex}`, params: [user.restaurant_id] as unknown[] };
+  }
+  return { clause: '', params: [] as unknown[] };
+}
+
 router.get('/', async (req, res, next) => {
   try {
     const user = req.user!;
@@ -206,18 +225,10 @@ router.get('/drivers', roleRequired('proveedor_admin', 'admin', 'gerente'), asyn
 router.get('/:id', async (req, res, next) => {
   try {
     const user = req.user!;
-    const result = await query(`${deliverySelect()} WHERE d.id = $1`, [req.params.id]);
+    const access = deliveryAccessWhere(user, 2);
+    const result = await query(`${deliverySelect()} WHERE d.id = $1${access.clause}`, [req.params.id, ...access.params]);
     if (!result.rowCount) return res.status(404).json({ error: 'Entrega no encontrada' });
     const delivery = result.rows[0];
-    if (user.role === 'domiciliario' && delivery.driver_id !== user.id) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    if (user.role === 'proveedor_admin' && user.supplier_id) {
-      const order = await query('SELECT supplier_id FROM orders WHERE id = $1', [delivery.order_id]);
-      if (order.rowCount && order.rows[0].supplier_id !== user.supplier_id) {
-        return res.status(403).json({ error: 'No autorizado' });
-      }
-    }
     const items = await query('SELECT * FROM delivery_items WHERE delivery_id = $1', [req.params.id]);
     const orderItems = await query('SELECT * FROM order_items WHERE order_id = $1', [delivery.order_id]);
     res.json({ ...delivery, items: items.rows, order_items: orderItems.rows });
@@ -235,6 +246,9 @@ router.post('/', roleRequired('proveedor_admin', 'admin', 'gerente'), async (req
     if (user.role === 'proveedor_admin' && user.supplier_id) {
       orderParams.push(user.supplier_id);
       orderSql += ` AND supplier_id = $${orderParams.length}`;
+    } else if (user.restaurant_id) {
+      orderParams.push(user.restaurant_id);
+      orderSql += ` AND restaurant_id = $${orderParams.length}`;
     }
     const order = await query(orderSql, orderParams);
     if (!order.rowCount) return res.status(404).json({ error: 'Pedido no encontrado o no autorizado' });
@@ -319,15 +333,10 @@ router.patch('/:id/assign', roleRequired('proveedor_admin', 'admin', 'gerente'),
     const user = req.user!;
     const { driver_id } = req.body;
     if (!driver_id) return res.status(400).json({ error: 'driver_id es requerido' });
-    const delivery = await query('SELECT * FROM deliveries WHERE id = $1', [req.params.id]);
-    if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada' });
+    const access = deliveryAccessWhere(user, 2);
+    const delivery = await query(`${deliverySelect()} WHERE d.id = $1${access.clause}`, [req.params.id, ...access.params]);
+    if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada o no autorizada' });
     const del = delivery.rows[0];
-    if (user.supplier_id) {
-      const order = await query('SELECT supplier_id FROM orders WHERE id = $1', [del.order_id]);
-      if (order.rowCount && order.rows[0].supplier_id !== user.supplier_id) {
-        return res.status(403).json({ error: 'No autorizado' });
-      }
-    }
     const driver = await query(
       `SELECT u.*, r.name AS role_name FROM users u JOIN roles r ON r.id = u.role_id
        WHERE u.id = $1 AND u.is_active = TRUE`,
@@ -335,6 +344,13 @@ router.patch('/:id/assign', roleRequired('proveedor_admin', 'admin', 'gerente'),
     );
     if (!driver.rowCount) {
       return res.status(400).json({ error: 'El usuario seleccionado no existe o está inactivo' });
+    }
+    const driverRow = driver.rows[0];
+    if (driverRow.role_name !== 'domiciliario' && user.role !== 'admin') {
+      return res.status(400).json({ error: 'El usuario seleccionado no tiene rol de domiciliario' });
+    }
+    if (user.supplier_id && driverRow.supplier_id && driverRow.supplier_id !== user.supplier_id) {
+      return res.status(403).json({ error: 'El domiciliario no pertenece a tu proveedor' });
     }
     const confirmationCode = del.confirmation_code || String(Math.floor(1000 + Math.random() * 9000));
     const result = await query(
@@ -374,12 +390,10 @@ router.patch('/:id/status', async (req, res, next) => {
     const { status } = req.body;
     const valid = ['asignado', 'en_camino', 'llegando', 'entregado', 'fallido'];
     if (!valid.includes(status)) return res.status(400).json({ error: 'Estado de entrega inválido' });
-    const delivery = await query('SELECT * FROM deliveries WHERE id = $1', [req.params.id]);
+    const access = deliveryAccessWhere(user, 2);
+    const delivery = await query(`${deliverySelect()} WHERE d.id = $1${access.clause}`, [req.params.id, ...access.params]);
     if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada' });
     const del = delivery.rows[0];
-    if (user.role === 'domiciliario' && del.driver_id !== user.id) {
-      return res.status(403).json({ error: 'Solo puedes actualizar tus propias entregas' });
-    }
     if (user.role === 'domiciliario' && !['en_camino', 'llegando', 'entregado'].includes(status)) {
       return res.status(403).json({ error: 'El domiciliario solo puede cambiar a en_camino, llegando o entregado' });
     }
@@ -424,21 +438,10 @@ router.post('/:id/confirm', roleRequired('domiciliario', 'gerente', 'admin'), as
     const { confirmation_code } = req.body;
     if (!confirmation_code) return res.status(400).json({ error: 'La llave o código de confirmación es requerido' });
 
-    const delivery = await query('SELECT * FROM deliveries WHERE id = $1', [req.params.id]);
-    if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada' });
+    const access = deliveryAccessWhere(user, 2);
+    const delivery = await query(`${deliverySelect()} WHERE d.id = $1${access.clause}`, [req.params.id, ...access.params]);
+    if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada o no autorizada' });
     const del = delivery.rows[0];
-
-    // Si es domiciliario, debe ser su entrega asignada
-    if (user.role === 'domiciliario' && del.driver_id !== user.id) {
-      return res.status(403).json({ error: 'Esta entrega no está asignada a ti' });
-    }
-
-    // Si es gerente, debe ser de su restaurante
-    if ((user.role === 'gerente' || user.restaurant_id) && user.role !== 'admin') {
-      if (del.restaurant_id !== user.restaurant_id) {
-        return res.status(403).json({ error: 'No autorizado para confirmar entregas de otro restaurante' });
-      }
-    }
 
     if (del.status === 'entregado') {
       return res.status(400).json({ error: 'Esta entrega ya fue confirmada previamente' });
@@ -498,12 +501,10 @@ router.patch('/:id/position', async (req, res, next) => {
     if (!isValidCoord(lat, lng)) {
       return res.status(400).json({ error: 'lat/lng inválidos (rango fuera de coordenadas válidas)' });
     }
-    const delivery = await query(`${deliverySelect()} WHERE d.id = $1`, [req.params.id]);
+    const access = deliveryAccessWhere(user, 2);
+    const delivery = await query(`${deliverySelect()} WHERE d.id = $1${access.clause}`, [req.params.id, ...access.params]);
     if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada' });
     const del = delivery.rows[0];
-    if (user.role === 'domiciliario' && del.driver_id !== user.id) {
-      return res.status(403).json({ error: 'Solo puedes actualizar tu posición en tus entregas' });
-    }
     if (['entregado', 'fallido'].includes(del.status)) {
       return res.status(400).json({ error: 'La entrega ya finalizó, se dejó de rastrear' });
     }
@@ -606,18 +607,10 @@ router.patch('/:id/position', async (req, res, next) => {
 router.get('/:id/track', async (req, res, next) => {
   try {
     const user = req.user!;
-    const delivery = await query(`${deliverySelect()} WHERE d.id = $1`, [req.params.id]);
+    const access = deliveryAccessWhere(user, 2);
+    const delivery = await query(`${deliverySelect()} WHERE d.id = $1${access.clause}`, [req.params.id, ...access.params]);
     if (!delivery.rowCount) return res.status(404).json({ error: 'Entrega no encontrada' });
     const del = delivery.rows[0];
-    if (user.role === 'domiciliario' && del.driver_id !== user.id) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    if (user.role === 'proveedor_admin' && user.supplier_id && del.supplier_id !== user.supplier_id) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
-    if (user.restaurant_id && del.restaurant_id !== user.restaurant_id) {
-      return res.status(403).json({ error: 'No autorizado' });
-    }
 
     const active = ['asignado', 'en_camino', 'llegando'].includes(del.status);
 

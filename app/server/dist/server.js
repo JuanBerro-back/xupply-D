@@ -15,8 +15,13 @@ dotenv_1.default.config();
 const PORT = Number(process.env.PORT) || 4000;
 const server = http_1.default.createServer(app_1.default);
 exports.server = server;
+const socketOrigins = (process.env.CLIENT_ORIGIN ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
 const io = new socket_io_1.Server(server, {
-    cors: { origin: true, credentials: true },
+    // En producción, restringir a la lista blanca de CLIENT_ORIGIN.
+    cors: { origin: socketOrigins.length === 0 ? true : socketOrigins, credentials: true },
 });
 exports.io = io;
 io.on('connection', (socket) => {

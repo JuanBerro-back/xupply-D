@@ -38,7 +38,12 @@ function createApp() {
         .filter(Boolean);
     app.use((0, cors_1.default)({
         origin: (origin, cb) => {
-            return cb(null, true);
+            // Permitir peticiones sin Origin (server-to-server, curl) y, en desarrollo,
+            // cuando no hay CLIENT_ORIGIN configurado. En producción se exige la lista blanca.
+            if (!origin || configuredOrigins.length === 0 || configuredOrigins.includes(origin)) {
+                return cb(null, true);
+            }
+            return cb(null, false);
         },
         credentials: true,
     }));
@@ -56,29 +61,18 @@ function createApp() {
                 });
             }
             const testRes = await (0, db_1.query)("SELECT to_regclass('public.users') as has_users");
-            const hasUsers = Boolean(testRes.rows[0]?.has_users);
-            let usersCount = 0;
-            if (hasUsers) {
-                const countRes = await (0, db_1.query)('SELECT count(*) as c FROM users');
-                usersCount = Number(countRes.rows[0]?.c || 0);
-            }
             return res.status(200).json({
                 status: 'ok',
                 service: 'xupply-api',
                 db: 'connected',
-                db_source: resolved.source,
-                tables_ready: hasUsers,
-                users_count: usersCount,
+                tables_ready: Boolean(testRes.rows[0]?.has_users),
             });
         }
-        catch (err) {
-            const resolved = (0, db_1.resolveDatabaseUrl)();
+        catch {
             return res.status(200).json({
                 status: 'ok',
                 service: 'xupply-api',
                 db: 'error',
-                db_source: resolved.source,
-                error: err?.message || String(err),
             });
         }
     };

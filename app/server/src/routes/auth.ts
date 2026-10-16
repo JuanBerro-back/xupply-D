@@ -5,8 +5,13 @@ import { authRequired, signToken } from '../middleware/auth';
 import { emitToUser } from '../lib/realtime';
 import { logAudit } from '../lib/audit';
 import { ensureServerInitialized } from '../lib/migrations';
+import { rateLimit } from '../middleware/rateLimit';
 
 const router = Router();
+
+// Protección contra fuerza bruta y creación masiva de cuentas.
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, keyPrefix: 'auth:login' });
+const registerLimiter = rateLimit({ windowMs: 60 * 60 * 1000, max: 10, keyPrefix: 'auth:register' });
 
 function buildPayload(row: {
   id: number;
@@ -32,11 +37,14 @@ function buildPayload(row: {
 
 
 
-router.post('/register', async (req, res, next) => {
+router.post('/register', registerLimiter, async (req, res, next) => {
   try {
     const { username, password, name, email, phone, type, category } = req.body;
     if (!username || !password || !name) {
       return res.status(400).json({ error: 'username, password y name son requeridos' });
+    }
+    if (String(password).length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
     }
     if (!['restaurante', 'proveedor'].includes(type)) {
       return res.status(400).json({ error: 'type debe ser restaurante o proveedor' });
@@ -49,6 +57,7 @@ router.post('/register', async (req, res, next) => {
     let roleName = type === 'proveedor' ? 'proveedor_admin' : 'gerente';
     let restaurantId: number | null = null;
     let supplierId: number | null = null;
+    let branchId: number | null = null;
 
     if (type === 'proveedor') {
       const supplier = await query(
@@ -62,25 +71,20 @@ router.post('/register', async (req, res, next) => {
         [name, email, phone, category || 'Latino & Comida Típica']
       );
       restaurantId = restaurant.rows[0].id;
-      await query(
-        `INSERT INTO branches (restaurant_id, name, is_main) VALUES ($1, 'Sede Principal', TRUE)`,
+      // Se crea la sede principal. El propietario queda como 'gerente' (rol 2),
+      // nunca como administrador global de la plataforma.
+      const branch = await query(
+        `INSERT INTO branches (restaurant_id, name, is_main) VALUES ($1, 'Sede Principal', TRUE) RETURNING id`,
         [restaurantId]
       );
-      const admin = await query(
-        `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, branch_id)
-         VALUES ($1, $2, $3, $4, $5, 1, $6, (SELECT id FROM branches WHERE restaurant_id = $6 LIMIT 1))`,
-        [`${username}_admin`, hash, name, email, phone, restaurantId]
-      );
-      emitToUser('notification:created', admin.rows[0].id, {
-        message: 'Cuenta administradora creada',
-      });
+      branchId = branch.rows[0].id;
     }
 
     const user = await query(
-      `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+      `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id, branch_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
        RETURNING id, username, role_id, restaurant_id, supplier_id, branch_id, token_version`,
-      [username, hash, name, email, phone, roleId, restaurantId, supplierId]
+      [username, hash, name, email, phone, roleId, restaurantId, supplierId, branchId]
     );
     const row = user.rows[0];
     let permissions: string[] = [];
@@ -102,7 +106,7 @@ router.post('/register', async (req, res, next) => {
   }
 });
 
-router.post('/login', async (req, res, next) => {
+router.post('/login', loginLimiter, async (req, res, next) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -151,8 +155,13 @@ router.post('/login', async (req, res, next) => {
     const row = result.rows[0];
     if (!row) return res.status(401).json({ error: 'Credenciales inválidas' });
 
-    const seedDemoPass = row.password_hash.startsWith('$2b$10$DefaulthashForDemo') && password === 'demo1234';
-    const ok = seedDemoPass || (await bcrypt.compare(String(password), row.password_hash));
+    let ok = false;
+    try {
+      ok = await bcrypt.compare(String(password), row.password_hash);
+    } catch {
+      // Hash corrupto o inválido (p. ej. datos semilla antiguos): no autenticar.
+      ok = false;
+    }
     if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' });
 
     let permissions: string[] = [];

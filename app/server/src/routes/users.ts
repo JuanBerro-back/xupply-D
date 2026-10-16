@@ -26,21 +26,15 @@ router.get('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req,
                WHERE 1=1`;
 
     if (user.role === 'proveedor_admin') {
-      if (user.supplier_id) {
-        params.push(user.supplier_id);
-        // Proveedor es jefe del domiciliario: solo ve domiciliarios de su empresa
-        sql += ` AND r.name = 'domiciliario' AND (u.supplier_id = $${params.length} OR u.supplier_id IS NULL)`;
-      } else {
-        sql += ` AND r.name = 'domiciliario'`;
-      }
-    } else if (user.role === 'gerente' || user.restaurant_id) {
-      if (user.restaurant_id) {
-        params.push(user.restaurant_id);
-        // Gerente es jefe del empleado: solo ve empleados operativos de su restaurante
-        sql += ` AND r.name = 'empleado' AND u.restaurant_id = $${params.length}`;
-      } else {
-        sql += ` AND r.name = 'empleado'`;
-      }
+      if (!user.supplier_id) return res.status(403).json({ error: 'No autorizado' });
+      params.push(user.supplier_id);
+      // Proveedor es jefe del domiciliario: solo ve domiciliarios de su empresa
+      sql += ` AND r.name = 'domiciliario' AND u.supplier_id = $${params.length}`;
+    } else if (user.role === 'gerente') {
+      if (!user.restaurant_id) return res.status(403).json({ error: 'No autorizado' });
+      params.push(user.restaurant_id);
+      // Gerente es jefe del empleado: solo ve empleados operativos de su restaurante
+      sql += ` AND r.name = 'empleado' AND u.restaurant_id = $${params.length}`;
     } else if (user.role !== 'admin') {
       return res.status(403).json({ error: 'No autorizado' });
     }
@@ -60,6 +54,9 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
     const { username, password, name, email, phone, role_id, vehicle_type, vehicle_plate } = req.body;
     if (!username || !password || !name || !role_id) {
       return res.status(400).json({ error: 'username, password, name y role_id son requeridos' });
+    }
+    if (String(password).length < 8) {
+      return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
     }
 
     const numericRoleId = Number(role_id);
@@ -171,6 +168,8 @@ router.put('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async (r
            role_id = COALESCE($6, role_id),
            vehicle_type = COALESCE($7, vehicle_type),
            vehicle_plate = COALESCE($8, vehicle_plate),
+           token_version = CASE WHEN role_id IS DISTINCT FROM COALESCE($6, role_id)
+                                THEN token_version + 1 ELSE token_version END,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING id, username, name, email, phone, role_id, restaurant_id, supplier_id, vehicle_type, vehicle_plate, is_active, created_at`,
@@ -220,7 +219,7 @@ router.patch('/:id/password', roleRequired('admin', 'gerente', 'proveedor_admin'
     if (scope.error) return res.status(scope.status).json({ error: scope.error });
     
     const hash = await bcrypt.hash(String(password), 10);
-    await query('UPDATE users SET password_hash = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, req.params.id]);
+    await query('UPDATE users SET password_hash = $1, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, req.params.id]);
     res.json({ ok: true });
   } catch (err) {
     next(err);
