@@ -27,7 +27,9 @@ jobs:
           cache: npm
           cache-dependency-path: app/web/package-lock.json
       - name: Install dependencies
-        run: cd app/web && npm ci
+        # El package.json raiz declara "workspaces"; sin --no-workspaces npm
+        # busca el lockfile en la raiz (inexistente) en vez de app/web.
+        run: cd app/web && npm ci --no-workspaces
       - name: Build
         run: cd app/web && npm run build
       - name: Setup Pages
