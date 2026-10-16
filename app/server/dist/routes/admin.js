@@ -9,6 +9,7 @@ const auth_1 = require("../middleware/auth");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const audit_1 = require("../lib/audit");
 const realtime_1 = require("../lib/realtime");
+const userTenant_1 = require("../lib/userTenant");
 const router = (0, express_1.Router)();
 router.use(auth_1.authRequired);
 // ==========================================
@@ -103,10 +104,49 @@ router.post('/users', (0, auth_1.requirePermission)('config'), async (req, res, 
         const exists = await (0, db_1.query)('SELECT id FROM users WHERE username = $1', [username.trim()]);
         if (exists.rowCount)
             return res.status(409).json({ error: 'El nombre de usuario ya existe' });
+        // Validar que el rol exista y que el inquilino sea coherente con el rol.
+        const roleRow = await (0, db_1.query)('SELECT name FROM roles WHERE id = $1', [Number(role_id)]);
+        const roleName = roleRow.rows[0]?.name;
+        if (!roleName)
+            return res.status(400).json({ error: 'El role_id proporcionado no existe' });
+        let restId = restaurant_id ? Number(restaurant_id) : null;
+        let branchId = branch_id ? Number(branch_id) : null;
+        let supId = supplier_id ? Number(supplier_id) : null;
+        if (restId) {
+            const restCheck = await (0, db_1.query)('SELECT 1 FROM restaurants WHERE id = $1', [restId]);
+            if (!restCheck.rowCount)
+                return res.status(400).json({ error: `El restaurant_id ${restId} no existe` });
+        }
+        if (branchId) {
+            const branchCheck = await (0, db_1.query)('SELECT 1 FROM branches WHERE id = $1 AND restaurant_id = $2', [branchId, restId]);
+            if (!branchCheck.rowCount)
+                return res.status(400).json({ error: `El branch_id ${branchId} no pertenece al restaurant_id ${restId} o no existe` });
+        }
+        if (supId) {
+            const supCheck = await (0, db_1.query)('SELECT 1 FROM suppliers WHERE id = $1', [supId]);
+            if (!supCheck.rowCount)
+                return res.status(400).json({ error: `El supplier_id ${supId} no existe` });
+        }
+        const scopeError = (0, userTenant_1.validateTenantScope)(roleName, { restaurant_id: restId, supplier_id: supId });
+        if (scopeError)
+            return res.status(400).json({ error: scopeError });
+        const scope = (0, userTenant_1.tenantScopeForRole)(roleName);
+        if (scope === 'restaurant') {
+            supId = null;
+        }
+        else if (scope === 'supplier') {
+            restId = null;
+            branchId = null;
+        }
+        else if (scope === 'platform') {
+            restId = null;
+            supId = null;
+            branchId = null;
+        }
         const hash = await bcryptjs_1.default.hash(String(password), 10);
         const result = await (0, db_1.query)(`INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, branch_id, supplier_id, vehicle_type, vehicle_plate)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-       RETURNING id, username, name, email, phone, role_id, restaurant_id, branch_id, supplier_id, vehicle_type, vehicle_plate, is_active, created_at`, [username.trim(), hash, name.trim(), email?.trim() || null, phone?.trim() || null, role_id, restaurant_id || null, branch_id || null, supplier_id || null, vehicle_type || null, vehicle_plate || null]);
+       RETURNING id, username, name, email, phone, role_id, restaurant_id, branch_id, supplier_id, vehicle_type, vehicle_plate, is_active, created_at`, [username.trim(), hash, name.trim(), email?.trim() || null, phone?.trim() || null, Number(role_id), restId, branchId, supId, vehicle_type || null, vehicle_plate || null]);
         await (0, audit_1.logAudit)(req, 'create', 'user', result.rows[0].id, null, result.rows[0]);
         res.status(201).json(result.rows[0]);
     }
@@ -142,6 +182,18 @@ router.put('/users/:id', (0, auth_1.requirePermission)('config'), async (req, re
             if (!supCheck.rowCount)
                 return res.status(400).json({ error: `El supplier_id ${supplier_id} no existe` });
         }
+        // Coherencia rol/tenant del estado resultante (los ids se conservan con COALESCE).
+        const effectiveRoleId = role_id ? Number(role_id) : oldUser.role_id;
+        const effectiveRoleRow = await (0, db_1.query)('SELECT name FROM roles WHERE id = $1', [effectiveRoleId]);
+        const effectiveRoleName = effectiveRoleRow.rows[0]?.name;
+        if (!effectiveRoleName)
+            return res.status(400).json({ error: 'El role_id proporcionado no existe' });
+        const scopeError = (0, userTenant_1.validateTenantScope)(effectiveRoleName, {
+            restaurant_id: restaurant_id ? Number(restaurant_id) : oldUser.restaurant_id,
+            supplier_id: supplier_id ? Number(supplier_id) : oldUser.supplier_id,
+        });
+        if (scopeError)
+            return res.status(400).json({ error: scopeError });
         const result = await (0, db_1.query)(`UPDATE users 
        SET name = COALESCE($2, name), 
            email = COALESCE($3, email),

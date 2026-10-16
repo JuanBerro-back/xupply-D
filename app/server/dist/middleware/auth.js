@@ -84,8 +84,8 @@ function requirePermission(...permissionNames) {
     return async (req, res, next) => {
         if (!req.user)
             return res.status(401).json({ error: 'No autenticado' });
-        if (req.user.role === 'admin')
-            return next();
+        // Sin bypass por rol: incluso 'admin' pasa solo si su rol tiene el permiso.
+        // El rol admin (role_id 1) recibe todos los permisos en la siembra/migración.
         await loadPermissions();
         const userPerms = permissionCache.get(req.user.role_id) ?? new Set();
         const hasPermission = permissionNames.some((p) => userPerms.has(p));

@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = require("express");
 const db_1 = require("../config/db");
 const auth_1 = require("../middleware/auth");
+const userTenant_1 = require("../lib/userTenant");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const router = (0, express_1.Router)();
 router.use(auth_1.authRequired);
@@ -103,6 +104,24 @@ router.post('/', (0, auth_1.roleRequired)('admin', 'gerente', 'proveedor_admin')
                 return res.status(400).json({ error: `El supplier_id ${req.body.supplier_id} no existe` });
             supplierId = req.body.supplier_id;
         }
+        // Invariante rol/tenant: gerente|empleado requieren restaurante; proveedor_admin|domiciliario
+        // requieren proveedor; admin es de plataforma. Evita usuarios sin inquilino.
+        const scopeError = (0, userTenant_1.validateTenantScope)(roleName, { restaurant_id: restaurantId, supplier_id: supplierId });
+        if (scopeError)
+            return res.status(400).json({ error: scopeError });
+        const scope = (0, userTenant_1.tenantScopeForRole)(roleName);
+        if (scope === 'restaurant') {
+            supplierId = null;
+        }
+        else if (scope === 'supplier') {
+            restaurantId = null;
+            branchId = null;
+        }
+        else if (scope === 'platform') {
+            restaurantId = null;
+            supplierId = null;
+            branchId = null;
+        }
         const result = await (0, db_1.query)(`INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id, branch_id, vehicle_type, vehicle_plate)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
        RETURNING id, username, name, email, phone, role_id, restaurant_id, supplier_id, vehicle_type, vehicle_plate, is_active, created_at`, [username.trim(), hash, name.trim(), email ? email.trim() : null, phone ? phone.trim() : null, numericRoleId, restaurantId, supplierId, branchId, vehicle_type || 'moto', vehicle_plate || null]);
@@ -155,6 +174,10 @@ router.put('/:id', (0, auth_1.roleRequired)('admin', 'gerente', 'proveedor_admin
             if (!roleName || !allowedRoles.includes(roleName)) {
                 return res.status(403).json({ error: 'No puedes asignar ese rol' });
             }
+            // El nuevo rol debe ser coherente con el inquilino actual del usuario.
+            const scopeError = (0, userTenant_1.validateTenantScope)(roleName, { restaurant_id: targetUser.restaurant_id, supplier_id: targetUser.supplier_id });
+            if (scopeError)
+                return res.status(400).json({ error: scopeError });
         }
         const result = await (0, db_1.query)(`UPDATE users
        SET name = COALESCE($2, name), email = COALESCE($3, email),

@@ -1,6 +1,7 @@
 import { Router, Request, Response, NextFunction } from 'express';
 import { query } from '../config/db';
 import { authRequired, roleRequired } from '../middleware/auth';
+import { tenantScopeForRole, validateTenantScope } from '../lib/userTenant';
 import bcrypt from 'bcryptjs';
 
 const router = Router();
@@ -104,6 +105,23 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
       supplierId = req.body.supplier_id;
     }
 
+    // Invariante rol/tenant: gerente|empleado requieren restaurante; proveedor_admin|domiciliario
+    // requieren proveedor; admin es de plataforma. Evita usuarios sin inquilino.
+    const scopeError = validateTenantScope(roleName, { restaurant_id: restaurantId, supplier_id: supplierId });
+    if (scopeError) return res.status(400).json({ error: scopeError });
+
+    const scope = tenantScopeForRole(roleName);
+    if (scope === 'restaurant') {
+      supplierId = null;
+    } else if (scope === 'supplier') {
+      restaurantId = null;
+      branchId = null;
+    } else if (scope === 'platform') {
+      restaurantId = null;
+      supplierId = null;
+      branchId = null;
+    }
+
     const result = await query(
       `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id, branch_id, vehicle_type, vehicle_plate)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
@@ -159,6 +177,9 @@ router.put('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async (r
       if (!roleName || !allowedRoles.includes(roleName)) {
         return res.status(403).json({ error: 'No puedes asignar ese rol' });
       }
+      // El nuevo rol debe ser coherente con el inquilino actual del usuario.
+      const scopeError = validateTenantScope(roleName, { restaurant_id: targetUser.restaurant_id, supplier_id: targetUser.supplier_id });
+      if (scopeError) return res.status(400).json({ error: scopeError });
     }
 
     const result = await query(

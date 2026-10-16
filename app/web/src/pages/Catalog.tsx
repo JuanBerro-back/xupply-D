@@ -499,7 +499,7 @@ export default function Catalog() {
                     Desactivar
                   </button>
                 </div>
-              ) : user?.role === 'gerente' || user?.role === 'restaurante_admin' ? (
+              ) : user?.role === 'gerente' ? (
                 <div className="space-y-2">
                   {/* Selector rápido de cantidad */}
                   <div className="flex items-center justify-between gap-2 bg-slate-50 dark:bg-slate-800/80 rounded-xl p-1.5 border border-slate-200 dark:border-slate-700/60">

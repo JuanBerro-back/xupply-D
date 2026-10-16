@@ -198,7 +198,7 @@ router.get('/tenant-info', auth_1.authRequired, async (req, res, next) => {
         next(err);
     }
 });
-router.post('/subscription-plan', auth_1.authRequired, async (req, res, next) => {
+router.post('/subscription-plan', auth_1.authRequired, (0, auth_1.roleRequired)('gerente', 'admin'), async (req, res, next) => {
     try {
         const user = req.user;
         const { plan } = req.body;

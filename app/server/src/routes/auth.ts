@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
 import { query, hasCustomDbUrl } from '../config/db';
-import { authRequired, signToken } from '../middleware/auth';
+import { authRequired, roleRequired, signToken } from '../middleware/auth';
 import { emitToUser } from '../lib/realtime';
 import { logAudit } from '../lib/audit';
 import { ensureServerInitialized } from '../lib/migrations';
@@ -229,7 +229,7 @@ router.get('/tenant-info', authRequired, async (req, res, next) => {
   }
 });
 
-router.post('/subscription-plan', authRequired, async (req, res, next) => {
+router.post('/subscription-plan', authRequired, roleRequired('gerente', 'admin'), async (req, res, next) => {
   try {
     const user = req.user!;
     const { plan } = req.body;

@@ -103,7 +103,7 @@ export default function App() {
           <Route path="/proveedores" element={<RequireAuth><Suppliers /></RequireAuth>} />
           <Route path="/clientes" element={<RolesAllowed roles={['proveedor_admin', 'admin']}><PosiblesClientes /></RolesAllowed>} />
           <Route path="/logistica" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin', 'domiciliario']}><Deliveries /></RolesAllowed>} />
-          <Route path="/planes" element={<RequireAuth><Plans /></RequireAuth>} />
+          <Route path="/planes" element={<RolesAllowed roles={['admin', 'gerente']}><Plans /></RolesAllowed>} />
           <Route path="/xupply-ia" element={<RequireAuth><AiAssistant /></RequireAuth>} />
           <Route path="/equipo" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><TeamManagement /></RolesAllowed>} />
           <Route path="/repartidor" element={<RolesAllowed roles={['domiciliario', 'admin']}><DriverDashboard /></RolesAllowed>} />

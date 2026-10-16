@@ -9,7 +9,7 @@ Plataforma B2B para la digitalizacion de restaurantes y empresas distribuidoras 
 - **Inventario y contabilidad**: control de stock, reportes de flujo de caja y facturacion electronica.
 - **Asistente Xupply IA**: copiloto sobre food cost, compras mayoristas y logistica de entrega (disponible segun el plan).
 - **Planes de suscripción**: basico, medio y premium (Xupply Lite, Pro y Max).
-- **Roles**: admin, gerente, empleado, proveedor y domiciliario.
+- **Roles**: admin, gerente, empleado, proveedor (`proveedor_admin`) y domiciliario.
 - **Multiplataforma**: PWA instalable, app Android (Capacitor) y aplicacion de escritorio (Electron).
 
 ## Estructura
@@ -105,6 +105,15 @@ El endpoint `/health` responde `{"status":"ok","service":"xupply-api","db":"conn
 - **CORS**: `CLIENT_ORIGIN` se aplica como lista blanca tanto en HTTP como en Socket.IO.
 - **Higiene**: politica minima de contrasena (8 caracteres) en todos los altas, rate limiting en `login`/`register`, y `/health` sin fuga de informacion.
 - **Concurrencia**: el cambio de estado del pedido es atomico (evita dobles transiciones y descuentos de stock duplicados).
+
+### Autorizacion y roles (correccion posterior)
+
+- **`requirePermission` sin bypass**: se elimino el atajo que dejaba pasar siempre al rol `admin`. Ahora todo permiso se valida contra `role_permissions`, y una migracion garantiza que el rol `admin` conserve todos los permisos.
+- **Cambio de plan de suscripcion**: `POST /api/auth/subscription-plan` exige rol `gerente` o `admin` (antes cualquier usuario autenticado con restaurante podia cambiar el plan del negocio).
+- **Invariantes rol/inquilino**: al crear o cambiar el rol de un usuario se exige coherencia (`gerente`/`empleado` -> restaurante; `proveedor_admin`/`domiciliario` -> proveedor; `admin` -> plataforma). Evita usuarios sin inquilino que rompian el aislamiento multi-tenant.
+- **Alta/edicion de usuarios del panel**: `POST/PUT /api/admin/users` ahora valida la existencia de restaurante, sucursal y proveedor (responde 400 en vez de 500) y aplica las mismas invariantes de rol/inquilino.
+- **Migracion reparada**: un `INSERT INTO role_permissions` sin terminador en `migrations.ts` se fusionaba con el `UPDATE` siguiente y rompia la inicializacion al arrancar; se agrego `ON CONFLICT DO NOTHING;`.
+- **Rol inexistente en el frontend**: se elimino la referencia a `restaurante_admin` (rol que no existe) en el catalogo.
 
 ### Notas de despliegue
 

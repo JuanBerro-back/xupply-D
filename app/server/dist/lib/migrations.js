@@ -191,9 +191,13 @@ async function ensureRadarAndGpsSchema() {
       VALUES ('compras:write', 'Crear y gestionar ordenes de compra')
       ON CONFLICT (name) DO NOTHING;
 
+      -- El rol admin (role_id 1) recibe TODOS los permisos existentes.
+      -- Necesario porque requirePermission ya no tiene un bypass por rol.
       INSERT INTO role_permissions (role_id, permission_id)
       SELECT r.id, p.id FROM roles r, permissions p
-      WHERE r.name = 'admin' AND p.name = 'analytics'
+      WHERE r.name = 'admin'
+      ON CONFLICT DO NOTHING;
+
       -- Garantizar que usuarios proveedor tengan supplier_id asignado
       UPDATE users SET supplier_id = 1 WHERE username IN ('proveedor', 'domiciliario') AND supplier_id IS NULL;
       UPDATE users u
