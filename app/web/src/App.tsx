@@ -1,41 +1,48 @@
+import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { isCapacitorNative } from './lib/api';
 import { useAuth } from './context/AuthContext';
 import { useNotifications } from './context/NotificationContext';
-import Navbar from './components/Navbar';
-import BottomNav from './components/BottomNav';
-import SideCart from './components/SideCart';
 import Toasts from './components/Toasts';
-import AiFloatingWidget from './components/AiFloatingWidget';
 import CookieConsent from './components/CookieConsent';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import Dashboard from './pages/Dashboard';
-import Landing from './pages/Landing';
-import Catalog from './pages/Catalog';
-import CartPage from './pages/CartPage';
-import Orders from './pages/Orders';
-import OrderDetail from './pages/OrderDetail';
-import Inventory from './pages/Inventory';
-import Invoices from './pages/Invoices';
-import Suppliers from './pages/Suppliers';
-import PosiblesClientes from './pages/PosiblesClientes';
-import Accounting from './pages/Accounting';
-import Deliveries from './pages/Deliveries';
-import Plans from './pages/Plans';
-import AiAssistant from './pages/AiAssistant';
-import TeamManagement from './pages/TeamManagement';
-import Radar from './pages/Radar';
-import DriverDashboard from './pages/DriverDashboard';
-import DownloadApp from './pages/DownloadApp';
+
+// "Chrome" de la app en carga diferida: en el landing público (sin sesión) no
+// se renderiza, así que su código no se descarga ni se ejecuta.
+const Navbar = lazy(() => import('./components/Navbar'));
+const BottomNav = lazy(() => import('./components/BottomNav'));
+const SideCart = lazy(() => import('./components/SideCart'));
+const AiFloatingWidget = lazy(() => import('./components/AiFloatingWidget'));
 import AdminLayout from './components/AdminLayout';
-import UsuariosAdmin from './pages/admin/UsuariosAdmin';
-import RolesAdmin from './pages/admin/RolesAdmin';
-import PermisosAdmin from './pages/admin/PermisosAdmin';
-import AuditoriaAdmin from './pages/admin/AuditoriaAdmin';
-import ComerciosAdmin from './pages/admin/ComerciosAdmin';
-import ComercioProfile from './pages/ComercioProfile';
-import MyProfile from './pages/MyProfile';
+
+// Carga diferida (code splitting) de las páginas. Reduce el bundle inicial y
+// el trabajo del hilo principal en el primer render (mejora LCP/TBT).
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Landing = lazy(() => import('./pages/Landing'));
+const Catalog = lazy(() => import('./pages/Catalog'));
+const CartPage = lazy(() => import('./pages/CartPage'));
+const Orders = lazy(() => import('./pages/Orders'));
+const OrderDetail = lazy(() => import('./pages/OrderDetail'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const Invoices = lazy(() => import('./pages/Invoices'));
+const Suppliers = lazy(() => import('./pages/Suppliers'));
+const PosiblesClientes = lazy(() => import('./pages/PosiblesClientes'));
+const Accounting = lazy(() => import('./pages/Accounting'));
+const Deliveries = lazy(() => import('./pages/Deliveries'));
+const Plans = lazy(() => import('./pages/Plans'));
+const AiAssistant = lazy(() => import('./pages/AiAssistant'));
+const TeamManagement = lazy(() => import('./pages/TeamManagement'));
+const Radar = lazy(() => import('./pages/Radar'));
+const DriverDashboard = lazy(() => import('./pages/DriverDashboard'));
+const DownloadApp = lazy(() => import('./pages/DownloadApp'));
+const UsuariosAdmin = lazy(() => import('./pages/admin/UsuariosAdmin'));
+const RolesAdmin = lazy(() => import('./pages/admin/RolesAdmin'));
+const PermisosAdmin = lazy(() => import('./pages/admin/PermisosAdmin'));
+const AuditoriaAdmin = lazy(() => import('./pages/admin/AuditoriaAdmin'));
+const ComerciosAdmin = lazy(() => import('./pages/admin/ComerciosAdmin'));
+const ComercioProfile = lazy(() => import('./pages/ComercioProfile'));
+const MyProfile = lazy(() => import('./pages/MyProfile'));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -84,9 +91,11 @@ export default function App() {
   const { items } = useNotifications();
 
   return (
+    <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center text-gray-500">Cargando…</div>}>
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-[#0b1120] dark:text-slate-100 antialiased transition-colors duration-300">
       {user && <Navbar />}
       <main className={user ? 'mx-auto max-w-7xl px-4 py-6 pb-24 sm:pb-6' : ''}>
+        <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center text-gray-500">Cargando…</div>}>
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
@@ -120,6 +129,7 @@ export default function App() {
           <Route path="/mi-perfil" element={<RequireAuth><MyProfile /></RequireAuth>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </Suspense>
       </main>
       {user && <BottomNav />}
       {items.length > 0 && <Toasts />}
@@ -127,5 +137,6 @@ export default function App() {
       {user && <AiFloatingWidget />}
       <CookieConsent />
     </div>
+    </Suspense>
   );
 }

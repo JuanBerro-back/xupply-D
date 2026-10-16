@@ -14,7 +14,8 @@ CapacitorUpdater.notifyAppReady();
 
 if ('serviceWorker' in navigator && import.meta.env.PROD) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((error) => {
+    // BASE_URL respeta la base de Vite (raíz o subdirectorio, p. ej. /xupply-D/).
+    navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`).catch((error) => {
       console.error('No se pudo registrar la PWA', error);
     });
   });

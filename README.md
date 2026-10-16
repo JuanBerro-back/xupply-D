@@ -126,6 +126,43 @@ El endpoint `/health` responde `{"status":"ok","service":"xupply-api","db":"conn
 4. Las cuentas demo (`admin`, `gerente`, `empleado`, `proveedor`, `domiciliario` / `demo1234`) siguen funcionando con hash real, pero **cambia sus contrasenas en produccion**.
 5. Los despliegues que compilan desde `src/` (Vercel, Render, Docker) toman los cambios automaticamente.
 
+## Rendimiento y SEO
+
+Medido con Lighthouse (Chrome headless) sobre el build de produccion:
+
+| Metrica | Movil | Escritorio |
+|---|---|---|
+| Performance | 94-96 (antes 87) | 99 |
+| SEO | 100 | 100 |
+| Accesibilidad | 96 | 94 |
+| Buenas practicas | 100 | 100 |
+
+Cambios aplicados:
+
+- **Code splitting**: las paginas y el "chrome" de la app (Navbar, SideCart, panel flotante de IA, etc.) se cargan con `React.lazy`. El bundle inicial baja de ~888 kB a ~239 kB y el mapa (Leaflet) solo se descarga en las rutas que lo usan.
+- **Chunks de vendor**: `manualChunks` separa React, Leaflet y Socket.IO para mejorar el cacheo.
+- **Fuentes sin bloquear el render**: se elimino el `@import` de Google Fonts del CSS; ahora se cargan con `preconnect` + `preload`/`onload`, por lo que no bloquean el primer render.
+- **Canvas de particulas**: respeta `prefers-reduced-motion` y se pausa cuando la pestana no es visible (ahorra CPU/bateria).
+- **Barra de progreso de scroll**: se actualiza con `requestAnimationFrame` escribiendo el DOM directamente, sin re-render de la pagina ni reflow en cada evento.
+- **SEO**: `title` y `description` reales, `robots.txt`, `sitemap.xml`, Open Graph/Twitter y `canonical` (inyectado desde `VITE_SITE_URL`).
+- **PWA portable**: `manifest.webmanifest` y service worker con rutas relativas, de modo que funcionan tanto en la raiz de un dominio como en un subdirectorio (GitHub Pages `/xupply-D/`). El service worker solo cachea recursos del mismo origen y nunca la API.
+
+Variables opcionales de build (frontend):
+
+| Variable | Uso |
+|---|---|
+| `VITE_SITE_URL` | URL publica para `canonical`/`og:url`/`og:image` (si no se define, no se inyectan). |
+| `VITE_BASE` | Base absoluta cuando el sitio se sirve en un subdirectorio (p. ej. `/xupply-D/`). |
+
+Para volver a medir:
+
+```bash
+cd app/web
+npm run build
+npm run preview
+npx lighthouse http://localhost:4173/ --view
+```
+
 ## Creadores y Contacto
 
 - **Creadores:** Juan Berroteran y Fabio Chamorro

@@ -31,6 +31,10 @@ jobs:
         # busca el lockfile en la raiz (inexistente) en vez de app/web.
         run: cd app/web && npm ci --no-workspaces
       - name: Build
+        env:
+          # Base absoluta y URL pública para el despliegue en GitHub Pages.
+          VITE_BASE: /xupply-D/
+          VITE_SITE_URL: https://juanberro-back.github.io/xupply-D/
         run: cd app/web && npm run build
       - name: Setup Pages
         uses: actions/configure-pages@v5

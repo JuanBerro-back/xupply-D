@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+# Zonas privadas (requieren sesión) que no aportan valor al índice.
+Disallow: /admin
+Disallow: /api
+
+Sitemap: https://juanberro-back.github.io/xupply-D/sitemap.xml

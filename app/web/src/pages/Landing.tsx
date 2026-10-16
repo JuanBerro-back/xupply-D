@@ -177,16 +177,39 @@ export default function Landing() {
     return () => clearTimeout(timeout);
   }, [charIdx, isDeleting, wordIdx]);
 
-  // 2. Scroll Progress bar
-  const [scrollProgress, setScrollProgress] = useState(0);
+  // 2. Barra de progreso de scroll. Se actualiza el DOM directamente (sin
+  //    re-render de toda la página) y se cachea scrollHeight para no forzar
+  //    un reflow en cada evento de scroll.
+  const progressRef = useRef<HTMLDivElement | null>(null);
   useEffect(() => {
-    const handleScroll = () => {
-      const total = document.body.scrollHeight - window.innerHeight;
-      const current = window.scrollY;
-      setScrollProgress(total > 0 ? (current / total) * 100 : 0);
+    let max = 0;
+    let ticking = false;
+    const update = () => {
+      ticking = false;
+      const p = max > 0 ? Math.min(100, (window.scrollY / max) * 100) : 0;
+      if (progressRef.current) progressRef.current.style.width = `${p}%`;
     };
+    const measure = () => {
+      max = document.body.scrollHeight - window.innerHeight;
+    };
+    const handleScroll = () => {
+      if (!ticking) {
+        ticking = true;
+        requestAnimationFrame(update);
+      }
+    };
+    const handleResize = () => {
+      measure();
+      update();
+    };
+    measure();
+    update();
     window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('resize', handleResize);
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleResize);
+    };
   }, []);
 
   // 3. Particle network canvas
@@ -196,6 +219,9 @@ export default function Landing() {
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
+
+    // Respeta "prefers-reduced-motion": sin animación de partículas.
+    if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
 
     let animId: number;
     let width = (canvas.width = window.innerWidth);
@@ -259,14 +285,21 @@ export default function Landing() {
         }
       });
 
-      animId = requestAnimationFrame(render);
+      // Pausa la animación cuando la pestaña no es visible (ahorra CPU/batería).
+      if (!document.hidden) animId = requestAnimationFrame(render);
     };
+
+    const handleVisibility = () => {
+      if (!document.hidden) render();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
 
     render();
 
     return () => {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('visibilitychange', handleVisibility);
       cancelAnimationFrame(animId);
     };
   }, []);
@@ -363,7 +396,7 @@ export default function Landing() {
   return (
     <div className="landing-page">
       {/* Top Scroll Progress Line */}
-      <div id="pg" style={{ width: `${scrollProgress}%` }} />
+      <div id="pg" ref={progressRef} />
 
       {/* Ambient Subtle Blurs */}
       <div className="aur" aria-hidden="true">
@@ -725,7 +758,7 @@ export default function Landing() {
           <div className="simulator-box">
             {/* Left: Order Builder Controls */}
             <div className="sim-controls">
-              <h4>1. Tipo de establecimiento:</h4>
+              <h3>1. Tipo de establecimiento:</h3>
               <div className="type-buttons">
                 {[
                   { key: 'burger', label: 'Hamburguesería' },
@@ -743,7 +776,7 @@ export default function Landing() {
                 ))}
               </div>
 
-              <h4>2. Configurar insumos requeridos:</h4>
+              <h3>2. Configurar insumos requeridos:</h3>
               <div className="sim-items">
                 {currentProducts.map(prod => (
                   <div key={prod.id} className="sim-item">
