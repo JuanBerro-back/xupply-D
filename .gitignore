@@ -41,3 +41,6 @@ release-manual/
 *.jks
 *.apk
 !app/web/public/Xupply.apk
+
+# Reportes de Lighthouse (medicion local)
+app/web/lh-*.json
