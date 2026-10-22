@@ -178,8 +178,8 @@ export interface Delivery {
   delivery_code: string;
   order_id: number;
   order_code: string;
-  vehicle_id: number;
-  vehicle_name: string;
+  vehicle_id: number | null;
+  vehicle_name: string | null;
   vehicle_type?: string;
   plate: string;
   vehicle_lat?: number | null;

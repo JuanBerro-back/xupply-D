@@ -537,6 +537,8 @@ export default function Deliveries() {
   // Modal para asignar domiciliario (rol proveedor)
   const [assignModal, setAssignModal] = useState(false);
   const [selectedDriverId, setSelectedDriverId] = useState('');
+  const [selectedVehicleId, setSelectedVehicleId] = useState('');
+  const [assignmentLoadError, setAssignmentLoadError] = useState('');
 
   const isSupplier = user?.role === 'proveedor_admin';
   const isDriver = user?.role === 'domiciliario';
@@ -573,8 +575,19 @@ export default function Deliveries() {
       });
 
     if (canManage) {
-      api<Vehicle[]>('/deliveries/vehicles').then(setVehicles).catch(() => undefined);
-      api<{ id: number; name: string; username: string; phone?: string; role_label?: string; role_name?: string }[]>('/deliveries/drivers').then(setDrivers).catch(() => undefined);
+      setAssignmentLoadError('');
+      api<Vehicle[]>('/deliveries/vehicles')
+        .then(setVehicles)
+        .catch((err) => {
+          console.error('No se pudo cargar la flota de vehículos:', err);
+          setAssignmentLoadError((current) => current || 'No se pudo cargar la flota de vehículos. Intenta actualizar la página.');
+        });
+      api<{ id: number; name: string; username: string; phone?: string; role_label?: string; role_name?: string }[]>('/deliveries/drivers')
+        .then(setDrivers)
+        .catch((err) => {
+          console.error('No se pudieron cargar los domiciliarios:', err);
+          setAssignmentLoadError((current) => current || 'No se pudieron cargar los domiciliarios. Intenta actualizar la página.');
+        });
       api<any[]>('/orders').then((allOrders) => {
         if (Array.isArray(allOrders)) {
           setPendingOrders(allOrders.filter((o) => !['entregado', 'cancelado'].includes(o.status)));
@@ -770,11 +783,14 @@ export default function Deliveries() {
   };
 
   const assignDriver = async () => {
-    if (!selected || !selectedDriverId) return;
+    if (!selected || !selectedDriverId || !selectedVehicleId) return;
     try {
       await api(`/deliveries/${selected.id}/assign`, {
         method: 'PATCH',
-        body: JSON.stringify({ driver_id: Number(selectedDriverId) }),
+        body: JSON.stringify({
+          driver_id: Number(selectedDriverId),
+          vehicle_id: Number(selectedVehicleId),
+        }),
       });
       push({ message: 'Domiciliario asignado exitosamente', at: new Date().toISOString() });
       setAssignModal(false);
@@ -992,6 +1008,11 @@ export default function Deliveries() {
                               e.stopPropagation();
                               setSelected(delivery);
                               setSelectedDriverId(delivery.driver_id ? String(delivery.driver_id) : '');
+                              setSelectedVehicleId(
+                                delivery.vehicle_id
+                                  ? String(delivery.vehicle_id)
+                                  : String(vehicles.find((vehicle) => vehicle.driver_id === delivery.driver_id)?.id ?? '')
+                              );
                               setAssignModal(true);
                             }}
                             className="rounded-lg bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition"
@@ -1271,26 +1292,53 @@ export default function Deliveries() {
         <Modal title={`Asignar Domiciliario a ${selected.order_code}`} onClose={() => setAssignModal(false)}>
           <div className="space-y-4">
             <div>
-              <label className="mb-1 block text-sm font-bold text-slate-700">Seleccionar Domiciliario / Conductor:</label>
+              <label className="mb-1 block text-sm font-bold text-slate-700">Seleccionar domiciliario:</label>
               <select
                 value={selectedDriverId}
-                onChange={(e) => setSelectedDriverId(e.target.value)}
+                onChange={(e) => {
+                  const driverId = e.target.value;
+                  setSelectedDriverId(driverId);
+                  const assignedVehicle = vehicles.find((vehicle) => vehicle.driver_id === Number(driverId));
+                  setSelectedVehicleId(assignedVehicle ? String(assignedVehicle.id) : '');
+                }}
                 className="w-full rounded-xl border px-3 py-2 text-sm bg-white font-medium"
               >
-                <option value="">-- Elige un usuario del sistema --</option>
+                <option value="">-- Elige un domiciliario --</option>
                 {drivers.map((d) => (
                   <option key={d.id} value={d.id}>
-                    {d.name} ({d.username}) · {d.role_label || d.role_name || 'Usuario'} {d.phone ? `· Tel: ${d.phone}` : ''}
+                    {d.name} ({d.username}) {d.phone ? `· Tel: ${d.phone}` : ''}
                   </option>
                 ))}
               </select>
               {drivers.length === 0 && (
-                <p className="mt-1 text-xs text-amber-600">No se encontraron usuarios registrados en el sistema.</p>
+                <p className="mt-1 text-xs text-amber-600">No hay domiciliarios activos registrados para este proveedor.</p>
               )}
+            </div>
+            <div>
+              <label className="mb-1 block text-sm font-bold text-slate-700">Vehículo para la entrega:</label>
+              <select
+                value={selectedVehicleId}
+                onChange={(e) => setSelectedVehicleId(e.target.value)}
+                disabled={!selectedDriverId}
+                className="w-full rounded-xl border px-3 py-2 text-sm bg-white font-medium disabled:bg-slate-100 disabled:text-slate-400"
+              >
+                <option value="">-- Elige un vehículo --</option>
+                {vehicles.map((vehicle) => (
+                  <option key={vehicle.id} value={vehicle.id}>
+                    {vehicle.name} · {vehicle.plate} ({vehicle.type})
+                    {vehicle.driver_name ? ` · Conductor: ${vehicle.driver_name}` : ' · Sin conductor asignado'}
+                  </option>
+                ))}
+              </select>
+              {assignmentLoadError ? (
+                <p className="mt-1 text-xs text-red-600">{assignmentLoadError}</p>
+              ) : vehicles.length === 0 ? (
+                <p className="mt-1 text-xs text-amber-600">No hay vehículos activos en la flota. Registra un vehículo antes de asignar la entrega.</p>
+              ) : null}
             </div>
             <button
               onClick={assignDriver}
-              disabled={!selectedDriverId}
+              disabled={!selectedDriverId || !selectedVehicleId || Boolean(assignmentLoadError)}
               className="w-full rounded-xl bg-brand py-2.5 text-sm font-bold text-white hover:bg-brand-dark disabled:opacity-50 shadow transition"
             >
               Asignar y Notificar al Domiciliario

@@ -199,13 +199,24 @@ router.get('/vehicles', (0, auth_1.roleRequired)('proveedor_admin', 'admin', 'ge
         next(err);
     }
 });
-router.get('/drivers', (0, auth_1.roleRequired)('proveedor_admin', 'admin', 'gerente'), async (_req, res, next) => {
+router.get('/drivers', (0, auth_1.roleRequired)('proveedor_admin', 'admin', 'gerente'), async (req, res, next) => {
     try {
+        const user = req.user;
+        const params = [];
+        let supplierFilter = '';
+        if (user.role === 'proveedor_admin') {
+            if (!user.supplier_id) {
+                return res.status(403).json({ error: 'El usuario proveedor no tiene un proveedor asociado' });
+            }
+            params.push(user.supplier_id);
+            supplierFilter = ` AND u.supplier_id = $${params.length}`;
+        }
         const result = await (0, db_1.query)(`SELECT u.id, u.name, u.username, u.phone, u.email, r.name AS role_name, r.display_name AS role_label
        FROM users u
        JOIN roles r ON r.id = u.role_id
        WHERE u.is_active = TRUE
-       ORDER BY (r.name = 'domiciliario') DESC, u.name ASC`);
+         AND r.name = 'domiciliario'${supplierFilter}
+       ORDER BY u.name ASC`, params);
         res.json(result.rows);
     }
     catch (err) {
@@ -308,31 +319,55 @@ router.post('/', (0, auth_1.roleRequired)('proveedor_admin', 'admin', 'gerente')
     }
 });
 router.patch('/:id/assign', (0, auth_1.roleRequired)('proveedor_admin', 'admin', 'gerente'), async (req, res, next) => {
+    let client;
     try {
         const user = req.user;
-        const { driver_id } = req.body;
-        if (!driver_id)
-            return res.status(400).json({ error: 'driver_id es requerido' });
+        const driverId = Number(req.body.driver_id);
+        const vehicleId = Number(req.body.vehicle_id);
+        if (!Number.isInteger(driverId) || driverId <= 0) {
+            return res.status(400).json({ error: 'Selecciona un domiciliario válido' });
+        }
+        if (!Number.isInteger(vehicleId) || vehicleId <= 0) {
+            return res.status(400).json({ error: 'Selecciona un vehículo válido' });
+        }
+        client = await db_1.pool.connect();
+        await client.query('BEGIN');
         const access = deliveryAccessWhere(user, 2);
-        const delivery = await (0, db_1.query)(`${deliverySelect()} WHERE d.id = $1${access.clause}`, [req.params.id, ...access.params]);
-        if (!delivery.rowCount)
+        const delivery = await client.query(`${deliverySelect()} WHERE d.id = $1${access.clause} FOR UPDATE OF d`, [req.params.id, ...access.params]);
+        if (!delivery.rowCount) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Entrega no encontrada o no autorizada' });
+        }
         const del = delivery.rows[0];
-        const driver = await (0, db_1.query)(`SELECT u.*, r.name AS role_name FROM users u JOIN roles r ON r.id = u.role_id
-       WHERE u.id = $1 AND u.is_active = TRUE`, [driver_id]);
+        const driver = await client.query(`SELECT u.*, r.name AS role_name FROM users u JOIN roles r ON r.id = u.role_id
+       WHERE u.id = $1 AND u.is_active = TRUE`, [driverId]);
         if (!driver.rowCount) {
+            await client.query('ROLLBACK');
             return res.status(400).json({ error: 'El usuario seleccionado no existe o está inactivo' });
         }
-        const driverRow = driver.rows[0];
-        if (driverRow.role_name !== 'domiciliario' && user.role !== 'admin') {
-            return res.status(400).json({ error: 'El usuario seleccionado no tiene rol de domiciliario' });
+        if (driver.rows[0].role_name !== 'domiciliario') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'El usuario seleccionado no tiene el rol de domiciliario' });
         }
-        if (user.supplier_id && driverRow.supplier_id && driverRow.supplier_id !== user.supplier_id) {
+        if (user.role === 'proveedor_admin' && driver.rows[0].supplier_id !== user.supplier_id) {
+            await client.query('ROLLBACK');
             return res.status(403).json({ error: 'El domiciliario no pertenece a tu proveedor' });
         }
+        const vehicle = await client.query(`SELECT id FROM vehicles
+       WHERE id = $1 AND is_active = TRUE
+         AND (supplier_id = $2 OR supplier_id IS NULL)
+       FOR UPDATE`, [vehicleId, del.order_supplier_id]);
+        if (!vehicle.rowCount) {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'El vehículo no está activo o no pertenece al proveedor del pedido' });
+        }
         const confirmationCode = del.confirmation_code || String(Math.floor(1000 + Math.random() * 9000));
-        const result = await (0, db_1.query)(`UPDATE deliveries SET driver_id = $1, confirmation_code = $2, updated_at = CURRENT_TIMESTAMP
-       WHERE id = $3 RETURNING *`, [driver_id, confirmationCode, req.params.id]);
+        await client.query(`UPDATE vehicles SET driver_id = $1, driver_name = $2, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $3`, [driverId, driver.rows[0].name, vehicleId]);
+        const result = await client.query(`UPDATE deliveries
+       SET driver_id = $1, vehicle_id = $2, confirmation_code = $3, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $4 RETURNING *`, [driverId, vehicleId, confirmationCode, req.params.id]);
+        await client.query('COMMIT');
         // Sincronizar estado del pedido a despachado si aún no lo estaba
         const currentOrder = await (0, db_1.query)('SELECT id, status, order_code FROM orders WHERE id = $1', [del.order_id]);
         if (currentOrder.rowCount && ['nuevo', 'confirmado', 'preparando'].includes(currentOrder.rows[0].status)) {
@@ -342,7 +377,7 @@ router.patch('/:id/assign', (0, auth_1.roleRequired)('proveedor_admin', 'admin',
          WHERE o.id = $1`, [del.order_id]);
             (0, realtime_1.emitOrder)('order:updated', updatedOrder.rows[0]);
         }
-        (0, realtime_1.emitToUser)('notification:created', driver_id, {
+        (0, realtime_1.emitToUser)('notification:created', driverId, {
             message: `Se te asignó la entrega ${del.delivery_code}`,
             delivery_id: del.id,
             confirmation_code: confirmationCode,
@@ -351,7 +386,18 @@ router.patch('/:id/assign', (0, auth_1.roleRequired)('proveedor_admin', 'admin',
         res.json(result.rows[0]);
     }
     catch (err) {
+        if (client) {
+            try {
+                await client.query('ROLLBACK');
+            }
+            catch (rollbackError) {
+                console.error('Error revirtiendo la asignación de entrega:', rollbackError);
+            }
+        }
         next(err);
+    }
+    finally {
+        client?.release();
     }
 });
 router.patch('/:id/status', async (req, res, next) => {
