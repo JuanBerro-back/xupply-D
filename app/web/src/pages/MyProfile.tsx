@@ -1,3 +1,4 @@
+import { toast } from '../lib/feedback';
 import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -63,7 +64,7 @@ export default function MyProfile() {
         navigate('/inventario');
       }
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     } finally {
       setSaving(false);
     }

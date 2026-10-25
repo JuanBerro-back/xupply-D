@@ -1,3 +1,4 @@
+import { toast } from '../../lib/feedback';
 import { useState, useEffect, FormEvent, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
@@ -69,6 +70,9 @@ export default function UsuariosAdmin() {
   // Confirmaciones
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [confirmToggleId, setConfirmToggleId] = useState<AdminUser | null>(null);
+  const [resetUser, setResetUser] = useState<AdminUser | null>(null);
+  const [resetPasswordValue, setResetPasswordValue] = useState('');
+  const [savingReset, setSavingReset] = useState(false);
 
   // Form
   const [form, setForm] = useState({
@@ -271,20 +275,35 @@ export default function UsuariosAdmin() {
     }
   };
 
-  const handleResetPassword = async (id: number) => {
-    const newPass = prompt('Ingresa la nueva contraseña (mínimo 8 caracteres):');
-    if (!newPass || newPass.length < 8) {
-      if (newPass !== null) alert('La contraseña debe tener al menos 8 caracteres');
+  const openResetPassword = (user: AdminUser) => {
+    setResetUser(user);
+    setResetPasswordValue('');
+    setError('');
+    setSuccess('');
+  };
+
+  const submitResetPassword = async () => {
+    if (!resetUser) return;
+    if (resetPasswordValue.length < 8) {
+      toast('La contraseña debe tener al menos 8 caracteres', 'error');
       return;
     }
+    setSavingReset(true);
+    setError('');
     try {
-      await api(`/admin/users/${id}/password`, {
+      await api(`/admin/users/${resetUser.id}/password`, {
         method: 'PATCH',
-        body: JSON.stringify({ password: newPass })
+        body: JSON.stringify({ password: resetPasswordValue }),
       });
-      setSuccess('Contraseña actualizada');
+      setSuccess(`Contraseña actualizada para ${resetUser.name}`);
+      toast('Contraseña actualizada correctamente', 'success');
+      setResetUser(null);
+      setResetPasswordValue('');
     } catch (err: any) {
       setError(err.message || 'Error reseteando contraseña');
+      toast(err.message || 'Error reseteando contraseña', 'error');
+    } finally {
+      setSavingReset(false);
     }
   };
   
@@ -412,7 +431,7 @@ export default function UsuariosAdmin() {
                     {u.restaurant_id && <Link to={`/comercio/restaurant/${u.restaurant_id}`} className="text-xs font-semibold px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-md hover:bg-purple-100 dark:hover:bg-purple-900/50">Perfil</Link>}
                     {u.supplier_id && <Link to={`/comercio/supplier/${u.supplier_id}`} className="text-xs font-semibold px-2 py-1 bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 rounded-md hover:bg-purple-100 dark:hover:bg-purple-900/50">Perfil</Link>}
                     <button onClick={() => handleOpenForm(u)} className="text-xs font-semibold px-2 py-1 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-md hover:bg-blue-100 dark:hover:bg-blue-900/50">Edit</button>
-                    <button onClick={() => handleResetPassword(u.id)} className="text-xs font-semibold px-2 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-md">Clave</button>
+                    <button onClick={() => openResetPassword(u)} className="text-xs font-semibold px-2 py-1 bg-amber-50 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-md">Clave</button>
                     <button onClick={() => setConfirmToggleId(u)} className={`text-xs font-semibold px-2 py-1 rounded-md ${u.is_active ? 'bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'}`}>{u.is_active ? 'Desactivar' : 'Activar'}</button>
                     <button onClick={() => setConfirmDeleteId(u.id)} className="text-xs font-semibold px-2 py-1 bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 rounded-md">Eliminar</button>
                   </td>
@@ -679,6 +698,54 @@ export default function UsuariosAdmin() {
         onConfirm={handleToggleActive}
         onCancel={() => setConfirmToggleId(null)}
       />
+
+      {resetUser && (
+        <Modal
+          title={`Cambiar contraseña: ${resetUser.name}`}
+          onClose={() => {
+            if (!savingReset) {
+              setResetUser(null);
+              setResetPasswordValue('');
+            }
+          }}
+          maxWidth="max-w-sm"
+        >
+          <div className="space-y-3">
+            <p className="text-xs text-slate-600 dark:text-slate-300">
+              Se cerrarán las sesiones activas del usuario. Mínimo 8 caracteres.
+            </p>
+            <input
+              type="password"
+              value={resetPasswordValue}
+              onChange={(event) => setResetPasswordValue(event.target.value)}
+              placeholder="Nueva contraseña"
+              autoComplete="new-password"
+              minLength={8}
+              className="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:outline-none focus:ring-2 focus:ring-brand/30 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setResetUser(null);
+                  setResetPasswordValue('');
+                }}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitResetPassword()}
+                disabled={savingReset || resetPasswordValue.length < 8}
+                className="rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white hover:bg-brand-dark disabled:opacity-50"
+              >
+                {savingReset ? 'Guardando…' : 'Actualizar contraseña'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

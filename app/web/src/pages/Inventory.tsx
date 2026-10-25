@@ -1,3 +1,4 @@
+import { toast } from '../lib/feedback';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -49,7 +50,7 @@ export default function Inventory() {
       push({ message: `Movimiento ${type} registrado`, at: new Date().toISOString() });
       load();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 
@@ -72,7 +73,7 @@ export default function Inventory() {
       push({ message: 'Ítem de inventario creado', at: new Date().toISOString() });
       load();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 

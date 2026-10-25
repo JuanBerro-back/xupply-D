@@ -1,3 +1,4 @@
+import { toast } from '../lib/feedback';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
@@ -51,7 +52,7 @@ export default function SideCart() {
       closeCart();
       navigate('/pedidos');
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     } finally {
       setSubmitting(false);
     }

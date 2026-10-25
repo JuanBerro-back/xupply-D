@@ -40,9 +40,14 @@ export default function BottomNav() {
           <span>{t('nav.dashboard')}</span>
         </Link>
 
-        {!isDomiciliario && (
+        {isDomiciliario ? (
+          <Link to="/repartidor" className={navItemClass('/repartidor')}>
+            <Truck className="w-6 h-6" strokeWidth={isActive('/repartidor') ? 2.5 : 2} />
+            <span>Mi ruta</span>
+          </Link>
+        ) : (
           <Link to="/catalogo" className={navItemClass('/catalogo')}>
-            <Search className={`w-6 h-6`} strokeWidth={isActive('/catalogo') ? 2.5 : 2} />
+            <Search className="w-6 h-6" strokeWidth={isActive('/catalogo') ? 2.5 : 2} />
             <span>{t('nav.catalog')}</span>
           </Link>
         )}

@@ -62,6 +62,8 @@ export default function Login() {
               onChange={(e) => setUsername(e.target.value)} 
               className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-slate-900 focus:border-brand focus:outline-none focus:ring-2 focus:ring-brand/20 transition-all shadow-sm" 
               required 
+              autoFocus
+              autoComplete="username"
               placeholder="Ej. domiciliario"
             />
           </div>

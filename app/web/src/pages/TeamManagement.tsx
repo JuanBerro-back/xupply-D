@@ -2,6 +2,7 @@ import { useState, useEffect, FormEvent, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../lib/api';
+import { confirmAction, toast } from '../lib/feedback';
 import Modal from '../components/Modal';
 import { IconClose } from '../components/Icons';
 
@@ -92,6 +93,9 @@ export default function TeamManagement() {
     vehicle_type: 'ninguno',
     vehicle_plate: '',
   });
+  const [passwordUser, setPasswordUser] = useState<TeamUser | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [loading, setLoading] = useState(true);
@@ -186,7 +190,7 @@ export default function TeamManagement() {
 
   const handleDeactivate = async (u: TeamUser) => {
     const action = u.is_active ? 'desactivar' : 'activar';
-    if (!confirm(`¿Deseas ${action} a este usuario?`)) return;
+    if (!(await confirmAction({ title: u.is_active ? 'Desactivar usuario' : 'Activar usuario', message: '¿Deseas ' + action + ' a este usuario?', confirmText: u.is_active ? 'Desactivar' : 'Activar', destructive: u.is_active }))) return;
     try {
       await api(`/users/${u.id}/${u.is_active ? 'deactivate' : 'activate'}`, { method: 'PATCH' });
       loadUsers();
@@ -195,17 +199,30 @@ export default function TeamManagement() {
     }
   };
 
-  const handleResetPassword = async (id: number) => {
-    const newPass = prompt('Ingresa la nueva contraseña (mínimo 6 caracteres):');
-    if (!newPass || newPass.length < 6) return;
+  const handleResetPassword = (user: TeamUser) => {
+    setPasswordUser(user);
+    setNewPassword('');
+  };
+
+  const submitResetPassword = async () => {
+    if (!passwordUser) return;
+    if (newPassword.length < 8) {
+      toast('La contraseña debe tener al menos 8 caracteres', 'error');
+      return;
+    }
+    setSavingPassword(true);
     try {
-      await api(`/users/${id}/password`, {
+      await api(`/users/${passwordUser.id}/password`, {
         method: 'PATCH',
-        body: JSON.stringify({ password: newPass }),
+        body: JSON.stringify({ password: newPassword }),
       });
-      alert('Contraseña actualizada correctamente');
+      toast(`Contraseña actualizada para ${passwordUser.name}`, 'success');
+      setPasswordUser(null);
+      setNewPassword('');
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
+    } finally {
+      setSavingPassword(false);
     }
   };
 
@@ -647,7 +664,7 @@ export default function TeamManagement() {
                   Editar
                 </button>
                 <button
-                  onClick={() => handleResetPassword(u.id)}
+                  onClick={() => handleResetPassword(u)}
                   className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 hover:bg-amber-100"
                 >
                   Clave
@@ -752,7 +769,7 @@ export default function TeamManagement() {
                         Editar
                       </button>
                       <button
-                        onClick={() => handleResetPassword(u.id)}
+                        onClick={() => handleResetPassword(u)}
                         className="rounded-lg bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800 hover:bg-amber-200"
                       >
                         Clave
@@ -778,6 +795,53 @@ export default function TeamManagement() {
           </tbody>
         </table>
       </div>
+      {passwordUser && (
+        <Modal
+          title={`Cambiar contraseña: ${passwordUser.name}`}
+          onClose={() => {
+            if (!savingPassword) {
+              setPasswordUser(null);
+              setNewPassword('');
+            }
+          }}
+          maxWidth="max-w-sm"
+        >
+          <div className="space-y-3">
+            <p className="text-xs text-slate-600">
+              Se cerrarán las sesiones activas de este usuario. Mínimo 8 caracteres.
+            </p>
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="Nueva contraseña"
+              autoComplete="new-password"
+              minLength={8}
+              className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand/30"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setPasswordUser(null);
+                  setNewPassword('');
+                }}
+                className="rounded-xl border border-slate-200 px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={() => void submitResetPassword()}
+                disabled={savingPassword || newPassword.length < 8}
+                className="rounded-xl bg-brand px-4 py-2 text-xs font-bold text-white hover:bg-brand-dark disabled:opacity-50"
+              >
+                {savingPassword ? 'Guardando…' : 'Actualizar contraseña'}
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

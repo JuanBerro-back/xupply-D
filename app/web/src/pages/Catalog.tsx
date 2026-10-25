@@ -1,3 +1,4 @@
+import { toast } from '../lib/feedback';
 import { useEffect, useState, FormEvent } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -387,7 +388,7 @@ export default function Catalog() {
       setModal(false);
       load();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 
@@ -397,7 +398,7 @@ export default function Catalog() {
       push({ message: 'Producto desactivado', at: new Date().toISOString() });
       load();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 

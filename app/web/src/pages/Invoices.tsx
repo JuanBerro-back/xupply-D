@@ -1,3 +1,4 @@
+import { toast } from '../lib/feedback';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -42,7 +43,10 @@ export default function Invoices() {
       const items = rows
         .filter((r) => r.description.trim())
         .map((r) => ({ description: r.description, quantity: Number(r.quantity), unit_price: Number(r.unit_price) }));
-      if (items.length === 0) return alert('Agrega al menos un ítem');
+      if (items.length === 0) {
+        toast('Agrega al menos un ítem antes de emitir la factura', 'error');
+        return;
+      }
       await api('/invoices', {
         method: 'POST',
         body: JSON.stringify({
@@ -57,7 +61,7 @@ export default function Invoices() {
       setModal(false);
       load();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 
@@ -73,7 +77,7 @@ export default function Invoices() {
       }
       load();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 
