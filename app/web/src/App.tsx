@@ -43,6 +43,8 @@ const AuditoriaAdmin = lazy(() => import('./pages/admin/AuditoriaAdmin'));
 const ComerciosAdmin = lazy(() => import('./pages/admin/ComerciosAdmin'));
 const ComercioProfile = lazy(() => import('./pages/ComercioProfile'));
 const MyProfile = lazy(() => import('./pages/MyProfile'));
+const VerificationStatusPage = lazy(() => import('./pages/VerificationStatus'));
+const VerificacionesAdmin = lazy(() => import('./pages/admin/VerificacionesAdmin'));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -79,11 +81,20 @@ function RootRoute() {
   if (loading) return <div className="p-8 text-center text-gray-500 bg-slate-50 dark:bg-[#0b1120] min-h-screen">Cargando...</div>;
   if (user) {
     if (user.role === 'admin') return <Navigate to="/admin" replace />;
+    if (user.role === 'verificador') return <Navigate to="/admin/verificaciones" replace />;
     if (localStorage.getItem('xupply_new_user')) return <Navigate to="/mi-perfil" replace />;
     return <Dashboard />;
   }
   if (isCapacitorNative()) return <Navigate to="/login" replace />;
   return <Landing />;
+}
+
+/** /admin para el verificador (sin permiso de configuración) va al back office. */
+function AdminIndex() {
+  const { user } = useAuth();
+  const canConfig = user?.role === 'admin' || !!user?.permissions?.includes('config');
+  if (!canConfig) return <Navigate to="/admin/verificaciones" replace />;
+  return <AuditoriaAdmin />;
 }
 
 export default function App() {
@@ -99,6 +110,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
           <Route path="/register" element={user ? <Navigate to="/" replace /> : <Register />} />
+          <Route path="/verificacion/:token" element={<VerificationStatusPage />} />
           <Route path="/" element={<RootRoute />} />
           <Route path="/descargar" element={<DownloadApp />} />
           <Route path="/catalogo" element={<RolesAllowed roles={['admin', 'gerente', 'empleado', 'proveedor_admin']}><Catalog /></RolesAllowed>} />
@@ -119,11 +131,12 @@ export default function App() {
           
           {/* Rutas de Administración */}
           <Route path="/admin" element={<AdminAccessAllowed><AdminLayout /></AdminAccessAllowed>}>
-            <Route index element={<AuditoriaAdmin />} />
+            <Route index element={<AdminIndex />} />
             <Route path="usuarios" element={<UsuariosAdmin />} />
             <Route path="roles" element={<RolesAdmin />} />
             <Route path="permisos" element={<PermisosAdmin />} />
             <Route path="comercios" element={<ComerciosAdmin />} />
+            <Route path="verificaciones" element={<VerificacionesAdmin />} />
           </Route>
           <Route path="/comercio/:type/:id" element={<RequireAuth><ComercioProfile /></RequireAuth>} />
           <Route path="/mi-perfil" element={<RequireAuth><MyProfile /></RequireAuth>} />
@@ -133,7 +146,7 @@ export default function App() {
       </main>
       {user && <BottomNav />}
       {items.length > 0 && <Toasts />}
-      {user && user.role !== 'admin' && <SideCart />}
+      {user && user.role !== 'admin' && user.role !== 'verificador' && <SideCart />}
       {user && <AiFloatingWidget />}
       <CookieConsent />
     </div>

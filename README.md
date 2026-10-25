@@ -10,6 +10,7 @@ Plataforma B2B para la digitalizacion de restaurantes y empresas distribuidoras 
 - **Asistente Xupply IA**: copiloto sobre food cost, compras mayoristas y logistica de entrega (disponible segun el plan).
 - **Planes de suscripción**: basico, medio y premium (Xupply Lite, Pro y Max).
 - **Roles**: admin, gerente, empleado, proveedor (`proveedor_admin`) y domiciliario.
+- **Verificación de cuentas (KYC/KYB)**: registro con RUT, Cámara de Comercio y cédula, con back office de aprobación por rol `verificador`.
 - **Multiplataforma**: PWA instalable, app Android (Capacitor) y aplicacion de escritorio (Electron).
 
 ## Estructura

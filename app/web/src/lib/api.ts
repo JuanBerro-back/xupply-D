@@ -86,7 +86,11 @@ export async function api<T>(path: string, options: RequestInit = {}): Promise<T
     if (body && typeof body === 'object') {
       const errorMsg = body.error || body.message || `Error ${res.status}`;
       const detailMsg = body.detail ? `: ${body.detail}` : '';
-      throw new Error(`${errorMsg}${detailMsg}`);
+      const error = new Error(`${errorMsg}${detailMsg}`);
+      // Datos estructurados del backend (p. ej. estado de verificación).
+      (error as Error & { payload?: unknown; status?: number }).payload = body;
+      (error as Error & { payload?: unknown; status?: number }).status = res.status;
+      throw error;
     }
     if (text && text.includes('FUNCTION_INVOCATION_FAILED')) {
       throw new Error('Error 500 (Vercel): La función backend falló al invocarse.');

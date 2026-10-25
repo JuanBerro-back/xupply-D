@@ -1,11 +1,13 @@
 import { Router } from 'express';
 import bcrypt from 'bcryptjs';
-import { query, hasCustomDbUrl } from '../config/db';
+import { query, pool, hasCustomDbUrl } from '../config/db';
 import { authRequired, roleRequired, signToken } from '../middleware/auth';
 import { emitToUser } from '../lib/realtime';
 import { logAudit } from '../lib/audit';
 import { ensureServerInitialized } from '../lib/migrations';
 import { rateLimit } from '../middleware/rateLimit';
+import { isEntityType, randomVerificationToken, validateNit } from '../lib/verification';
+import { notifyReviewers, sendRegistrationReceived } from '../lib/verificationEmails';
 
 const router = Router();
 
@@ -39,8 +41,12 @@ function buildPayload(row: {
 
 router.post('/register', registerLimiter, async (req, res, next) => {
   try {
-    const { password, name, email, phone, type, category } = req.body;
+    const { password, name, email, phone, type, category, city, department, address } = req.body;
     const username = typeof req.body.username === 'string' ? req.body.username.trim().toLowerCase() : '';
+    const nitCheck = validateNit(req.body.nit);
+    const legalRepName = String(req.body.legal_rep_name ?? '').trim();
+    const legalRepDocument = String(req.body.legal_rep_document ?? '').trim();
+
     if (!username || !password || !name) {
       return res.status(400).json({ error: 'username, password y name son requeridos' });
     }
@@ -53,65 +59,171 @@ router.post('/register', registerLimiter, async (req, res, next) => {
     if (String(password).length < 8) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
     }
-    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email))) {
-      return res.status(400).json({ error: 'El email no es válido' });
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email))) {
+      return res.status(400).json({ error: 'El correo corporativo es obligatorio y debe ser válido' });
     }
-    if (!['restaurante', 'proveedor'].includes(type)) {
+    if (!isEntityType(type)) {
       return res.status(400).json({ error: 'type debe ser restaurante o proveedor' });
     }
+    if (!nitCheck.ok) {
+      return res.status(400).json({ error: nitCheck.reason || 'NIT no válido' });
+    }
+    if (!String(address ?? '').trim()) {
+      return res.status(400).json({ error: 'La dirección de la empresa es obligatoria' });
+    }
+    if (!String(city ?? '').trim()) {
+      return res.status(400).json({ error: 'La ciudad es obligatoria' });
+    }
+    if (!legalRepName) {
+      return res.status(400).json({ error: 'El nombre del representante legal es obligatorio' });
+    }
+    if (!/^\d{6,12}$/.test(legalRepDocument.replace(/[.\s]/g, ''))) {
+      return res.status(400).json({ error: 'La cédula del representante legal no es válida' });
+    }
+
+    const nit = nitCheck.formatted!;
+    const table = type === 'proveedor' ? 'suppliers' : 'restaurants';
+
     const exists = await query('SELECT id FROM users WHERE username = $1', [username]);
     if (exists.rowCount) return res.status(409).json({ error: 'El usuario ya existe' });
 
+    const duplicateNit = await query(`SELECT id FROM ${table} WHERE nit = $1`, [nit]);
+    if (duplicateNit.rowCount) {
+      return res.status(409).json({ error: `Ya existe una cuenta registrada con el NIT ${nit}` });
+    }
+
+    const duplicateEmail = await query(
+      `SELECT
+         (SELECT COUNT(*) FROM users WHERE lower(email) = lower($1)) +
+         (SELECT COUNT(*) FROM restaurants WHERE lower(email) = lower($1)) +
+         (SELECT COUNT(*) FROM suppliers WHERE lower(email) = lower($1)) AS count`,
+      [String(email).trim()]
+    );
+    if (Number(duplicateEmail.rows[0]?.count ?? 0) > 0) {
+      return res.status(409).json({ error: 'Ese correo ya está asociado a una cuenta. Usa uno diferente o inicia sesión.' });
+    }
+
     const hash = await bcrypt.hash(String(password), 10);
-    let roleId = type === 'proveedor' ? 4 : 2;
-    let roleName = type === 'proveedor' ? 'proveedor_admin' : 'gerente';
+    const roleId = type === 'proveedor' ? 4 : 2;
+    const roleName = type === 'proveedor' ? 'proveedor_admin' : 'gerente';
     let restaurantId: number | null = null;
     let supplierId: number | null = null;
     let branchId: number | null = null;
+    const verificationToken = randomVerificationToken();
 
-    if (type === 'proveedor') {
-      const supplier = await query(
-        `INSERT INTO suppliers (name, email, phone, category) VALUES ($1, $2, $3, $4) RETURNING id`,
-        [name, email, phone, category || 'Abarrotes y General']
+    // Entidad + sede + usuario se crean en una sola transacción: si algo falla,
+    // no queda una empresa huérfana ni un usuario sin inquilino.
+    const client = await pool.connect();
+    try {
+      await client.query('BEGIN');
+
+      if (type === 'proveedor') {
+        const supplier = await client.query(
+          `INSERT INTO suppliers
+             (name, nit, email, phone, category, address, city, legal_rep_name, legal_rep_document,
+              verification_status, verification_token, submitted_at, is_active)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,'pendiente',$10,CURRENT_TIMESTAMP,FALSE)
+           RETURNING id`,
+          [
+            name,
+            nit,
+            String(email).trim(),
+            phone || null,
+            category || 'Abarrotes y General',
+            String(address).trim(),
+            String(city).trim(),
+            legalRepName,
+            legalRepDocument,
+            verificationToken,
+          ]
+        );
+        supplierId = supplier.rows[0].id;
+      } else {
+        const restaurant = await client.query(
+          `INSERT INTO restaurants
+             (name, nit, email, phone, category, address, city, department, legal_rep_name, legal_rep_document,
+              verification_status, verification_token, submitted_at, is_active)
+           VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'pendiente',$11,CURRENT_TIMESTAMP,FALSE)
+           RETURNING id`,
+          [
+            name,
+            nit,
+            String(email).trim(),
+            phone || null,
+            category || 'Latino & Comida Típica',
+            String(address).trim(),
+            String(city).trim(),
+            String(department ?? 'Santander').trim() || 'Santander',
+            legalRepName,
+            legalRepDocument,
+            verificationToken,
+          ]
+        );
+        restaurantId = restaurant.rows[0].id;
+        // Se crea la sede principal. El propietario queda como 'gerente' (rol 2),
+        // nunca como administrador global de la plataforma.
+        const branch = await client.query(
+          `INSERT INTO branches (restaurant_id, name, is_main) VALUES ($1, 'Sede Principal', TRUE) RETURNING id`,
+          [restaurantId]
+        );
+        branchId = branch.rows[0].id;
+      }
+
+      // La cuenta nace inactiva: no puede iniciar sesión hasta la aprobación.
+      await client.query(
+        `INSERT INTO users
+           (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id, branch_id, is_active)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,FALSE)`,
+        [username, hash, name, String(email).trim(), phone || null, roleId, restaurantId, supplierId, branchId]
       );
-      supplierId = supplier.rows[0].id;
-    } else {
-      const restaurant = await query(
-        `INSERT INTO restaurants (name, email, phone, category) VALUES ($1, $2, $3, $4) RETURNING id`,
-        [name, email, phone, category || 'Latino & Comida Típica']
-      );
-      restaurantId = restaurant.rows[0].id;
-      // Se crea la sede principal. El propietario queda como 'gerente' (rol 2),
-      // nunca como administrador global de la plataforma.
-      const branch = await query(
-        `INSERT INTO branches (restaurant_id, name, is_main) VALUES ($1, 'Sede Principal', TRUE) RETURNING id`,
-        [restaurantId]
-      );
-      branchId = branch.rows[0].id;
+
+      await client.query('COMMIT');
+    } catch (err) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw err;
+    } finally {
+      client.release();
     }
 
-    const user = await query(
-      `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id, branch_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-       RETURNING id, username, role_id, restaurant_id, supplier_id, branch_id, token_version`,
-      [username, hash, name, email, phone, roleId, restaurantId, supplierId, branchId]
+    await logAudit(
+      req,
+      'register_pending_verification',
+      type === 'proveedor' ? 'supplier' : 'restaurant',
+      type === 'proveedor' ? supplierId! : restaurantId!,
+      null,
+      { username, role: roleName, name, nit, email }
     );
-    const row = user.rows[0];
-    let permissions: string[] = [];
-    if (roleName === 'admin') {
-      const all = await query('SELECT name FROM permissions');
-      permissions = all.rows.map((r: any) => r.name);
-    } else {
-      const perms = await query(
-        `SELECT p.name FROM role_permissions rp JOIN permissions p ON p.id = rp.permission_id WHERE rp.role_id = $1`,
-        [roleId]
-      );
-      permissions = perms.rows.map((r: any) => r.name);
-    }
-    const payload = buildPayload({ ...row, role: roleName });
-    await logAudit(req, 'register', 'user', row.id, null, { username, role: roleName, name });
-    res.status(201).json({ token: signToken(payload), user: { ...payload, permissions } });
+
+    void sendRegistrationReceived({
+      kind: type,
+      name,
+      email: String(email).trim(),
+      token: verificationToken,
+    }).catch((err) => console.warn('[Auth Register] No se pudo enviar la confirmación:', err));
+
+    void notifyReviewers({
+      kind: type,
+      name,
+      nit,
+      city: String(city).trim(),
+      applicant: name,
+      token: verificationToken,
+    }).catch((err) => console.warn('[Auth Register] No se pudo avisar al equipo:', err));
+
+    res.status(201).json({
+      pending: true,
+      entity_type: type,
+      name,
+      verification_status: 'pendiente',
+      verification_token: verificationToken,
+      message:
+        'Registro recibido. La cuenta queda en revisión hasta que un verificador apruebe los documentos.',
+    });
   } catch (err) {
+    const code = (err as { code?: string })?.code;
+    if (code === '23505') {
+      return res.status(409).json({ error: 'Ya existe una cuenta con esos datos (NIT o correo duplicado).' });
+    }
     next(err);
   }
 });
@@ -131,25 +243,24 @@ router.post('/login', loginLimiter, async (req, res, next) => {
     }
 
     let result;
+    const loginSql = `SELECT u.*, r.name AS role,
+                             COALESCE(rest.verification_status, sup.verification_status) AS entity_verification_status,
+                             COALESCE(rest.verification_reason, sup.verification_reason) AS entity_verification_reason,
+                             COALESCE(rest.verification_token, sup.verification_token) AS entity_verification_token
+                        FROM users u
+                        JOIN roles r ON r.id = u.role_id
+                        LEFT JOIN restaurants rest ON rest.id = u.restaurant_id
+                        LEFT JOIN suppliers sup ON sup.id = u.supplier_id
+                       WHERE u.username = $1`;
     try {
-      result = await query(
-        `SELECT u.*, r.name AS role FROM users u
-         JOIN roles r ON r.id = u.role_id
-         WHERE u.username = $1 AND u.is_active = TRUE`,
-        [username]
-      );
+      result = await query(loginSql, [username]);
     } catch (queryErr: any) {
       console.error('[Auth Login] Error de base de datos', queryErr?.code || queryErr?.message);
       if (queryErr?.message?.includes('users') || queryErr?.code === '42P01') {
         console.warn('[Auth Login] Tabla users no encontrada. Inicializando BD y reintentando...');
         try {
           await ensureServerInitialized();
-          result = await query(
-            `SELECT u.*, r.name AS role FROM users u
-             JOIN roles r ON r.id = u.role_id
-             WHERE u.username = $1 AND u.is_active = TRUE`,
-            [username]
-          );
+          result = await query(loginSql, [username]);
         } catch (initErr: any) {
           console.error('[Auth Login] Error inicializando esquema', initErr?.code || initErr?.message);
           return res.status(500).json({ error: 'Error interno del servidor' });
@@ -170,6 +281,27 @@ router.post('/login', loginLimiter, async (req, res, next) => {
       ok = false;
     }
     if (!ok) return res.status(401).json({ error: 'Credenciales inválidas' });
+
+    // La contraseña es correcta: ahora sí se puede informar el estado de la
+    // verificación sin filtrar la existencia de cuentas a terceros.
+    const verificationStatus = row.entity_verification_status as string | null;
+    if (verificationStatus && verificationStatus !== 'verificado') {
+      const pending = verificationStatus === 'pendiente';
+      const correction = verificationStatus === 'subsanacion';
+      return res.status(403).json({
+        code: pending ? 'VERIFICATION_PENDING' : correction ? 'VERIFICATION_CORRECTION' : 'VERIFICATION_REJECTED',
+        verification_status: verificationStatus,
+        verification_reason: row.entity_verification_reason ?? null,
+        verification_token: row.entity_verification_token ?? null,
+        error: pending
+          ? 'Tu cuenta está en revisión. Te avisaremos por correo cuando un verificador la apruebe.'
+          : correction
+          ? 'Necesitamos que corrijas documentos antes de activar tu cuenta. Revisa el correo que te enviamos.'
+          : `Tu registro no fue aprobado. Motivo: ${row.entity_verification_reason || 'no especificado'}`,
+      });
+    }
+
+    if (!row.is_active) return res.status(401).json({ error: 'Credenciales inválidas' });
 
     let permissions: string[] = [];
     if (row.role === 'admin') {

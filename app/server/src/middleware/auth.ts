@@ -85,14 +85,32 @@ export async function authRequired(req: Request, res: Response, next: NextFuncti
     // instante (antes el JWT podía seguir diciendo lo contrario hasta caducar).
     const userCheck = await query(
       `SELECT u.id, u.username, u.name, u.token_version, u.is_active,
-              u.role_id, r.name AS role, u.restaurant_id, u.supplier_id, u.branch_id
+              u.role_id, r.name AS role, u.restaurant_id, u.supplier_id, u.branch_id,
+              COALESCE(rest.verification_status, sup.verification_status, 'verificado') AS entity_verification_status
          FROM users u
          JOIN roles r ON r.id = u.role_id
+         LEFT JOIN restaurants rest ON rest.id = u.restaurant_id
+         LEFT JOIN suppliers sup ON sup.id = u.supplier_id
         WHERE u.id = $1`,
       [decoded.id]
     );
 
-    if (!userCheck.rowCount || !userCheck.rows[0].is_active) {
+    if (!userCheck.rowCount) {
+      return res.status(401).json({ error: 'Cuenta inactiva o eliminada' });
+    }
+
+    // Defensa en profundidad: aunque el usuario estuviera activo, una entidad
+    // pendiente, en subsanación o rechazada no puede operar.
+    const entityStatus = userCheck.rows[0].entity_verification_status as string | null;
+    if (entityStatus && entityStatus !== 'verificado') {
+      return res.status(403).json({
+        error: 'La cuenta de la empresa está pendiente de verificación',
+        code: 'VERIFICATION_REQUIRED',
+        verification_status: entityStatus,
+      });
+    }
+
+    if (!userCheck.rows[0].is_active) {
       return res.status(401).json({ error: 'Cuenta inactiva o eliminada' });
     }
 

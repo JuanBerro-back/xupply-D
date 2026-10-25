@@ -16,7 +16,7 @@ export default function BottomNav() {
   const isDomiciliario = user.role === 'domiciliario';
   const isAdmin = user.role === 'admin';
 
-  if (isAdmin) return null; // Admin uses desktop layout
+  if (isAdmin || user.role === 'verificador') return null; // Admin/back office usan layout de escritorio
 
   const isActive = (path: string) => {
     if (path === '/' && location.pathname === '/') return true;
