@@ -50,4 +50,10 @@ jobs:
 
       - name: Auditar dependencias de producción
         working-directory: app/server
-        run: npm audit --omit=dev --audit-level=high
+        # `--prefix .` evita que npm suba al paquete raiz del workspace (sin
+        # lockfile versionado) y falle con ENOLOCK en CI.
+        run: npm --prefix . audit --omit=dev --audit-level=high
+
+      - name: Auditar dependencias de produccion del frontend
+        working-directory: app/web
+        run: npm --prefix . audit --omit=dev --audit-level=high
