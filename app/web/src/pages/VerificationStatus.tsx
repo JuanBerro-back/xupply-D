@@ -45,7 +45,7 @@ export default function VerificationStatus() {
   const upload = async (docType: VerificationDocType, file: File) => {
     if (!data) return;
     if (file.size > MAX_DOC_BYTES) {
-      setError(`${VERIFICATION_DOC_LABELS[docType]}: el archivo supera 4 MB.`);
+      setError(`${VERIFICATION_DOC_LABELS[docType]}: el archivo supera 3 MB.`);
       return;
     }
     setError('');

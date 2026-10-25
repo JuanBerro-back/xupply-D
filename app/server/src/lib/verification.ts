@@ -22,8 +22,8 @@ export const DOC_LABELS: Record<DocType, string> = {
   cedula_representante: 'Cédula del representante legal',
 };
 
-/** 4 MB por documento; el cuerpo base64 viaja en una petición por archivo. */
-export const MAX_DOC_BYTES = 4 * 1024 * 1024;
+/** 3 MB por documento; el cuerpo base64 viaja en una petición por archivo. */
+export const MAX_DOC_BYTES = 3 * 1024 * 1024;
 
 export const VERIFICATION_STATUSES = ['pendiente', 'subsanacion', 'verificado', 'rechazado'] as const;
 export type VerificationStatus = (typeof VERIFICATION_STATUSES)[number];
@@ -128,7 +128,7 @@ export function decodeDocument(
 
   if (!buffer.length) return { ok: false, error: 'El archivo está vacío' };
   if (buffer.length > MAX_DOC_BYTES) {
-    return { ok: false, error: 'Cada documento debe pesar máximo 4 MB' };
+    return { ok: false, error: 'Cada documento debe pesar máximo 3 MB' };
   }
 
   const mime = detectDocumentMime(buffer);

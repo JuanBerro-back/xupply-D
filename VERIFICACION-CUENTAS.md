@@ -63,7 +63,7 @@ Crear el primer verificador:
 | `POST` | `/api/verification/public/:token/submit` | Reenviar tras corrección |
 
 Los documentos viajan en base64 (`{ doc_type, file_name, data }`), uno por
-petición (máx. 4 MB). Se valida el tipo real por *magic bytes* (PDF/JPG/PNG) y se
+petición (máx. 3 MB). Se valida el tipo real por *magic bytes* (PDF/JPG/PNG) y se
 rechazan HTML/SVG y archivos ejecutables.
 
 ### Back office (`authRequired` + `verificacion`)
@@ -117,8 +117,10 @@ junto con las demás (`lib/migrations.ts`).
 ## Almacenamiento de documentos
 
 Los archivos se guardan en PostgreSQL (`BYTEA`) para que funcione igual en
-Vercel, Render o VPS sin depender de disco efímero. Límites: 4 MB por documento,
-3 documentos por cuenta. El acceso solo es posible con:
+Vercel, Render o VPS sin depender de disco efímero. Límites: 3 MB por documento,
+3 documentos por cuenta. El límite de 3 MB deja margen para el ~33 % extra que
+añade base64 y para el tope de 4,5 MB por petición de Vercel. El acceso solo es
+posible con:
 
 - token público del expediente (solicitante), o
 - sesión de verificador/admin con permiso `verificacion`.

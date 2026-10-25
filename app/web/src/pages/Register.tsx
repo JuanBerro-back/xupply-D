@@ -120,7 +120,7 @@ export default function Register() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (file.size > MAX_DOC_BYTES) {
-      setError(`${VERIFICATION_DOC_LABELS[doc]}: el archivo supera 4 MB.`);
+      setError(`${VERIFICATION_DOC_LABELS[doc]}: el archivo supera 3 MB.`);
       return;
     }
     setError('');
@@ -504,7 +504,7 @@ export default function Register() {
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-[11px] text-amber-900 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-200">
                 <p className="font-bold">Documentos obligatorios</p>
                 <p className="mt-0.5">
-                  PDF, JPG o PNG · máximo 4 MB por archivo. Los revisa una persona del equipo de verificación.
+                  PDF, JPG o PNG · máximo 3 MB por archivo. Los revisa una persona del equipo de verificación.
                 </p>
               </div>
 

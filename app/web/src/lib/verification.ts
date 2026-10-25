@@ -10,7 +10,7 @@ export const VERIFICATION_DOC_LABELS: Record<string, string> = {
 export const VERIFICATION_DOCS = ['rut', 'camara_comercio', 'cedula_representante'] as const;
 export type VerificationDocType = (typeof VERIFICATION_DOCS)[number];
 
-export const MAX_DOC_BYTES = 4 * 1024 * 1024;
+export const MAX_DOC_BYTES = 3 * 1024 * 1024;
 export const ALLOWED_DOC_TYPES = ['application/pdf', 'image/jpeg', 'image/png'];
 
 export const VERIFICATION_STATUS_META: Record<
@@ -57,7 +57,7 @@ export function fileToBase64(file: File): Promise<string> {
       return;
     }
     if (file.size > MAX_DOC_BYTES) {
-      reject(new Error('Cada documento debe pesar máximo 4 MB'));
+      reject(new Error('Cada documento debe pesar máximo 3 MB'));
       return;
     }
     const reader = new FileReader();
