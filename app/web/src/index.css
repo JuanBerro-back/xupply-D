@@ -63,3 +63,140 @@ body {
   border-color: #334155;
   color: #f8fafc;
 }
+/* ------------------------------------------------------------------ */
+/* Mapa de logistica (DeliveryMap)                                     */
+/* ------------------------------------------------------------------ */
+
+/* Los tiles claros de OSM se invierten en modo oscuro para no
+   deslumbrar de noche, manteniendo legibles las etiquetas. */
+.dark .xupply-tiles {
+  filter: invert(1) hue-rotate(180deg) brightness(0.92) contrast(0.88) saturate(0.55);
+}
+
+.xupply-map-icon {
+  background: transparent;
+  border: none;
+}
+
+.xupply-vehicle {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+}
+
+.xupply-vehicle__pulse {
+  position: absolute;
+  inset: 4px;
+  border-radius: 9999px;
+  background: rgba(2, 132, 199, 0.25);
+  animation: xupply-pulse 2s ease-out infinite;
+}
+
+.xupply-vehicle__dot {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 9999px;
+  color: #ffffff;
+  background: #0284c7;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 6px 16px -4px rgba(15, 23, 42, 0.55);
+  transition: transform 180ms ease;
+}
+
+.xupply-vehicle__dot svg {
+  width: 14px;
+  height: 14px;
+}
+
+.xupply-vehicle.is-active .xupply-vehicle__dot {
+  transform: scale(1.18);
+  background: #0369a1;
+}
+
+.xupply-destination {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #ffffff;
+}
+
+.xupply-destination svg {
+  position: relative;
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  border-radius: 9999px;
+  background: #059669;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 8px 20px -6px rgba(5, 150, 105, 0.7);
+}
+
+.xupply-destination__ring {
+  position: absolute;
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  border: 2px solid rgba(5, 150, 105, 0.55);
+  animation: xupply-ring 2.2s ease-out infinite;
+}
+
+@keyframes xupply-pulse {
+  0% { transform: scale(0.7); opacity: 0.85; }
+  70% { transform: scale(1.35); opacity: 0; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+@keyframes xupply-ring {
+  0% { transform: scale(0.75); opacity: 0.9; }
+  70% { transform: scale(1.4); opacity: 0; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* La atribucion de OpenStreetMap debe quedar visible por encima del HUD. */
+.leaflet-control-attribution {
+  z-index: 1002 !important;
+  font-size: 9px !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  border-radius: 6px 0 0 0;
+  padding: 1px 5px !important;
+}
+
+.dark .leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.82) !important;
+  color: #cbd5e1 !important;
+}
+
+.dark .leaflet-control-attribution a {
+  color: #7dd3fc !important;
+}
+
+/* Popups legibles en ambos temas y sin bordes duros. */
+.leaflet-popup-content-wrapper {
+  border-radius: 12px;
+  box-shadow: 0 12px 32px -12px rgba(15, 23, 42, 0.4);
+}
+
+.dark .leaflet-popup-content-wrapper,
+.dark .leaflet-popup-tip {
+  background: #1e293b;
+  color: #f8fafc;
+}
+
+/* Evita que el mapa capture el scroll de la hoja inferior en movil. */
+.leaflet-container {
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Pantalla completa: respeta el notch en iOS/Android. */
+.xupply-fullscreen-map {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+

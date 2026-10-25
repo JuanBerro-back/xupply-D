@@ -194,8 +194,17 @@ export interface Delivery {
   driver_name: string;
   driver_phone?: string | null;
   restaurant_phone?: string | null;
+  restaurant_address?: string | null;
+  supplier_name?: string | null;
+  supplier_phone?: string | null;
   notes?: string | null;
   confirmation_code?: string | null;
+  /** El backend lo oculta a los usuarios del restaurante y envía has_security_code. */
+  has_security_code?: boolean;
+  order_total?: number | string | null;
+  order_notes?: string | null;
+  created_by_name?: string | null;
+  created_by_phone?: string | null;
   restaurant_name: string;
   delivery_address: string;
   status: 'asignado' | 'en_camino' | 'llegando' | 'entregado' | 'fallido';
@@ -203,6 +212,28 @@ export interface Delivery {
   actual_delivery_time: string;
   created_at: string;
   items: DeliveryItem[];
+}
+
+/** Resumen de la orden que se muestra en el HUD del mapa (destino / propietario / pedido). */
+export interface DeliveryDetails {
+  order_items: Array<{
+    id: number;
+    name: string;
+    quantity: number;
+    unit?: string | null;
+    unit_price?: number | string | null;
+    subtotal?: number | string | null;
+  }>;
+  items: DeliveryItem[];
+  order_total?: number | string | null;
+  notes?: string | null;
+  restaurant_name?: string | null;
+  restaurant_phone?: string | null;
+  restaurant_address?: string | null;
+  supplier_name?: string | null;
+  supplier_phone?: string | null;
+  created_by_name?: string | null;
+  created_by_phone?: string | null;
 }
 
 export interface DeliveryItem {

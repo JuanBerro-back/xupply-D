@@ -1,21 +1,17 @@
-import { useEffect, useState, useMemo, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { useCallback, useEffect, useState, useMemo, useRef } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../lib/api';
 import { getExactLocation, watchExactLocation, requestLocationPermissions } from '../lib/location';
 import { useAuth } from '../context/AuthContext';
-import { Delivery, Vehicle } from '../types';
+import { Delivery, DeliveryDetails, Vehicle } from '../types';
 import { DELIVERY_STATUS, formatDate } from '../lib/constants';
 import Modal from '../components/Modal';
 import { useNotifications } from '../context/NotificationContext';
 import { getSocket } from '../lib/socket';
-import { CircleMarker, MapContainer, Popup, TileLayer, Polyline, useMap } from 'react-leaflet';
-import 'leaflet/dist/leaflet.css';
-import {
-  resolveBucaramangaCoords,
-  resolveDispatchHub,
-  DEMO_BUCARAMANGA_DELIVERIES,
-} from '../lib/bucaramangaGeo';
+import DeliveryMap from '../components/DeliveryMap';
+import { coordOf, distanceKm, formatDistance } from '../lib/geo';
 import { IconPin, IconKey } from '../components/Icons';
+import { ArrowUpDown, RefreshCw, Search, X } from 'lucide-react';
 
 type PositionEvent = {
   delivery_id: number;
@@ -28,125 +24,24 @@ type PositionEvent = {
   status?: string;
   driver_name?: string;
 };
-const DELIVERY_STORAGE_KEY = 'xupply_deliveries_route_v2';
-
-// Fórmula de Haversine para calcular distancia en kilómetros entre dos coordenadas GPS
-function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Radio de la Tierra en km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+// Las posiciones se toman SOLO de datos reales del backend. Si una entrega
+// no tiene coordenadas, la vista lo indica en lugar de inventar un punto.
+function driverPositionFor(
+  delivery: Delivery,
+  myCoords?: { lat: number; lng: number } | null
+): { lat: number; lng: number } | null {
+  return coordOf(delivery.vehicle_lat, delivery.vehicle_lng) ?? myCoords ?? null;
 }
 
-function formatDistance(km: number): string {
-  if (km < 1) return `${Math.round(km * 1000)} m`;
-  return `${km.toFixed(1)} km`;
+function destinationPositionFor(delivery: Delivery): { lat: number; lng: number } | null {
+  return coordOf(delivery.dest_lat, delivery.dest_lng);
 }
 
-function formatEta(km: number, speed?: number | null): string {
-  const effectiveSpeed = speed && speed > 5 ? speed : 25; // 25 km/h promedio en ciudad
-  const minutes = Math.max(1, Math.round((km / effectiveSpeed) * 60));
-  return `~${minutes} min`;
-}
-
-function driverPositionFor(delivery: Delivery, myCoords?: { lat: number; lng: number } | null, isMyDelivery = false) {
-  if (isMyDelivery && myCoords) return { lat: myCoords.lat, lng: myCoords.lng, name: 'Mi Posición Actual' };
-  const lat = Number(delivery.vehicle_lat);
-  const lng = Number(delivery.vehicle_lng);
-  if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) {
-    return { lat, lng, name: delivery.vehicle_name || 'Vehículo en ruta' };
-  }
-  if (myCoords) return { lat: myCoords.lat, lng: myCoords.lng, name: 'Mi Posición Actual' };
-  // Hub real de despacho en Bucaramanga
-  const hub = resolveDispatchHub(delivery.id || delivery.order_id || 1);
-  return { lat: hub.lat, lng: hub.lng, name: `${hub.name} (${hub.sector})` };
-}
-
-function destinationPositionFor(delivery: Delivery) {
-  const lat = Number(delivery.dest_lat);
-  const lng = Number(delivery.dest_lng);
-  if (Number.isFinite(lat) && Number.isFinite(lng) && lat !== 0) {
-    return {
-      lat,
-      lng,
-      name: delivery.restaurant_name,
-      address: delivery.delivery_address,
-      sector: '',
-    };
-  }
-  // Resolver punto real de Bucaramanga por dirección o id
-  const dest = resolveBucaramangaCoords(delivery.delivery_address, delivery.id || delivery.order_id || 1);
-  return {
-    lat: dest.lat,
-    lng: dest.lng,
-    name: dest.name,
-    address: dest.address,
-    sector: dest.sector,
-  };
-}
-
-// Componente para encuadrar la ruta o centrar el mapa suavemente
-function MapRecenter({
-  center,
-  bounds,
-  zoom,
-}: {
-  center?: [number, number];
-  bounds?: [[number, number], [number, number]];
-  zoom?: number;
-}) {
-  const map = useMap();
-  useEffect(() => {
-    if (bounds && bounds.length === 2 && !zoom) {
-      try {
-        map.fitBounds(bounds, { padding: [60, 60], maxZoom: 15, animate: true });
-      } catch {
-        if (center) map.setView(center, map.getZoom(), { animate: true });
-      }
-    } else if (center) {
-      map.setView(center, zoom || map.getZoom(), { animate: true });
-    }
-  }, [
-    center ? center[0] : null,
-    center ? center[1] : null,
-    bounds ? bounds[0][0] : null,
-    bounds ? bounds[0][1] : null,
-    bounds ? bounds[1][0] : null,
-    bounds ? bounds[1][1] : null,
-    zoom,
-    map,
-  ]);
-  return null;
-}
-
-// Botón flotante dentro del mapa para centrar en la ubicación actual del usuario
-function RecenterControl({ target }: { target: { lat: number; lng: number } | null }) {
-  const map = useMap();
-  if (!target) return null;
-  return (
-    <div className="leaflet-top leaflet-right !mt-3 !mr-3 z-[999] pointer-events-auto">
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          map.setView([target.lat, target.lng], 16, { animate: true });
-        }}
-        className="flex items-center gap-1.5 rounded-xl bg-white/95 px-3 py-2 text-xs font-bold text-blue-700 shadow-lg border border-blue-200 hover:bg-blue-50 active:scale-95 transition backdrop-blur-sm cursor-pointer"
-        title="Centrar mapa en mi ubicación actual"
-      >
-        <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        <span>Mi Ubicación</span>
-      </button>
-    </div>
-  );
+function calculateDistanceKm(
+  a: { lat: number; lng: number },
+  b: { lat: number; lng: number }
+): number {
+  return distanceKm(a, b);
 }
 
 function getVehicleIcon(type?: string) {
@@ -188,326 +83,11 @@ function getVehicleLabel(type?: string) {
   return 'Moto';
 }
 
-function LiveMap({
-  deliveries,
-  selected,
-  onSelect,
-  myCoords,
-  isDriver,
-  liveSpeed,
-  gpsAccuracy,
-  liveEta,
-}: {
-  deliveries: Delivery[];
-  selected: Delivery | null;
-  onSelect: (delivery: Delivery) => void;
-  myCoords: { lat: number; lng: number } | null;
-  isDriver: boolean;
-  liveSpeed: number | null;
-  gpsAccuracy: number | null;
-  liveEta?: number | null;
-}) {
-  const active = deliveries.filter((d) => d.status !== 'entregado' && d.status !== 'fallido');
-
-  // Si hay una entrega seleccionada, calculamos la línea de proximidad DiDi
-  const activeTarget = selected || (isDriver && active.length > 0 ? active[0] : null);
-
-  const proximityData = useMemo(() => {
-    if (!activeTarget) return null;
-    const isMy = isDriver && (activeTarget.driver_id != null || active.length > 0);
-    const driverPos = driverPositionFor(activeTarget, myCoords, isMy);
-    const destPos = destinationPositionFor(activeTarget);
-    const distKm = calculateDistanceKm(driverPos.lat, driverPos.lng, destPos.lat, destPos.lng);
-    return {
-      driverPos,
-      destPos,
-      distKm,
-      originName: driverPos.name,
-      destName: destPos.name,
-      destAddress: destPos.address || activeTarget.delivery_address,
-      destSector: destPos.sector,
-      route: [
-        [driverPos.lat, driverPos.lng] as [number, number],
-        [destPos.lat, destPos.lng] as [number, number],
-      ] as [[number, number], [number, number]],
-    };
-  }, [activeTarget, myCoords, isDriver, active.length]);
-
-  const [osrmRoute, setOsrmRoute] = useState<[number, number][] | null>(null);
-
-  useEffect(() => {
-    if (!proximityData) {
-      setOsrmRoute(null);
-      return;
-    }
-    const fetchRoute = async () => {
-      const p = proximityData;
-      const url = `https://router.project-osrm.org/route/v1/driving/${p.driverPos.lng},${p.driverPos.lat};${p.destPos.lng},${p.destPos.lat}?overview=full&geometries=geojson`;
-      try {
-        const res = await fetch(url);
-        const data = await res.json();
-        if (data.code === 'Ok' && data.routes?.length > 0) {
-          const coords = data.routes[0].geometry.coordinates.map((c: [number, number]) => [c[1], c[0]] as [number, number]);
-          setOsrmRoute(coords);
-        }
-      } catch (e) {
-        console.error('OSRM fail', e);
-      }
-    };
-    fetchRoute();
-  }, [proximityData?.driverPos.lat, proximityData?.driverPos.lng, proximityData?.destPos.lat, proximityData?.destPos.lng]);
-
-  const mapCenter: [number, number] = proximityData
-    ? [proximityData.driverPos.lat, proximityData.driverPos.lng]
-    : myCoords
-    ? [myCoords.lat, myCoords.lng]
-    : [7.1193, -73.1227];
-
-  return (
-    <div className="relative min-h-[440px] overflow-hidden rounded-2xl border border-slate-300 shadow-md">
-      <MapContainer center={mapCenter} zoom={13} className="h-[440px] w-full">
-        <TileLayer
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        {proximityData ? (
-          <MapRecenter 
-            bounds={activeTarget?.status === 'en_camino' ? undefined : proximityData.route} 
-            center={activeTarget?.status === 'en_camino' && myCoords ? [myCoords.lat, myCoords.lng] : [proximityData.driverPos.lat, proximityData.driverPos.lng]}
-            zoom={activeTarget?.status === 'en_camino' ? 17 : undefined}
-          />
-        ) : myCoords ? (
-          <MapRecenter center={[myCoords.lat, myCoords.lng]} zoom={17} />
-        ) : null}
-
-        <RecenterControl target={myCoords} />
-
-        {/* Línea de proximidad OSRM o respaldo recto */}
-        {proximityData && (
-          <>
-            {osrmRoute ? (
-              <Polyline
-                positions={osrmRoute}
-                pathOptions={{ color: '#2563eb', weight: 6, opacity: 0.85 }}
-              />
-            ) : (
-              <>
-                <Polyline
-                  positions={proximityData.route}
-                  pathOptions={{ color: '#1e40af', weight: 6, opacity: 0.3 }}
-                />
-                <Polyline
-                  positions={proximityData.route}
-                  pathOptions={{ color: '#2563eb', weight: 4, dashArray: '8, 8', opacity: 0.95 }}
-                />
-              </>
-            )}
-          </>
-        )}
-
-        {/* Marcador de Mi Ubicación Actual (Exactitud GPS en tiempo real) */}
-        {myCoords && (
-          <>
-            {/* Halo de precisión GPS en metros */}
-            <CircleMarker
-              center={[myCoords.lat, myCoords.lng]}
-              radius={Math.min(Math.max((gpsAccuracy || 20) / 2, 12), 50)}
-              pathOptions={{
-                color: '#2563eb',
-                weight: 1.5,
-                fillColor: '#3b82f6',
-                fillOpacity: 0.15,
-                dashArray: '3, 3',
-              }}
-            />
-
-            {/* Punto azul de usuario con borde blanco estilo Google Maps / DiDi */}
-            <CircleMarker
-              center={[myCoords.lat, myCoords.lng]}
-              radius={9}
-              pathOptions={{
-                color: '#ffffff',
-                weight: 3,
-                fillColor: '#2563eb',
-                fillOpacity: 1,
-              }}
-            >
-              <Popup>
-                <div className="text-xs p-1">
-                  <p className="font-bold text-blue-700 flex items-center gap-1.5">
-                    <span className="h-2 w-2 rounded-full bg-blue-600 animate-pulse" />
-                    <span>Mi Posición Actual</span>
-                  </p>
-                  <p className="text-[11px] text-slate-600">
-                    {myCoords.lat.toFixed(6)}, {myCoords.lng.toFixed(6)}
-                  </p>
-                  {gpsAccuracy != null && (
-                    <p className="text-[11px] text-emerald-600 font-semibold">
-                      Exactitud GPS: ±{gpsAccuracy}m
-                    </p>
-                  )}
-                  {liveSpeed != null && liveSpeed > 0 && (
-                    <p className="text-[11px] text-slate-700">
-                      Velocidad: {liveSpeed} km/h
-                    </p>
-                  )}
-                </div>
-              </Popup>
-            </CircleMarker>
-          </>
-        )}
-
-        {/* Marcadores de todas las entregas activas */}
-        {active.map((delivery) => {
-          const isSelected = activeTarget?.id === delivery.id;
-          const driverPos = driverPositionFor(delivery, myCoords, isDriver);
-          const destPos = destinationPositionFor(delivery);
-
-          return (
-            <div key={delivery.id}>
-              {/* Marcador del Domiciliario */}
-              <CircleMarker
-                center={[driverPos.lat, driverPos.lng]}
-                radius={isSelected ? 13 : 9}
-                pathOptions={{
-                  color: '#ffffff',
-                  weight: 3,
-                  fillColor: '#0284c7',
-                  fillOpacity: 0.95,
-                }}
-                eventHandlers={{ click: () => onSelect(delivery) }}
-              >
-                <Popup>
-                  <div className="text-xs">
-                    <p className="font-bold text-sky-700">Repartidor en ruta</p>
-                    <p className="font-semibold">{delivery.driver_name || 'Sin asignar'}</p>
-                    <p>Pedido: {delivery.order_code}</p>
-                    {liveSpeed != null && <p>Velocidad: {liveSpeed} km/h</p>}
-                  </div>
-                </Popup>
-              </CircleMarker>
-
-              {/* Marcador de Destino */}
-              {isSelected && (
-                <CircleMarker
-                  center={[destPos.lat, destPos.lng]}
-                  radius={12}
-                  pathOptions={{
-                    color: '#ffffff',
-                    weight: 3,
-                    fillColor: '#059669',
-                    fillOpacity: 0.95,
-                  }}
-                >
-                  <Popup>
-                    <div className="text-xs">
-                      <p className="font-bold text-emerald-700">Destino de Entrega</p>
-                      <p className="font-semibold">{delivery.restaurant_name}</p>
-                      <p className="text-slate-600">{delivery.delivery_address}</p>
-                    </div>
-                  </Popup>
-                </CircleMarker>
-              )}
-            </div>
-          );
-        })}
-      </MapContainer>
-
-      {/* Tarjeta flotante superior tipo DiDi / Uber Eats con línea de proximidad */}
-      {activeTarget && proximityData && (
-        <div className="absolute top-3 left-3 right-3 sm:right-auto sm:max-w-md rounded-xl bg-slate-900/95 p-3.5 text-white shadow-2xl backdrop-blur-md z-[1000] border border-white/10">
-          <div className="flex items-center justify-between gap-2 pb-2 border-b border-slate-700/80">
-            <span className="flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
-              <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              RECORRIDO EN VIVO EN BUCARAMANGA
-            </span>
-            <span className="text-[11px] text-slate-400 font-mono font-semibold">{activeTarget.order_code}</span>
-          </div>
-
-          <div className="mt-2.5 flex items-center justify-between gap-3">
-            <div>
-              <p className="text-[11px] text-slate-400 font-medium">Distancia de ruta:</p>
-              <p className="text-xl font-extrabold text-blue-400 flex items-baseline gap-2">
-                {formatDistance(proximityData.distKm)}
-                <span className="text-xs font-normal text-emerald-300">
-                  {liveEta != null ? `~${liveEta} min (servidor)` : formatEta(proximityData.distKm, liveSpeed)}
-                </span>
-              </p>
-            </div>
-            <a
-              href={`https://www.google.com/maps/dir/?api=1&origin=${proximityData.driverPos.lat},${proximityData.driverPos.lng}&destination=${proximityData.destPos.lat},${proximityData.destPos.lng}`}
-              target="_blank"
-              rel="noreferrer"
-              className="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700 shadow flex items-center gap-1.5 shrink-0 transition active:scale-95"
-              title="Abrir navegación en Google Maps"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
-              <span>Navegar GPS</span>
-            </a>
-          </div>
-
-          <div className="mt-2.5 space-y-1 text-xs border-t border-slate-800 pt-2">
-            <div className="flex items-start gap-1.5 text-slate-300">
-              <span className="h-2 w-2 mt-1 rounded-full bg-blue-400 shrink-0" />
-              <div className="truncate">
-                <span className="text-slate-400 font-medium">Origen: </span>
-                <span className="font-semibold text-slate-200">
-                  {proximityData.originName || activeTarget.vehicle_name || 'Despacho Bucaramanga'}
-                </span>
-              </div>
-            </div>
-            <div className="flex items-start gap-1.5 text-slate-300">
-              <span className="h-2 w-2 mt-1 rounded-full bg-emerald-400 shrink-0" />
-              <div className="truncate">
-                <span className="text-slate-400 font-medium">Destino: </span>
-                <span className="font-semibold text-slate-200">{activeTarget.restaurant_name}</span>
-                {proximityData.destSector && (
-                  <span className="text-blue-300 text-[10px] ml-1 font-semibold">({proximityData.destSector})</span>
-                )}
-                <span className="text-slate-400 text-[11px] block truncate">{activeTarget.delivery_address}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Estado inferior de pedidos activos */}
-      <div className="absolute bottom-3 left-3 rounded-lg bg-white/95 px-3 py-1.5 text-xs shadow-md border z-[1000] flex items-center gap-2">
-        {active.length > 0 ? (
-          <>
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-ping" />
-            <span className="font-semibold text-slate-800">{active.length} entrega(s) en ruta</span>
-          </>
-        ) : (
-          <>
-            <span className="h-2 w-2 rounded-full bg-blue-500" />
-            <span className="font-semibold text-slate-700">0 entregas asignadas · GPS en vivo</span>
-          </>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function loadPersistedDeliveries(): Delivery[] {
-  try {
-    const raw = localStorage.getItem(DELIVERY_STORAGE_KEY);
-    if (!raw) return DEMO_BUCARAMANGA_DELIVERIES;
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed) || parsed.length === 0) return DEMO_BUCARAMANGA_DELIVERIES;
-    const valid = parsed.filter((d): d is Delivery => Boolean(d && typeof d?.id === 'number'));
-    return valid.length > 0 ? valid : DEMO_BUCARAMANGA_DELIVERIES;
-  } catch {
-    return DEMO_BUCARAMANGA_DELIVERIES;
-  }
-}
-
-export default function Deliveries() {
+export default function Deliveries({ focusMode = false }: { focusMode?: boolean } = {}) {
   const { user } = useAuth();
   const { push } = useNotifications();
-  const [deliveries, setDeliveries] = useState<Delivery[]>(loadPersistedDeliveries);
+  const navigate = useNavigate();
+  const [deliveries, setDeliveries] = useState<Delivery[]>([]);
   const [selected, setSelected] = useState<Delivery | null>(null);
   const [modalVehicle, setModalVehicle] = useState(false);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -515,12 +95,22 @@ export default function Deliveries() {
   const [pendingOrders, setPendingOrders] = useState<any[]>([]);
   const [vehicleForm, setVehicleForm] = useState({ name: '', plate: '', type: 'camion', driver_id: '', driver_name: '', imei: '' });
 
+  // Estado de carga y detalle del pedido para el HUD del mapa
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [details, setDetails] = useState<Record<number, DeliveryDetails>>({});
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [query, setQuery] = useState('');
+  const [onlyActive, setOnlyActive] = useState(true);
+  const [sortBy, setSortBy] = useState<'cercanas' | 'recientes'>('cercanas');
+
   // Modal para reasignar usuario a un vehículo
   const [assignVehicleModal, setAssignVehicleModal] = useState<Vehicle | null>(null);
   const [assignVehicleDriverId, setAssignVehicleDriverId] = useState('');
 
   // Telemetría GPS en tiempo real
   const [myCoords, setMyCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [myHeading, setMyHeading] = useState<number | null>(null);
   const [liveSpeed, setLiveSpeed] = useState<number | null>(null);
   const [gpsAccuracy, setGpsAccuracy] = useState<number | null>(null);
   const [gpsStatus, setGpsStatus] = useState<'activo' | 'inactivo' | 'pendiente' | 'error'>('inactivo');
@@ -544,35 +134,36 @@ export default function Deliveries() {
   const isDriver = user?.role === 'domiciliario';
   const canManage = isSupplier || user?.role === 'admin' || user?.role === 'gerente';
 
-  useEffect(() => {
-    localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(deliveries));
-  }, [deliveries]);
+  const notify = useCallback(
+    (message: string) => push({ message, at: new Date().toISOString() }),
+    [push]
+  );
 
-  const load = () => {
+  const load = useCallback(() => {
+    setLoadError('');
     api<Delivery[]>('/deliveries')
       .then((next) => {
-        const normalized = Array.isArray(next) ? next.filter((d): d is Delivery => Boolean(d && typeof d?.id === 'number')) : [];
-        if (normalized.length > 0) {
-          setDeliveries(normalized);
-          localStorage.setItem(DELIVERY_STORAGE_KEY, JSON.stringify(normalized));
-          if (!selected) {
-            setSelected(normalized[0]);
-          }
-        } else {
-          setDeliveries((prev) => (prev.length > 0 ? prev : DEMO_BUCARAMANGA_DELIVERIES));
-          if (!selected) {
-            setSelected(DEMO_BUCARAMANGA_DELIVERIES[0]);
-          }
-        }
+        const normalized = Array.isArray(next)
+          ? next.filter((d): d is Delivery => Boolean(d && typeof d?.id === 'number'))
+          : [];
+        setDeliveries(normalized);
+        setSelected((prev) => {
+          // Conserva la selección si sigue existiendo; si no, la próxima
+          // entrega activa (nunca datos de demostración).
+          const fresh = prev ? normalized.find((d) => d.id === prev.id) : undefined;
+          if (fresh) return fresh;
+          return (
+            normalized.find((d) => d.status !== 'entregado' && d.status !== 'fallido') ??
+            normalized[0] ??
+            null
+          );
+        });
       })
       .catch((err) => {
         console.error(err);
-        const stored = loadPersistedDeliveries();
-        if (stored.length) {
-          setDeliveries(stored);
-          if (!selected) setSelected(stored[0]);
-        }
-      });
+        setLoadError((err as Error)?.message || 'No se pudieron cargar las entregas.');
+      })
+      .finally(() => setLoading(false));
 
     if (canManage) {
       setAssignmentLoadError('');
@@ -594,7 +185,7 @@ export default function Deliveries() {
         }
       }).catch(() => undefined);
     }
-  };
+  }, [canManage]);
 
   useEffect(() => {
     load();
@@ -640,7 +231,7 @@ export default function Deliveries() {
       socket.off('delivery:position', onPosition);
       socket.off('delivery:status', onStatus);
     };
-  }, []);
+  }, [load]);
 
   const refreshGps = async () => {
     setGpsManualEnabled(true);
@@ -652,6 +243,7 @@ export default function Deliveries() {
         setMyCoords({ lat: loc.lat, lng: loc.lng });
         setGpsAccuracy(loc.accuracy);
         setLiveSpeed(loc.speed ?? null);
+        setMyHeading(loc.heading ?? null);
         setGpsStatus('activo');
         push({
           message: `GPS sincronizado (Precisión: ±${loc.accuracy}m)`,
@@ -686,6 +278,7 @@ export default function Deliveries() {
       setMyCoords({ lat: loc.lat, lng: loc.lng });
       setGpsAccuracy(loc.accuracy);
       setLiveSpeed(loc.speed ?? null);
+      setMyHeading(loc.heading ?? null);
       setGpsStatus('activo');
     });
 
@@ -696,6 +289,7 @@ export default function Deliveries() {
         setMyCoords({ lat: loc.lat, lng: loc.lng });
         setGpsAccuracy(loc.accuracy);
         setLiveSpeed(loc.speed ?? null);
+        setMyHeading(loc.heading ?? null);
         setGpsStatus('activo');
 
         // Si el usuario es domiciliario y tiene entrega activa, reporta telemetría al servidor
@@ -747,22 +341,32 @@ export default function Deliveries() {
     };
   }, [selectedId]);
 
+  // Detalle del pedido (productos, total y notas) para el HUD del mapa.
+  useEffect(() => {
+    const id = selected?.id;
+    if (!id || details[id]) return;
+    let cancelled = false;
+    setDetailsLoading(true);
+    api<DeliveryDetails & Delivery>(`/deliveries/${id}`)
+      .then((data) => {
+        if (!cancelled) setDetails((prev) => ({ ...prev, [id]: data }));
+      })
+      .catch((err) => console.warn('No se pudo cargar el detalle del pedido:', err))
+      .finally(() => {
+        if (!cancelled) setDetailsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected?.id, details]);
+
   const changeStatus = async (id: number, status: string) => {
     try {
-      if (id >= 9990) { // Mocks
-        setDeliveries(prev => prev.map(d => d.id === id ? { ...d, status: status as Delivery['status'] } : d));
-        if (selected?.id === id) {
-          setSelected(prev => prev ? { ...prev, status: status as Delivery['status'] } : null);
-        }
-        push({ message: `[Modo Prueba] Viaje iniciado, reenfocando GPS...`, at: new Date().toISOString() });
-        return;
-      }
-
       await api(`/deliveries/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) });
-      push({ message: `Estado de entrega actualizado → ${status}`, at: new Date().toISOString() });
+      notify(`Estado de la entrega actualizado → ${status.replace('_', ' ')}`);
       load();
     } catch (err) {
-      alert((err as Error).message);
+      notify((err as Error).message);
     }
   };
 
@@ -773,12 +377,12 @@ export default function Deliveries() {
         method: 'POST',
         body: JSON.stringify({ confirmation_code: confirmCode }),
       });
-      push({ message: '¡Entrega confirmada y completada exitosamente!', at: new Date().toISOString() });
+      notify('Entrega confirmada y completada.');
       setConfirmModal(false);
       setConfirmCode('');
       load();
     } catch (err) {
-      alert((err as Error).message);
+      notify((err as Error).message);
     }
   };
 
@@ -792,11 +396,11 @@ export default function Deliveries() {
           vehicle_id: Number(selectedVehicleId),
         }),
       });
-      push({ message: 'Domiciliario asignado exitosamente', at: new Date().toISOString() });
+      notify('Domiciliario asignado.');
       setAssignModal(false);
       load();
     } catch (err) {
-      alert((err as Error).message);
+      notify((err as Error).message);
     }
   };
 
@@ -815,12 +419,12 @@ export default function Deliveries() {
           driver_id: vehicleForm.driver_id ? Number(vehicleForm.driver_id) : null,
         }),
       });
-      push({ message: 'Vehículo registrado exitosamente en la flota', at: new Date().toISOString() });
+      notify('Vehículo registrado en la flota.');
       setModalVehicle(false);
       setVehicleForm({ name: '', plate: '', type: 'camion', driver_id: '', driver_name: '', imei: '' });
       load();
     } catch (err) {
-      alert((err as Error).message);
+      notify((err as Error).message);
     }
   };
 
@@ -839,15 +443,39 @@ export default function Deliveries() {
           driver_name: driverName || null,
         }),
       });
-      push({ message: 'Vehículo asignado exitosamente al usuario', at: new Date().toISOString() });
+      notify('Vehículo asignado al usuario.');
       setAssignVehicleModal(null);
       load();
     } catch (err) {
-      alert((err as Error).message);
+      notify((err as Error).message);
     }
   };
 
-  const activeDeliveries = deliveries.filter((d) => d.status !== 'entregado' && d.status !== 'fallido');
+  const activeDeliveries = useMemo(
+    () => deliveries.filter((d) => d.status !== 'entregado' && d.status !== 'fallido'),
+    [deliveries]
+  );
+
+  // Búsqueda + orden por cercanía: la "siguiente parada" queda primero.
+  const visibleDeliveries = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const list = deliveries.filter((d) => {
+      if (onlyActive && (d.status === 'entregado' || d.status === 'fallido')) return false;
+      if (!q) return true;
+      return [d.order_code, d.delivery_code, d.restaurant_name, d.delivery_address, d.driver_name]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(q);
+    });
+    if (sortBy === 'recientes') return list;
+    const legDistance = (d: Delivery) => {
+      const from = driverPositionFor(d, isDriver ? myCoords : null);
+      const to = destinationPositionFor(d);
+      return from && to ? distanceKm(from, to) : Number.POSITIVE_INFINITY;
+    };
+    return [...list].sort((a, b) => legDistance(a) - legDistance(b));
+  }, [deliveries, query, onlyActive, sortBy, myCoords, isDriver]);
 
   const isGerente = user?.role === 'gerente' || (!!user?.restaurant_id && user?.role !== 'admin');
   if (isGerente) {
@@ -880,6 +508,73 @@ export default function Deliveries() {
       </div>
     );
   }
+
+  // Acciones del pedido seleccionado: se muestran dentro de la hoja del mapa
+  // (pantalla completa incluida) para no obligar a bajar por la página.
+  const orderActions = selected ? (
+    <div className="space-y-2">
+      {isDriver && (
+        <div className="space-y-2">
+          {selected.confirmation_code && (
+            <div className="rounded-xl border-2 border-amber-300 bg-amber-50 p-2.5 text-center dark:border-amber-500/40 dark:bg-amber-500/10">
+              <span className="inline-flex items-center justify-center gap-1 text-[10px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
+                <IconKey className="h-3.5 w-3.5" /> Llave de seguridad
+              </span>
+              <div className="mt-1 inline-block rounded-lg border border-amber-200 bg-white px-3 py-1 font-mono text-xl font-black tracking-widest text-amber-950 shadow-sm">
+                {selected.confirmation_code}
+              </div>
+              <p className="mt-1 text-[10px] text-amber-700 dark:text-amber-300">
+                Dicta este código al gerente para completar la entrega.
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 gap-2">
+            {selected.status === 'asignado' && (
+              <button
+                type="button"
+                onClick={() => changeStatus(selected.id, 'en_camino')}
+                className="rounded-xl bg-blue-600 py-2.5 text-xs font-bold text-white shadow transition hover:bg-blue-700 active:scale-95"
+              >
+                Iniciar viaje
+              </button>
+            )}
+            {selected.status === 'en_camino' && (
+              <button
+                type="button"
+                onClick={() => changeStatus(selected.id, 'llegando')}
+                className="rounded-xl bg-amber-500 py-2.5 text-xs font-bold text-white shadow transition hover:bg-amber-600 active:scale-95"
+              >
+                Estoy llegando al destino
+              </button>
+            )}
+            {selected.status !== 'entregado' && (
+              <button
+                type="button"
+                onClick={() => setConfirmModal(true)}
+                className="rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white shadow transition hover:bg-emerald-700 active:scale-95"
+              >
+                Confirmar entrega con código
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      {canManage && (
+        <button
+          type="button"
+          onClick={() => {
+            setSelectedDriverId(selected.driver_id ? String(selected.driver_id) : '');
+            setAssignModal(true);
+          }}
+          className="w-full rounded-xl bg-indigo-600 py-2.5 text-xs font-bold text-white shadow transition hover:bg-indigo-700 active:scale-95"
+        >
+          Asignar / cambiar domiciliario
+        </button>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className="space-y-4">
@@ -938,205 +633,212 @@ export default function Deliveries() {
         </div>
       </div>
 
-      {/* Mapa en Vivo con línea de proximidad DiDi */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
-        <LiveMap
+      {/* Mapa en vivo estilo DiDi: pantalla completa, HUD de destino y hoja de resumen */}
+      <div
+        className={
+          focusMode
+            ? 'space-y-2'
+            : 'grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(320px,1fr)]'
+        }
+      >
+        <DeliveryMap
           deliveries={deliveries}
           selected={selected}
           onSelect={setSelected}
           myCoords={myCoords}
+          heading={myHeading}
           isDriver={isDriver}
           liveSpeed={liveSpeed}
           gpsAccuracy={gpsAccuracy}
           liveEta={selected ? serverEta[selected.id] : null}
+          details={selected ? details[selected.id] ?? null : null}
+          detailsLoading={detailsLoading}
+          isLoading={loading}
+          loadError={loadError}
+          initialFullscreen={focusMode}
+          actions={orderActions}
+          onOpenOrder={(delivery) => navigate(`/pedidos/${delivery.order_id}`)}
         />
 
-        {/* Lista lateral de entregas activas */}
-        <div className="rounded-2xl border bg-white p-4 shadow-sm flex flex-col justify-between">
-          <div>
-            <div className="mb-3 flex items-center justify-between">
-              <h3 className="font-bold text-slate-800 text-sm">Entregas Asignadas</h3>
-              <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-700">
+        {/* Lista lateral de entregas (se oculta en el modo repartidor) */}
+        {!focusMode && (
+          <div className="flex flex-col rounded-2xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <h3 className="text-sm font-bold text-slate-800 dark:text-slate-100">Entregas</h3>
+              <span className="rounded-full bg-blue-100 px-2.5 py-0.5 text-[11px] font-bold text-blue-700 dark:bg-blue-500/15 dark:text-blue-300">
                 {activeDeliveries.length} activa(s)
               </span>
             </div>
 
-            <div className="space-y-2.5 max-h-[340px] overflow-y-auto pr-1">
-              {activeDeliveries.map((delivery, index) => {
+            <div className="mb-2 flex items-center gap-2">
+              <div className="relative flex-1">
+                <Search className="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" />
+                <input
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Buscar pedido, dirección..."
+                  aria-label="Buscar entregas"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-7 text-xs font-medium outline-none transition focus:border-brand focus:bg-white focus:ring-2 focus:ring-brand/20 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
+                />
+                {query && (
+                  <button
+                    type="button"
+                    onClick={() => setQuery('')}
+                    aria-label="Limpiar búsqueda"
+                    className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-1 text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => setSortBy((v) => (v === 'cercanas' ? 'recientes' : 'cercanas'))}
+                className="flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 px-2 py-1.5 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800"
+                title="Cambiar el orden de la lista"
+              >
+                <ArrowUpDown className="h-3 w-3" />
+                {sortBy === 'cercanas' ? 'Cercanas' : 'Recientes'}
+              </button>
+            </div>
+
+            <div className="mb-2 flex gap-1.5">
+              <button
+                type="button"
+                onClick={() => setOnlyActive(true)}
+                className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                  onlyActive
+                    ? 'bg-brand text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                }`}
+              >
+                Activas
+              </button>
+              <button
+                type="button"
+                onClick={() => setOnlyActive(false)}
+                className={`rounded-lg px-2.5 py-1 text-[11px] font-bold transition ${
+                  !onlyActive
+                    ? 'bg-brand text-white'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300'
+                }`}
+              >
+                Todas
+              </button>
+              <button
+                type="button"
+                onClick={load}
+                className="ml-auto flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] font-bold text-slate-500 transition hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
+                title="Actualizar"
+              >
+                <RefreshCw className="h-3 w-3" /> Actualizar
+              </button>
+            </div>
+
+            {loadError && (
+              <div className="mb-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[11px] font-semibold text-rose-700 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300">
+                {loadError}
+              </div>
+            )}
+
+            <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+              {loading && deliveries.length === 0 && (
+                <div className="space-y-2" aria-hidden>
+                  {[0, 1, 2].map((i) => (
+                    <div key={i} className="h-16 animate-pulse rounded-xl bg-slate-100 dark:bg-slate-800" />
+                  ))}
+                </div>
+              )}
+
+              {!loading && visibleDeliveries.length === 0 && (
+                <div className="rounded-xl border border-dashed border-slate-200 px-3 py-6 text-center dark:border-slate-700">
+                  <p className="text-xs font-semibold text-slate-600 dark:text-slate-300">
+                    {query ? 'Sin resultados para tu búsqueda.' : 'No hay entregas para mostrar.'}
+                  </p>
+                  <p className="mt-1 text-[11px] text-slate-400">
+                    {canManage
+                      ? 'Asigna un pedido para comenzar el seguimiento.'
+                      : 'Espera a que te asignen una entrega.'}
+                  </p>
+                </div>
+              )}
+
+              {visibleDeliveries.map((delivery, index) => {
                 const isCurrent = selected?.id === delivery.id;
                 const st = DELIVERY_STATUS[delivery.status] ?? DELIVERY_STATUS.asignado;
-                const dPos = driverPositionFor(delivery, myCoords, isDriver);
-                const rPos = destinationPositionFor(delivery);
-                const itemDist = calculateDistanceKm(dPos.lat, dPos.lng, rPos.lat, rPos.lng);
+                const from = driverPositionFor(delivery, isDriver ? myCoords : null);
+                const to = destinationPositionFor(delivery);
+                const legDistance = from && to ? calculateDistanceKm(from, to) : null;
 
                 return (
                   <button
                     key={delivery.id}
+                    type="button"
                     onClick={() => setSelected(delivery)}
-                    className={`w-full rounded-xl border p-3 text-left transition ${
+                    className={`w-full rounded-xl border p-2.5 text-left transition ${
                       isCurrent
-                        ? 'border-brand bg-blue-50/80 ring-2 ring-brand/20'
-                        : 'border-slate-200 hover:bg-slate-50'
+                        ? 'border-brand bg-brand/5 ring-2 ring-brand/20'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:hover:bg-slate-800/60'
                     }`}
                   >
                     <div className="flex items-center justify-between gap-1">
-                      <span className="text-xs font-bold text-slate-900">
-                        {index + 1}. {delivery.order_code}
+                      <span className="flex min-w-0 items-center gap-1 text-[11px] font-bold text-slate-900 dark:text-white">
+                        {index === 0 && sortBy === 'cercanas' && !query && (
+                          <span className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-extrabold uppercase text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
+                            Siguiente
+                          </span>
+                        )}
+                        <span className="truncate">{delivery.order_code}</span>
                       </span>
-                      <div className="flex items-center gap-1.5">
-                        <span className="rounded-md bg-blue-100 px-1.5 py-0.5 text-[10px] font-extrabold text-blue-800">
-                          {formatDistance(itemDist)}
-                        </span>
-                        <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${st.color}`}>
-                          {st.label}
-                        </span>
-                      </div>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold ${st.color}`}>
+                        {st.label}
+                      </span>
                     </div>
-                    <p className="mt-1 text-xs font-semibold text-slate-800 truncate">
+                    <p className="mt-1 truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
                       {delivery.restaurant_name}
                     </p>
-                    <p className="text-[11px] text-slate-500 truncate">
-                      {rPos.sector ? `${rPos.sector} · ` : ''}{delivery.delivery_address || 'Bucaramanga'}
+                    <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
+                      {delivery.delivery_address || 'Sin dirección'}
                     </p>
-                    <div className="mt-2 flex items-center justify-between text-[11px] text-slate-500 pt-1.5 border-t border-slate-100">
-                      <span className="truncate max-w-[120px]">{delivery.driver_name ? delivery.driver_name : 'Sin domiciliario'}</span>
-                      <div className="flex items-center gap-1">
-                        {delivery.vehicle_name && <span className="text-slate-400 font-mono text-[10px]">{delivery.vehicle_name}</span>}
-                        {canManage && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelected(delivery);
-                              setSelectedDriverId(delivery.driver_id ? String(delivery.driver_id) : '');
-                              setSelectedVehicleId(
-                                delivery.vehicle_id
-                                  ? String(delivery.vehicle_id)
-                                  : String(vehicles.find((vehicle) => vehicle.driver_id === delivery.driver_id)?.id ?? '')
-                              );
-                              setAssignModal(true);
-                            }}
-                            className="rounded-lg bg-indigo-50 border border-indigo-200 px-2 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition"
-                          >
-                            {delivery.driver_name ? 'Cambiar' : 'Asignar'}
-                          </button>
-                        )}
-                      </div>
+                    <div className="mt-1.5 flex items-center justify-between border-t border-slate-100 pt-1.5 text-[10px] text-slate-500 dark:border-slate-800 dark:text-slate-400">
+                      <span className="truncate">{delivery.driver_name || 'Sin domiciliario'}</span>
+                      <span className="shrink-0 rounded bg-slate-100 px-1.5 py-0.5 font-extrabold text-slate-700 dark:bg-slate-800 dark:text-slate-200">
+                        {legDistance != null ? formatDistance(legDistance) : 'sin GPS'}
+                      </span>
                     </div>
                   </button>
                 );
               })}
-
-              {activeDeliveries.length === 0 && (
-                <div className="py-6 text-center text-xs text-slate-500 space-y-3">
-                  <p className="font-medium">No tienes entregas en ruta en este momento.</p>
-                  {pendingOrders.length > 0 && canManage && (
-                    <div className="text-left space-y-2 border-t pt-3">
-                      <p className="font-bold text-slate-800 text-xs flex items-center gap-1">
-                        <svg className="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
-                        </svg>
-                        <span>Pedidos listos para asignar entrega:</span>
-                      </p>
-                      <div className="space-y-1.5 max-h-[190px] overflow-y-auto pr-0.5">
-                        {pendingOrders.map((po) => (
-                          <div
-                            key={po.id}
-                            className="p-2.5 border border-slate-200 rounded-xl bg-slate-50/90 flex items-center justify-between text-xs hover:bg-slate-100 transition shadow-sm"
-                          >
-                            <div className="truncate pr-2">
-                              <span className="font-bold text-slate-900">{po.order_code}</span>
-                              <p className="text-slate-500 text-[11px] truncate">{po.restaurant_name}</p>
-                            </div>
-                            <Link
-                              to={`/pedidos/${po.id}`}
-                              className="rounded-lg bg-brand px-2.5 py-1 text-white font-bold text-[11px] hover:bg-brand-dark shadow-sm shrink-0"
-                            >
-                              Asignar
-                            </Link>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
+
+            {pendingOrders.length > 0 && canManage && (
+              <div className="mt-2 border-t border-slate-100 pt-2 dark:border-slate-800">
+                <p className="mb-1 text-[11px] font-bold text-slate-700 dark:text-slate-200">
+                  Pedidos por asignar ({pendingOrders.length})
+                </p>
+                <div className="max-h-[140px] space-y-1.5 overflow-y-auto pr-0.5">
+                  {pendingOrders.map((po) => (
+                    <div
+                      key={po.id}
+                      className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[11px] dark:border-slate-700 dark:bg-slate-800/60"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <span className="font-bold text-slate-900 dark:text-white">{po.order_code}</span>
+                        <p className="truncate text-slate-500 dark:text-slate-400">{po.restaurant_name}</p>
+                      </div>
+                      <Link
+                        to={`/pedidos/${po.id}`}
+                        className="shrink-0 rounded-lg bg-brand px-2 py-1 text-[10px] font-bold text-white hover:bg-brand-dark"
+                      >
+                        Asignar
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-
-          {/* Acciones directas para el domiciliario o proveedor */}
-          {selected && (
-            <div className="mt-3 pt-3 border-t border-slate-100 space-y-2">
-              <p className="text-xs font-bold text-slate-700">
-                Acciones para {selected.order_code}:
-              </p>
-
-              {/* Botones del Domiciliario */}
-              {isDriver && (
-                <div className="space-y-2">
-                  {selected.confirmation_code && (
-                    <div className="rounded-xl bg-amber-50 border-2 border-amber-300 p-3 text-center space-y-1">
-                      <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block inline-flex items-center justify-center gap-1">
-                        <IconKey className="w-3.5 h-3.5 text-amber-700 inline" />
-                        Llave de Seguridad para el Gerente
-                      </span>
-                      <div className="text-xl font-black font-mono text-amber-950 tracking-widest bg-white py-1 px-3 rounded-lg border border-amber-200 inline-block shadow-xs">
-                        {selected.confirmation_code}
-                      </div>
-                      <p className="text-[10px] text-amber-700">Díctale este código al gerente para que valide y complete la entrega</p>
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-2">
-                    {selected.status === 'asignado' && (
-                      <button
-                        onClick={() => changeStatus(selected.id, 'en_camino')}
-                        className="col-span-2 rounded-xl bg-blue-600 py-2 text-xs font-bold text-white shadow hover:bg-blue-700"
-                      >
-                        Iniciar Viaje (En Camino)
-                      </button>
-                    )}
-                    {selected.status === 'en_camino' && (
-                      <button
-                        onClick={() => changeStatus(selected.id, 'llegando')}
-                        className="col-span-2 rounded-xl bg-amber-500 py-2 text-xs font-bold text-white shadow hover:bg-amber-600"
-                      >
-                        Estoy Llegando al Destino
-                      </button>
-                    )}
-                    {selected.status === 'en_camino' && (
-                      <p className="col-span-2 text-[10px] text-slate-400 text-center">
-                        ℹ️ Al entrar en la geocerca de 500 m el sistema cambia a "Llegando" automáticamente.
-                      </p>
-                    )}
-                    {selected.status !== 'entregado' && (
-                      <button
-                        onClick={() => setConfirmModal(true)}
-                        className="col-span-2 rounded-xl bg-emerald-600 py-2 text-xs font-bold text-white shadow hover:bg-emerald-700"
-                      >
-                        Confirmar Entrega (Código)
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Botones del Proveedor o Gerente */}
-              {canManage && (
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => {
-                      setSelectedDriverId(selected.driver_id ? String(selected.driver_id) : '');
-                      setAssignModal(true);
-                    }}
-                    className="flex-1 rounded-xl bg-indigo-600 py-2 text-xs font-bold text-white shadow hover:bg-indigo-700 transition"
-                  >
-                    Asignar / Cambiar Repartidor
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Flota de Vehículos Registrados (Motos, Camiones, Furgones) */}
