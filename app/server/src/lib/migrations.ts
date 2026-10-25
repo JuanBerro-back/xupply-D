@@ -186,6 +186,101 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
   }
 }
 
+/**
+ * Verificación de cuentas empresariales (KYC/KYB).
+ *
+ * Las cuentas existentes quedan como `verificado` (no se bloquea a nadie que
+ * ya operaba); a partir de esta migración, los registros nuevos se insertan
+ * explícitamente como `pendiente` desde /api/auth/register.
+ */
+export async function ensureVerificationSchema(): Promise<void> {
+  try {
+    await query(`
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS verification_status VARCHAR(20) NOT NULL DEFAULT 'verificado';
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS verification_reason TEXT;
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS verification_token VARCHAR(64);
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP;
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS verified_by INT REFERENCES users(id) ON DELETE SET NULL;
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP;
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS legal_rep_name VARCHAR(200);
+      ALTER TABLE restaurants ADD COLUMN IF NOT EXISTS legal_rep_document VARCHAR(30);
+
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS verification_status VARCHAR(20) NOT NULL DEFAULT 'verificado';
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS verification_reason TEXT;
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS verification_token VARCHAR(64);
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS verified_at TIMESTAMP;
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS verified_by INT REFERENCES users(id) ON DELETE SET NULL;
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS submitted_at TIMESTAMP;
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS legal_rep_name VARCHAR(200);
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS legal_rep_document VARCHAR(30);
+
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_restaurants_verification_token
+        ON restaurants(verification_token) WHERE verification_token IS NOT NULL;
+      CREATE UNIQUE INDEX IF NOT EXISTS uq_suppliers_verification_token
+        ON suppliers(verification_token) WHERE verification_token IS NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_restaurants_verification_status ON restaurants(verification_status);
+      CREATE INDEX IF NOT EXISTS idx_suppliers_verification_status ON suppliers(verification_status);
+
+      CREATE TABLE IF NOT EXISTS verification_documents (
+        id SERIAL PRIMARY KEY,
+        entity_type VARCHAR(20) NOT NULL,
+        entity_id INT NOT NULL,
+        doc_type VARCHAR(30) NOT NULL,
+        file_name VARCHAR(255) NOT NULL,
+        mime_type VARCHAR(100) NOT NULL,
+        size_bytes INT NOT NULL,
+        file_data BYTEA NOT NULL,
+        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (entity_type, entity_id, doc_type)
+      );
+
+      CREATE TABLE IF NOT EXISTS verification_events (
+        id BIGSERIAL PRIMARY KEY,
+        entity_type VARCHAR(20) NOT NULL,
+        entity_id INT NOT NULL,
+        action VARCHAR(30) NOT NULL,
+        status_from VARCHAR(20),
+        status_to VARCHAR(20),
+        reason TEXT,
+        actor_id INT REFERENCES users(id) ON DELETE SET NULL,
+        actor_name VARCHAR(200),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_verification_docs_entity
+        ON verification_documents(entity_type, entity_id);
+      CREATE INDEX IF NOT EXISTS idx_verification_events_entity
+        ON verification_events(entity_type, entity_id, created_at);
+    `);
+
+    // Rol de back office y permisos del módulo.
+    await query(`
+      INSERT INTO roles (name, display_name, description) VALUES
+        ('verificador', 'Verificador', 'Back office: aprueba, rechaza y solicita correcciones de cuentas')
+      ON CONFLICT (name) DO NOTHING;
+
+      INSERT INTO permissions (name, description) VALUES
+        ('verificacion', 'Ver solicitudes de verificación de cuentas'),
+        ('verificacion:write', 'Aprobar, rechazar o solicitar correcciones')
+      ON CONFLICT (name) DO NOTHING;
+
+      INSERT INTO role_permissions (role_id, permission_id)
+      SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
+       WHERE r.name = 'verificador' AND p.name IN ('verificacion', 'verificacion:write')
+      ON CONFLICT DO NOTHING;
+
+      INSERT INTO role_permissions (role_id, permission_id)
+      SELECT r.id, p.id FROM roles r CROSS JOIN permissions p
+       WHERE r.name = 'admin' AND p.name LIKE 'verificacion%'
+      ON CONFLICT DO NOTHING;
+    `);
+
+    console.log('[DB] Esquema de verificación de cuentas listo.');
+  } catch (err) {
+    console.error('[DB] Error aplicando esquema de verificación:', err);
+  }
+}
+
 /** Cierra alertas y ofertas vencidas. Se ejecuta cada hora. */export async function expireRadarItems(): Promise<void> {
   try {
     await query(
@@ -224,6 +319,7 @@ export async function ensureServerInitialized(): Promise<void> {
         const { initDatabase, neutralizeDemoCredentials } = await import('../config/db');
         await initDatabase();
         await ensureRadarAndGpsSchema();
+        await ensureVerificationSchema();
         await neutralizeDemoCredentials();
         await dropLegacyPlatformViews();
         await expireRadarItems();

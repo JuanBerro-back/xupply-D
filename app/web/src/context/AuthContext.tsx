@@ -11,6 +11,21 @@ export interface RegisterData {
   phone: string;
   type: 'restaurante' | 'proveedor';
   category?: string;
+  nit: string;
+  address: string;
+  city: string;
+  department?: string;
+  legal_rep_name: string;
+  legal_rep_document: string;
+}
+
+export interface RegisterResult {
+  pending: true;
+  entity_type: 'restaurante' | 'proveedor';
+  name: string;
+  verification_status: string;
+  verification_token: string;
+  message: string;
 }
 
 interface AuthContextValue {
@@ -18,7 +33,7 @@ interface AuthContextValue {
   tenant: TenantInfo | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  register: (data: RegisterData) => Promise<RegisterResult>;
   logout: () => void;
 }
 
@@ -90,21 +105,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const register = async (data: RegisterData) => {
-    const res = await api<{ token: string; user: User }>('/auth/register', {
+  const register = async (data: RegisterData): Promise<RegisterResult> => {
+    // El registro NO inicia sesión: la cuenta queda pendiente de verificación.
+    return api<RegisterResult>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
-    setToken(res.token);
-    setUser(res.user);
-    connectSocket({ userId: res.user.id, role: res.user.role, restaurantId: res.user.restaurant_id, supplierId: res.user.supplier_id });
-    try {
-      const t = await api<TenantInfo>('/auth/tenant-info');
-      setTenant(t);
-      document.title = getDisplayName(t);
-    } catch {
-      document.title = 'Xupply';
-    }
   };
 
   const logout = () => {

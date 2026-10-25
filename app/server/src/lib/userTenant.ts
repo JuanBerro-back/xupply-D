@@ -21,6 +21,7 @@ export function tenantScopeForRole(roleName: string | undefined | null): TenantS
     case 'domiciliario':
       return 'supplier';
     case 'admin':
+    case 'verificador':
       return 'platform';
     default:
       return 'unknown';

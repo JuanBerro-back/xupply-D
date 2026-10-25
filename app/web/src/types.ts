@@ -354,3 +354,99 @@ export interface TenantInfo {
   category?: string;
   subscription_plan?: string;
 }
+// ---------------------------------------------------------------
+// Verificaci�n de cuentas (KYC/KYB)
+// ---------------------------------------------------------------
+
+export type VerificationStatus = 'pendiente' | 'subsanacion' | 'verificado' | 'rechazado';
+
+export interface VerificationDocumentMeta {
+  doc_type: string;
+  file_name: string;
+  mime_type: string;
+  size_bytes: number;
+  uploaded_at: string;
+}
+
+export interface VerificationRequestSummary {
+  entity_type: 'restaurante' | 'proveedor';
+  id: number;
+  name: string;
+  nit: string | null;
+  email: string | null;
+  phone: string | null;
+  address: string | null;
+  city: string | null;
+  legal_rep_name: string | null;
+  legal_rep_document: string | null;
+  verification_status: VerificationStatus;
+  verification_reason: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  documents: number;
+  users_count: number;
+}
+
+export interface VerificationChecks {
+  nit_valid: boolean;
+  nit_reason: string | null;
+  nit_formatted: string | null;
+  nit_duplicate_other_type: boolean;
+  email_duplicate_count: number;
+  documents_complete: boolean;
+}
+
+export interface VerificationEvent {
+  id: number;
+  action: string;
+  status_from: string | null;
+  status_to: string | null;
+  reason: string | null;
+  actor_name: string | null;
+  created_at: string;
+}
+
+export interface VerificationDetail {
+  entity_type: 'restaurante' | 'proveedor';
+  entity: {
+    id: number;
+    name: string;
+    nit: string | null;
+    email: string | null;
+    phone: string | null;
+    address: string | null;
+    city: string | null;
+    department?: string | null;
+    category?: string | null;
+    legal_rep_name: string | null;
+    legal_rep_document: string | null;
+    verification_status: VerificationStatus;
+    verification_reason: string | null;
+    submitted_at: string | null;
+    created_at: string;
+    verified_at?: string | null;
+    verified_by?: number | null;
+  };
+  documents: VerificationDocumentMeta[];
+  events: VerificationEvent[];
+  users: Array<{ id: number; name: string; username: string; email: string | null; phone: string | null; is_active: boolean; last_login: string | null; created_at: string }>;
+  missing: string[];
+  checks: VerificationChecks;
+}
+
+export interface PublicVerification {
+  entity_type: 'restaurante' | 'proveedor';
+  name: string;
+  nit: string | null;
+  city: string | null;
+  status: VerificationStatus;
+  reason: string | null;
+  submitted_at: string | null;
+  created_at: string;
+  can_upload: boolean;
+  can_submit: boolean;
+  documents: VerificationDocumentMeta[];
+  missing: string[];
+  required_documents: Array<{ type: string; label: string }>;
+}
+

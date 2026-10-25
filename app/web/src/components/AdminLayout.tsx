@@ -12,7 +12,7 @@ function IconShield({ className }: { className?: string }) {
   );
 }
 
-import { hasAdminAccess } from '../lib/permissions';
+import { hasAdminAccess, canVerifyAccounts } from '../lib/permissions';
 
 export default function AdminLayout() {
   const { user } = useAuth();
@@ -21,12 +21,22 @@ export default function AdminLayout() {
     return <div className="p-8 text-center text-rose-500 font-bold">Acceso Denegado</div>;
   }
 
+  const canConfig = user?.role === 'admin' || !!user?.permissions?.includes('config');
+  const canVerify = canVerifyAccounts(user);
+
   const navItems = [
-    { to: '/admin', label: 'Actividades de Usuarios', end: true, icon: IconDashboard },
-    { to: '/admin/usuarios', label: 'Usuarios', icon: IconTeam },
-    { to: '/admin/roles', label: 'Roles', icon: IconKey },
-    { to: '/admin/permisos', label: 'Permisos', icon: IconShield },
-    { to: '/admin/comercios', label: 'Comercios', icon: IconTeam }, // Usando IconTeam como icono de comercios
+    ...(canConfig
+      ? [
+          { to: '/admin', label: 'Actividades de Usuarios', end: true, icon: IconDashboard },
+          { to: '/admin/usuarios', label: 'Usuarios', icon: IconTeam },
+          { to: '/admin/roles', label: 'Roles', icon: IconKey },
+          { to: '/admin/permisos', label: 'Permisos', icon: IconShield },
+          { to: '/admin/comercios', label: 'Comercios', icon: IconTeam },
+        ]
+      : []),
+    ...(canVerify
+      ? [{ to: '/admin/verificaciones', label: 'Verificaciones', icon: IconShield }]
+      : []),
   ];
 
   return (
@@ -36,9 +46,11 @@ export default function AdminLayout() {
         <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-800 p-4 sticky top-20">
           <div className="mb-4 hidden md:block">
             <h2 className="text-sm font-black uppercase tracking-wider text-slate-400 dark:text-slate-500">
-              Administración
+              {canConfig ? 'Administración' : 'Back office'}
             </h2>
-            <p className="text-xs text-slate-400 mt-1">Super Admin Panel</p>
+            <p className="text-xs text-slate-400 mt-1">
+              {canConfig ? 'Super Admin Panel' : 'Verificación de cuentas'}
+            </p>
           </div>
           
           <nav className="flex flex-row md:flex-col gap-1.5 overflow-x-auto md:overflow-visible pb-2 md:pb-0 no-scrollbar">

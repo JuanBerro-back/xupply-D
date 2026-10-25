@@ -32,6 +32,7 @@ export default function Navbar() {
   const isSupplier = user?.role === 'proveedor_admin';
   const isDomiciliario = user?.role === 'domiciliario';
   const isAdmin = user?.role === 'admin';
+  const isVerifier = user?.role === 'verificador';
 
   const brandName = tenant && tenant.name && tenant.type !== 'platform'
     ? `${tenant.name} · Xupply`
@@ -77,6 +78,8 @@ export default function Navbar() {
                 >
                   {isAdmin
                     ? t('nav.brand_admin')
+                    : isVerifier
+                    ? 'Back office · Verificación'
                     : isSupplier
                     ? t('nav.brand_supplier')
                     : isDomiciliario
@@ -88,7 +91,16 @@ export default function Navbar() {
           </div>
 
           {/* Accesos Rápidos Principales (Desktop) */}
-          {isAdmin ? (
+          {isVerifier ? (
+            <nav className="hidden sm:flex items-center gap-1.5 bg-black/15 p-1 rounded-2xl border border-white/10 backdrop-blur-md">
+              <Link to="/admin/verificaciones" className={linkClass('/admin/verificaciones')}>
+                <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.956 11.956 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                </svg>
+                <span>Verificaciones</span>
+              </Link>
+            </nav>
+          ) : isAdmin ? (
             <nav className="hidden sm:flex items-center gap-1.5 bg-black/15 p-1 rounded-2xl border border-white/10 backdrop-blur-md">
               <Link to="/admin" className={linkClass('/admin')}>
                 <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -174,7 +186,7 @@ export default function Navbar() {
           {/* Acciones del Lado Derecho: Carrito, Campanita, Menú Hamburguesa */}
           <div className="flex items-center gap-2">
             {/* Carrito Flotante (Restaurantes) */}
-            {!isSupplier && !isDomiciliario && !isAdmin && (
+            {!isSupplier && !isDomiciliario && !isAdmin && !isVerifier && (
               <button
                 type="button"
                 onClick={openCart}

@@ -9,14 +9,20 @@ export default function Login() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [statusToken, setStatusToken] = useState('');
   const [showPassword, setShowPassword] = useState(false);
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError('');
+    setStatusToken('');
     try {
       await login(username, password);
     } catch (err) {
+      const payload = (err as Error & { payload?: { code?: string; verification_token?: string } }).payload;
+      if (payload?.code?.startsWith('VERIFICATION_') && payload.verification_token) {
+        setStatusToken(payload.verification_token);
+      }
       setError((err as Error).message || 'Error de autenticación');
     }
   };
@@ -39,6 +45,14 @@ export default function Login() {
         <p className="mb-8 text-sm text-slate-500 font-medium">Plataforma B2B de pedidos, inventario, facturación y logística</p>
 
         {error && <p className="mb-4 rounded-xl bg-red-50 border border-red-100 p-3 text-sm text-red-600 font-medium">{error}</p>}
+        {statusToken && (
+          <Link
+            to={`/verificacion/${statusToken}`}
+            className="mb-4 block rounded-xl border border-amber-200 bg-amber-50 p-3 text-center text-xs font-bold text-amber-800 transition hover:bg-amber-100"
+          >
+            Ver el estado de mi registro y cargar documentos →
+          </Link>
+        )}
         
         <form onSubmit={submit} className="space-y-5">
           <div>

@@ -22,6 +22,7 @@ import purchaseOrdersRouter from './routes/purchaseOrders';
 import agentRouter from './routes/agent';
 import xupaiRouter from './routes/xupai';
 import adminRouter from './routes/admin';
+import verificationRouter from './routes/verification';
 import { ensureServerInitialized } from './lib/migrations';
 import { query, resolveDatabaseUrl } from './config/db';
 import { notFound, errorHandler } from './middleware/error';
@@ -81,7 +82,18 @@ export function createApp() {
     })
   );
   // Límite explícito: evita peticiones gigantes que agoten memoria/CPU.
-  app.use(express.json({ limit: '1mb' }));
+  // La carga de documentos de verificación usa su propio parser (6 MB) más
+  // abajo, porque un PDF en base64 supera el límite general de 1 MB.
+  const jsonParser = express.json({ limit: '1mb' });
+  app.use((req, res, next) => {
+    if (
+      req.method === 'POST' &&
+      /^\/api\/verification\/public\/[a-f0-9]{64}\/documents$/i.test(req.path)
+    ) {
+      return next();
+    }
+    return jsonParser(req, res, next);
+  });
 
   // === 1. RUTAS DE DIAGNÓSTICO Y HEALTHCHECK (RESPUESTA INMEDIATA) ===
   const healthHandler = async (_req: express.Request, res: express.Response) => {
@@ -116,6 +128,7 @@ export function createApp() {
   });
 
   app.use('/api/auth', authRouter);
+  app.use('/api/verification', verificationRouter);
   app.use('/api/restaurants', restaurantsRouter);
   app.use('/api/suppliers', suppliersRouter);
   app.use('/api/products', productsRouter);
