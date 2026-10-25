@@ -6,6 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.createApp = createApp;
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
+const helmet_1 = __importDefault(require("helmet"));
 const path_1 = __importDefault(require("path"));
 const fs_1 = __importDefault(require("fs"));
 const auth_1 = __importDefault(require("./routes/auth"));
@@ -32,33 +33,62 @@ const db_1 = require("./config/db");
 const error_1 = require("./middleware/error");
 function createApp() {
     const app = (0, express_1.default)();
+    const isProduction = process.env.NODE_ENV === 'production' || process.env.VERCEL === '1';
     const configuredOrigins = (process.env.CLIENT_ORIGIN ?? '')
         .split(',')
         .map((origin) => origin.trim())
-        .filter(Boolean);
+        .filter((origin) => Boolean(origin) && origin !== '*');
+    // Detrás de Vercel / Render / Caddy siempre hay un proxy: sin esto `req.ip`
+    // devuelve la IP del proxy y el rate-limit (y la auditoría) quedan inútiles.
+    app.set('trust proxy', 1);
+    app.disable('x-powered-by');
+    // Cabeceras de seguridad. La CSP se define también aquí para despliegues
+    // que no pasan por un borde con cabeceras propias (Render, VPS, Docker sin
+    // Caddy). En Vercel/Caddy se refuerza en el borde.
+    app.use((0, helmet_1.default)({
+        contentSecurityPolicy: {
+            useDefaults: false,
+            directives: {
+                defaultSrc: ["'self'"],
+                baseUri: ["'self'"],
+                objectSrc: ["'none'"],
+                frameAncestors: ["'none'"],
+                formAction: ["'self'"],
+                scriptSrc: ["'self'"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                imgSrc: ["'self'", 'data:', 'blob:', 'https:'],
+                fontSrc: ["'self'", 'data:', 'https://fonts.gstatic.com'],
+                connectSrc: ["'self'", 'https:', 'wss:'],
+                manifestSrc: ["'self'"],
+                workerSrc: ["'self'", 'blob:'],
+            },
+        },
+        crossOriginEmbedderPolicy: false,
+        crossOriginResourcePolicy: { policy: 'cross-origin' },
+        frameguard: { action: 'deny' },
+    }));
     app.use((0, cors_1.default)({
         origin: (origin, cb) => {
-            // Permitir peticiones sin Origin (server-to-server, curl) y, en desarrollo,
-            // cuando no hay CLIENT_ORIGIN configurado. En producción se exige la lista blanca.
-            if (!origin || configuredOrigins.length === 0 || configuredOrigins.includes(origin)) {
+            // Peticiones sin Origin (server-to-server, curl, apps nativas) se permiten.
+            if (!origin)
                 return cb(null, true);
-            }
-            return cb(null, false);
+            if (configuredOrigins.includes(origin))
+                return cb(null, true);
+            // Fail-closed: sin lista blanca configurada, en producción NO se permite
+            // ningún origen cruzado (antes se permitían todos).
+            return cb(null, !isProduction);
         },
         credentials: true,
     }));
-    app.use(express_1.default.json());
+    // Límite explícito: evita peticiones gigantes que agoten memoria/CPU.
+    app.use(express_1.default.json({ limit: '1mb' }));
     // === 1. RUTAS DE DIAGNÓSTICO Y HEALTHCHECK (RESPUESTA INMEDIATA) ===
     const healthHandler = async (_req, res) => {
         try {
             const resolved = (0, db_1.resolveDatabaseUrl)();
             if (process.env.VERCEL === '1' && !resolved.isConfigured) {
-                return res.status(200).json({
-                    status: 'ok',
-                    service: 'xupply-api',
-                    db: 'missing_env',
-                    message: 'DATABASE_URL (o POSTGRES_URL) no está configurada en Vercel Settings -> Environment Variables.',
-                });
+                // Mensaje genérico: no revelar nombres de variables ni detalles de infra.
+                return res.status(503).json({ status: 'degraded', service: 'xupply-api' });
             }
             const testRes = await (0, db_1.query)("SELECT to_regclass('public.users') as has_users");
             return res.status(200).json({
@@ -69,11 +99,7 @@ function createApp() {
             });
         }
         catch {
-            return res.status(200).json({
-                status: 'ok',
-                service: 'xupply-api',
-                db: 'error',
-            });
+            return res.status(503).json({ status: 'degraded', service: 'xupply-api' });
         }
     };
     app.get('/health', healthHandler);

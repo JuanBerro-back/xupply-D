@@ -9,9 +9,18 @@ const auth_1 = require("../middleware/auth");
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const audit_1 = require("../lib/audit");
 const realtime_1 = require("../lib/realtime");
+const email_1 = require("../lib/email");
 const userTenant_1 = require("../lib/userTenant");
 const router = (0, express_1.Router)();
 router.use(auth_1.authRequired);
+/** Paginación acotada: evita `LIMIT NaN`, valores negativos y volcados masivos. */
+function pagination(page, limit, defaultLimit = 20, maxLimit = 100) {
+    const parsedPage = Number.parseInt(String(page ?? '1'), 10);
+    const parsedLimit = Number.parseInt(String(limit ?? defaultLimit), 10);
+    const p = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+    const l = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, maxLimit) : defaultLimit;
+    return { page: p, limit: l, offset: (p - 1) * l };
+}
 // ==========================================
 // USUARIOS
 // ==========================================
@@ -50,9 +59,8 @@ router.get('/users', (0, auth_1.requirePermission)('config'), async (req, res, n
         const countResult = await (0, db_1.query)(`SELECT COUNT(*) FROM (${sql}) AS t`, params);
         const total = parseInt(countResult.rows[0].count, 10);
         // Pagination
-        const p = Math.max(1, Number(page));
-        const l = Math.max(1, Number(limit));
-        sql += ` ORDER BY u.created_at DESC LIMIT ${l} OFFSET ${(p - 1) * l}`;
+        const { page: p, limit: l, offset } = pagination(page, limit);
+        sql += ` ORDER BY u.created_at DESC LIMIT ${l} OFFSET ${offset}`;
         const result = await (0, db_1.query)(sql, params);
         res.json({
             data: result.rows,
@@ -631,9 +639,8 @@ router.get('/audit-log', (0, auth_1.requirePermission)('config'), async (req, re
         }
         const countResult = await (0, db_1.query)(`SELECT COUNT(*) FROM (${sql}) AS t`, params);
         const total = parseInt(countResult.rows[0].count, 10);
-        const p = Math.max(1, Number(page));
-        const l = Math.max(1, Number(limit));
-        sql += ` ORDER BY a.created_at DESC LIMIT ${l} OFFSET ${(p - 1) * l}`;
+        const { page: p, limit: l, offset } = pagination(page, limit, 50, 200);
+        sql += ` ORDER BY a.created_at DESC LIMIT ${l} OFFSET ${offset}`;
         const result = await (0, db_1.query)(sql, params);
         res.json({
             data: result.rows,
@@ -1054,6 +1061,47 @@ router.get('/stats', (0, auth_1.requirePermission)('analytics'), async (req, res
     `);
         stats.recent_activity = recentActivity.rows;
         res.json(stats);
+    }
+    catch (err) {
+        next(err);
+    }
+});
+// ==========================================
+// CORREO TRANSACCIONAL (diagnóstico)
+// ==========================================
+const emailTestCooldown = new Map();
+router.get('/email/status', (0, auth_1.requirePermission)('config'), async (_req, res) => {
+    const status = (0, email_1.getEmailStatus)();
+    res.json({
+        provider: status.provider,
+        from: status.from,
+        reply_to: status.reply_to,
+        configured: status.configured,
+        warnings: status.warnings,
+    });
+});
+router.post('/email/test', (0, auth_1.requirePermission)('config'), async (req, res, next) => {
+    try {
+        const user = req.user;
+        const now = Date.now();
+        const last = emailTestCooldown.get(user.id) ?? 0;
+        if (now - last < 60_000) {
+            return res.status(429).json({ error: 'Espera un minuto antes de enviar otra prueba.' });
+        }
+        const result = await (0, db_1.query)('SELECT email FROM users WHERE id = $1', [user.id]);
+        const to = String(result.rows[0]?.email ?? '').trim();
+        if (!to) {
+            return res.status(400).json({ error: 'Tu usuario no tiene un correo configurado.' });
+        }
+        emailTestCooldown.set(user.id, now);
+        await (0, audit_1.logAudit)(req, 'email_test', 'user', user.id, null, { provider: (0, email_1.getEmailStatus)().provider });
+        const outcome = await (0, email_1.sendTestEmail)(to);
+        res.json({
+            ok: outcome.ok,
+            sent_to: to,
+            provider: outcome.status.provider,
+            warnings: outcome.status.warnings,
+        });
     }
     catch (err) {
         next(err);

@@ -1,13 +1,6 @@
 import { query } from '../config/db';
 
 /**
- * Hash bcrypt real para la contraseña demo `demo1234`.
- * Reemplaza el placeholder inválido `$2b$10$DefaulthashForDemo...` que
- * permitía entrar sin validar el hash (backdoor) en bases de datos antiguas.
- */
-const DEMO_PASSWORD_HASH = '$2a$10$oeMFaVfquf/BWyFhkKmh.upF3lNucd/f8.jq4pajD5Sl10zCwwU.e';
-
-/**
  * Migraciones idempotentes (patrón del repo: ALTER/CREATE ... IF NOT EXISTS).
  * Se ejecutan una vez al arrancar el servidor.
  */
@@ -160,11 +153,11 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
       WHERE r.name = 'admin'
       ON CONFLICT DO NOTHING;
 
-      -- Garantizar que usuarios proveedor tengan supplier_id asignado
-      UPDATE users SET supplier_id = 1 WHERE username IN ('proveedor', 'domiciliario') AND supplier_id IS NULL;
-      UPDATE users u
-      SET supplier_id = (SELECT s.id FROM suppliers s ORDER BY s.id ASC LIMIT 1)
-      WHERE u.role_id = 4 AND u.supplier_id IS NULL AND EXISTS (SELECT 1 FROM suppliers);
+      -- Vehículos: conductor asignado y flota compartida opcional
+      ALTER TABLE vehicles ADD COLUMN IF NOT EXISTS driver_id INT REFERENCES users(id) ON DELETE SET NULL;
+      ALTER TABLE vehicles ALTER COLUMN supplier_id DROP NOT NULL;
+      CREATE INDEX IF NOT EXISTS idx_vehicles_supplier ON vehicles(supplier_id);
+      CREATE INDEX IF NOT EXISTS idx_deliveries_driver ON deliveries(driver_id);
     `);
     console.log('[DB] Esquema Radar de Stock + GPS verificado.');
     
@@ -178,25 +171,18 @@ export async function ensureRadarAndGpsSchema(): Promise<void> {
     } catch (e) {
       console.warn('[DB] Advertencia creando índice uq_accounting_invoice_ingreso:', e);
     }
-  } catch (err) {
-    console.error('[DB] Error aplicando esquema Radar/GPS:', err);
-  }
-}
-
-/** Repara hashes de cuentas semilla antiguas que usaban un placeholder inválido (backdoor). */
-export async function repairLegacySeedPasswords(): Promise<void> {
-  try {
-    const res = await query(
-      `UPDATE users
-          SET password_hash = $1, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP
-        WHERE password_hash LIKE '$2b$10$DefaulthashForDemo%'`,
-      [DEMO_PASSWORD_HASH]
-    );
-    if (res.rowCount) {
-      console.log(`[DB] Hashes semilla heredados reparados: ${res.rowCount}`);
+    // Índice único de reseñas: una por usuario y proveedor (idempotente).
+    try {
+      await query(`
+        CREATE UNIQUE INDEX IF NOT EXISTS uq_review_supplier_user
+        ON "Reseña" (supplier_id, created_by)
+        WHERE created_by IS NOT NULL;
+      `);
+    } catch (e) {
+      console.warn('[DB] No se pudo crear uq_review_supplier_user (¿reseñas duplicadas existentes?):', e);
     }
   } catch (err) {
-    console.error('[DB] Error reparando contraseñas semilla antiguas:', err);
+    console.error('[DB] Error aplicando esquema Radar/GPS:', err);
   }
 }
 
@@ -235,10 +221,10 @@ export async function ensureServerInitialized(): Promise<void> {
   if (!initPromise) {
     initPromise = (async () => {
       try {
-        const { initDatabase } = await import('../config/db');
+        const { initDatabase, neutralizeDemoCredentials } = await import('../config/db');
         await initDatabase();
         await ensureRadarAndGpsSchema();
-        await repairLegacySeedPasswords();
+        await neutralizeDemoCredentials();
         await dropLegacyPlatformViews();
         await expireRadarItems();
       } catch (err) {

@@ -91,11 +91,12 @@ router.post('/', (0, auth_1.roleRequired)('gerente', 'admin'), async (req, res, 
             await (0, audit_1.logAudit)(req, 'create', 'invoice', invoiceId, null, { code, total });
             const invoice = await (0, db_1.query)('SELECT * FROM invoices WHERE id = $1', [invoiceId]);
             if (client_email) {
-                (0, email_1.sendEmail)({
+                void (0, email_1.sendEmail)({
                     to_email: client_email,
                     to_name: client_name ?? client_email,
                     subject: `Factura ${code}`,
                     body: `Tu factura ${code} por $${total} está disponible en Xupply.`,
+                    category: 'transactional',
                 });
             }
             res.status(201).json(invoice.rows[0]);

@@ -33,7 +33,13 @@ async function run() {
   const baseUrl = `http://localhost:${port}`;
 
   const roles = ['admin', 'gerente', 'empleado', 'proveedor_admin', 'domiciliario'];
-  const pwd = process.env.SMOKE_PASSWORD || 'demo1234';
+  // Sin contraseña por defecto: evita ejecutar el smoke test contra una base
+  // real usando las credenciales demo conocidas.
+  const pwd = process.env.SMOKE_PASSWORD;
+  if (!pwd) {
+    console.error('ERROR: define SMOKE_PASSWORD con la contraseña de los usuarios de prueba.');
+    process.exit(1);
+  }
   
   const tokens: Record<string, string> = {};
   

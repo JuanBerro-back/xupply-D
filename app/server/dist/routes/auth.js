@@ -29,12 +29,22 @@ function buildPayload(row) {
 }
 router.post('/register', registerLimiter, async (req, res, next) => {
     try {
-        const { username, password, name, email, phone, type, category } = req.body;
+        const { password, name, email, phone, type, category } = req.body;
+        const username = typeof req.body.username === 'string' ? req.body.username.trim().toLowerCase() : '';
         if (!username || !password || !name) {
             return res.status(400).json({ error: 'username, password y name son requeridos' });
         }
+        // Evita usuarios con espacios o caracteres de control (rompen el login y la auditoría).
+        if (!/^[a-z0-9._-]{3,40}$/.test(username)) {
+            return res.status(400).json({
+                error: 'El usuario debe tener entre 3 y 40 caracteres: letras minúsculas, números, punto, guion o guion bajo',
+            });
+        }
         if (String(password).length < 8) {
             return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+        }
+        if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(email))) {
+            return res.status(400).json({ error: 'El email no es válido' });
         }
         if (!['restaurante', 'proveedor'].includes(type)) {
             return res.status(400).json({ error: 'type debe ser restaurante o proveedor' });
@@ -100,6 +110,7 @@ router.post('/login', loginLimiter, async (req, res, next) => {
          WHERE u.username = $1 AND u.is_active = TRUE`, [username]);
         }
         catch (queryErr) {
+            console.error('[Auth Login] Error de base de datos', queryErr?.code || queryErr?.message);
             if (queryErr?.message?.includes('users') || queryErr?.code === '42P01') {
                 console.warn('[Auth Login] Tabla users no encontrada. Inicializando BD y reintentando...');
                 try {
@@ -109,17 +120,13 @@ router.post('/login', loginLimiter, async (req, res, next) => {
              WHERE u.username = $1 AND u.is_active = TRUE`, [username]);
                 }
                 catch (initErr) {
-                    return res.status(500).json({
-                        error: 'Error inicializando esquema de base de datos',
-                        detail: initErr?.message || String(initErr),
-                    });
+                    console.error('[Auth Login] Error inicializando esquema', initErr?.code || initErr?.message);
+                    return res.status(500).json({ error: 'Error interno del servidor' });
                 }
             }
             else {
-                return res.status(500).json({
-                    error: 'Error de conexión a la base de datos',
-                    detail: queryErr?.message || String(queryErr),
-                });
+                // Nunca devolver el mensaje crudo del driver (filtra host, tablas, etc.).
+                return res.status(500).json({ error: 'Error interno del servidor' });
             }
         }
         const row = result.rows[0];
@@ -198,19 +205,68 @@ router.get('/tenant-info', auth_1.authRequired, async (req, res, next) => {
         next(err);
     }
 });
-router.post('/subscription-plan', auth_1.authRequired, (0, auth_1.roleRequired)('gerente', 'admin'), async (req, res, next) => {
+router.post('/subscription-plan', auth_1.authRequired, (0, auth_1.roleRequired)('admin'), async (req, res, next) => {
     try {
+        // Un gerente NO puede cambiar su propio plan: eso permitía obtener el plan
+        // premium gratis. Solo un administrador de plataforma puede asignarlo.
         const user = req.user;
-        const { plan } = req.body;
+        const { plan, restaurant_id } = req.body;
         if (!['basico', 'medio', 'premium'].includes(plan)) {
             return res.status(400).json({ error: 'Plan inválido. Opciones: basico, medio, premium' });
         }
-        if (user.restaurant_id) {
-            await (0, db_1.query)('UPDATE restaurants SET subscription_plan = $1 WHERE id = $2', [plan, user.restaurant_id]);
+        const targetRestaurantId = restaurant_id ? Number(restaurant_id) : user.restaurant_id;
+        if (!targetRestaurantId) {
+            return res.status(400).json({ error: 'restaurant_id es requerido' });
         }
-        await (0, db_1.query)('UPDATE users SET subscription_plan = $1 WHERE id = $2', [plan, user.id]);
-        (0, realtime_1.emitToUser)('notification:created', user.id, { message: `Plan cambiado a: ${plan.toUpperCase()}` });
-        res.json({ ok: true, plan });
+        const updated = await (0, db_1.query)('UPDATE restaurants SET subscription_plan = $1 WHERE id = $2 RETURNING id', [
+            plan,
+            targetRestaurantId,
+        ]);
+        if (!updated.rowCount)
+            return res.status(404).json({ error: 'Restaurante no encontrado' });
+        await (0, audit_1.logAudit)(req, 'update_plan', 'restaurant', targetRestaurantId, null, { plan });
+        res.json({ ok: true, plan, restaurant_id: targetRestaurantId });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+/** Cierre de sesión real: invalida los tokens emitidos para este usuario. */
+router.post('/logout', auth_1.authRequired, async (req, res, next) => {
+    try {
+        const user = req.user;
+        await (0, db_1.query)('UPDATE users SET token_version = token_version + 1 WHERE id = $1', [user.id]);
+        await (0, audit_1.logAudit)(req, 'logout', 'user', user.id, null, null);
+        res.json({ ok: true });
+    }
+    catch (err) {
+        next(err);
+    }
+});
+/** Cambio de contraseña por el propio usuario (antes solo el admin podía). */
+router.post('/change-password', auth_1.authRequired, async (req, res, next) => {
+    try {
+        const user = req.user;
+        const { current_password, new_password } = req.body || {};
+        if (!current_password || !new_password) {
+            return res.status(400).json({ error: 'current_password y new_password son requeridos' });
+        }
+        if (String(new_password).length < 10) {
+            return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 10 caracteres' });
+        }
+        if (String(new_password) === String(current_password)) {
+            return res.status(400).json({ error: 'La nueva contraseña debe ser distinta a la actual' });
+        }
+        const row = await (0, db_1.query)('SELECT password_hash FROM users WHERE id = $1', [user.id]);
+        if (!row.rowCount)
+            return res.status(404).json({ error: 'Usuario no encontrado' });
+        const ok = await bcryptjs_1.default.compare(String(current_password), row.rows[0].password_hash).catch(() => false);
+        if (!ok)
+            return res.status(401).json({ error: 'La contraseña actual no es correcta' });
+        const hash = await bcryptjs_1.default.hash(String(new_password), 10);
+        await (0, db_1.query)('UPDATE users SET password_hash = $1, token_version = token_version + 1, updated_at = CURRENT_TIMESTAMP WHERE id = $2', [hash, user.id]);
+        await (0, audit_1.logAudit)(req, 'change_password', 'user', user.id, null, { self: true });
+        res.json({ ok: true, message: 'Contraseña actualizada. Inicia sesión nuevamente.' });
     }
     catch (err) {
         next(err);

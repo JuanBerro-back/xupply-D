@@ -31,7 +31,10 @@ function orderAccessWhere(user, startIndex = 1) {
         return { clause: ` AND o.supplier_id = $${startIndex}`, params: [user.supplier_id] };
     }
     if (user.role === 'domiciliario') {
-        return { clause: '', params: [] };
+        return {
+            clause: ` AND EXISTS (SELECT 1 FROM deliveries d WHERE d.order_id = o.id AND d.driver_id = $${startIndex})`,
+            params: [user.id],
+        };
     }
     if (user.restaurant_id) {
         return { clause: ` AND o.restaurant_id = $${startIndex}`, params: [user.restaurant_id] };
@@ -92,9 +95,22 @@ router.post('/', (0, auth_1.roleRequired)('gerente', 'empleado', 'admin'), async
                 await client.query('ROLLBACK');
                 return res.status(400).json({ error: `El supplier_id ${supplier_id} no existe` });
             }
+            // La sucursal debe pertenecer al restaurante del usuario (evita pedidos
+            // asociados a sucursales de otro inquilino).
+            const branchId = branch_id ? Number(branch_id) : user.branch_id;
+            if (branchId) {
+                const branch = await client.query('SELECT 1 FROM branches WHERE id = $1 AND restaurant_id = $2', [
+                    branchId,
+                    user.restaurant_id,
+                ]);
+                if (!branch.rowCount) {
+                    await client.query('ROLLBACK');
+                    return res.status(400).json({ error: 'La sucursal indicada no pertenece a tu restaurante' });
+                }
+            }
             const code = `ORDER-${Date.now().toString(36).toUpperCase()}`;
             const inserted = await client.query(`INSERT INTO orders (order_code, restaurant_id, branch_id, supplier_id, status, notes, delivery_address, requested_delivery_date, created_by)
-         VALUES ($1, $2, $3, $4, 'nuevo', $5, $6, $7, $8) RETURNING id`, [code, user.restaurant_id, branch_id ?? user.branch_id, supplier_id, notes, delivery_address, requested_delivery_date, user.id]);
+         VALUES ($1, $2, $3, $4, 'nuevo', $5, $6, $7, $8) RETURNING id`, [code, user.restaurant_id, branchId ?? null, supplier_id, notes, delivery_address, requested_delivery_date, user.id]);
             const orderId = inserted.rows[0].id;
             let total = 0;
             for (const item of items) {
@@ -126,11 +142,12 @@ router.post('/', (0, auth_1.roleRequired)('gerente', 'empleado', 'admin'), async
             const order = { ...full.rows[0], items: (await (0, db_1.query)('SELECT * FROM order_items WHERE order_id = $1', [orderId])).rows };
             (0, realtime_1.emitOrder)('order:created', order);
             if (order.supplier_email) {
-                (0, email_1.sendEmail)({
+                void (0, email_1.sendEmail)({
                     to_email: order.supplier_email,
                     to_name: order.supplier_name,
                     subject: `Nuevo pedido ${order.order_code}`,
                     body: `Recibiste el pedido ${order.order_code} por $${total}.`,
+                    category: 'transactional',
                 });
             }
             res.status(201).json(order);
@@ -168,14 +185,14 @@ router.get('/:id', async (req, res, next) => {
        LEFT JOIN vehicles v ON v.id = d.vehicle_id
        WHERE d.order_id = $1 ORDER BY d.created_at DESC`, [req.params.id]);
         let deliveriesList = deliveries.rows;
-        // Para el gerente, el domiciliario lleva el código; el gerente no lo ve en la pantalla antes de la entrega
-        if (user.role === 'gerente' || (user.restaurant_id && user.role !== 'admin')) {
+        // El código de confirmación lo lleva el domiciliario y lo valida el
+        // restaurante: los usuarios del restaurante NO deben verlo por API
+        // (podrían auto-confirmar sin la presencia del conductor).
+        const isRestaurantUser = user.role === 'gerente' || user.role === 'empleado' || (user.restaurant_id !== null && user.role !== 'admin');
+        if (isRestaurantUser) {
             deliveriesList = deliveriesList.map((d) => {
-                if (d.status !== 'entregado') {
-                    const { confirmation_code, ...rest } = d;
-                    return { ...rest, has_security_code: true };
-                }
-                return d;
+                const { confirmation_code, ...rest } = d;
+                return { ...rest, has_security_code: Boolean(confirmation_code) };
             });
         }
         res.json({ ...order, items: items.rows, deliveries: deliveriesList });
@@ -203,6 +220,16 @@ router.patch('/:id/status', (0, auth_1.roleRequired)('admin', 'gerente', 'emplea
         }
         if (user.restaurant_id && order.restaurant_id !== user.restaurant_id) {
             return res.status(403).json({ error: 'No autorizado' });
+        }
+        if (user.role !== 'admin') {
+            const hasTenant = user.role === 'proveedor_admin' ? Boolean(user.supplier_id) : Boolean(user.restaurant_id);
+            if (!hasTenant)
+                return res.status(403).json({ error: 'Usuario sin inquilino asignado' });
+        }
+        if (status === 'entregado' && user.role !== 'admin') {
+            return res.status(403).json({
+                error: 'El pedido solo se marca como entregado con la llave de entrega (POST /api/deliveries/:id/confirm).',
+            });
         }
         const allowed = STATUS_TRANSITIONS[order.status] ?? [];
         if (!allowed.includes(status)) {

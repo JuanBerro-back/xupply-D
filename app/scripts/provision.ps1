@@ -63,7 +63,9 @@ try {
   Write-Host ""
   Write-Host "Base de datos lista!"
   Write-Host "  Conexion: postgres://${DbUser}:***@localhost:${DbPort}/${DbName}"
-  Write-Host "  Usuarios de prueba (password: demo1234): admin, gerente, empleado, proveedor, domiciliario"
+  Write-Host "  Usuarios demo SOLO PARA DESARROLLO (password: demo1234)."
+  Write-Host "  No uses este script contra una base de produccion: elimina el bloque"
+  Write-Host "  '-- DATOS DE DEMOSTRACION' del archivo SQL antes de aplicarlo."
 }
 finally {
   Remove-Item Env:\PGPASSWORD

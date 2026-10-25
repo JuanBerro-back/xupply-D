@@ -62,47 +62,26 @@ router.post('/', (0, auth_1.roleRequired)('proveedor_admin', 'admin'), async (re
         if (!name || !price_per_unit) {
             return res.status(400).json({ error: 'name y price_per_unit son requeridos' });
         }
-        let supplierId = user.supplier_id || (req.body.supplier_id ? Number(req.body.supplier_id) : null);
-        // Si el usuario no tiene supplier_id en el token
-        if (!supplierId) {
-            // 1. Verificar en base de datos por si su usuario ya tiene supplier_id
-            const userDb = await (0, db_1.query)('SELECT supplier_id, email, name FROM users WHERE id = $1', [user.id]);
-            if (userDb.rowCount && userDb.rows[0].supplier_id) {
-                supplierId = userDb.rows[0].supplier_id;
+        // El proveedor SIEMPRE sale del usuario autenticado. Un admin puede indicarlo
+        // explícitamente, pero se valida que exista. Antes, si faltaba supplier_id,
+        // el código "adivinaba" un proveedor por email/nombre (o el primero de la
+        // tabla) y podía asignar el producto —y al usuario— a otro inquilino.
+        let supplierId = user.supplier_id ? Number(user.supplier_id) : null;
+        if (user.role === 'admin') {
+            const requested = req.body.supplier_id ? Number(req.body.supplier_id) : null;
+            if (!requested) {
+                return res.status(400).json({ error: 'supplier_id es requerido para un administrador' });
             }
-        }
-        if (!supplierId && user.role === 'proveedor_admin') {
-            // 2. Si es proveedor_admin, buscar proveedor por email o nombre
-            const userEmail = user.email || '';
-            const userName = user.name || '';
-            const supMatch = await (0, db_1.query)('SELECT id FROM suppliers WHERE email = $1 OR name ILIKE $2 LIMIT 1', [userEmail, `%${userName}%`]);
-            if (supMatch.rowCount) {
-                supplierId = supMatch.rows[0].id;
+            const supCheck = await (0, db_1.query)('SELECT 1 FROM suppliers WHERE id = $1', [requested]);
+            if (!supCheck.rowCount) {
+                return res.status(400).json({ error: `El supplier_id ${requested} no existe` });
             }
-            else {
-                // Asignar al primer proveedor disponible
-                const anySup = await (0, db_1.query)('SELECT id FROM suppliers WHERE is_active = TRUE ORDER BY id ASC LIMIT 1');
-                if (anySup.rowCount) {
-                    supplierId = anySup.rows[0].id;
-                }
-            }
-            // Actualizar users table para persistirlo
-            if (supplierId) {
-                await (0, db_1.query)('UPDATE users SET supplier_id = $1 WHERE id = $2', [supplierId, user.id]);
-            }
-        }
-        else if (!supplierId && user.role === 'admin') {
-            // 3. Si es admin, usar el supplier_id enviado o el primero disponible
-            if (req.body.supplier_id) {
-                supplierId = Number(req.body.supplier_id);
-            }
-            else {
-                const anySup = await (0, db_1.query)('SELECT id FROM suppliers WHERE is_active = TRUE ORDER BY id ASC LIMIT 1');
-                supplierId = anySup.rows[0]?.id || 1;
-            }
+            supplierId = requested;
         }
         if (!supplierId) {
-            return res.status(400).json({ error: 'No se encontró un proveedor para asociar el producto. Crea o asigna un proveedor primero.' });
+            return res.status(403).json({
+                error: 'Tu usuario no tiene un proveedor asociado. Contacta al administrador.',
+            });
         }
         const result = await (0, db_1.query)(`INSERT INTO products (supplier_id, category_id, name, description, sku, unit, price_per_unit, min_order_qty, stock_available, image_url)
        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) RETURNING *`, [supplierId, category_id ? Number(category_id) : null, name, description, sku, unit ?? 'kg', price_per_unit, min_order_qty ?? 1, stock_available ?? 0, image_url]);
@@ -113,15 +92,22 @@ router.post('/', (0, auth_1.roleRequired)('proveedor_admin', 'admin'), async (re
         next(err);
     }
 });
-router.put('/:id', async (req, res, next) => {
+router.put('/:id', (0, auth_1.roleRequired)('proveedor_admin', 'admin'), async (req, res, next) => {
     try {
         const user = req.user;
         const current = await (0, db_1.query)('SELECT * FROM products WHERE id = $1', [req.params.id]);
         if (!current.rowCount)
             return res.status(404).json({ error: 'Producto no encontrado' });
-        if (user.role !== 'admin' && user.supplier_id && current.rows[0].supplier_id !== user.supplier_id) {
+        // Default-deny: solo el proveedor dueño del producto (o un admin) puede
+        // modificarlo. Antes, si `user.supplier_id` era null (cualquier gerente,
+        // empleado o domiciliario), la comprobación se saltaba y se podía cambiar
+        // el precio/stock de productos de CUALQUIER proveedor.
+        const isOwner = user.role === 'admin' ||
+            (user.role === 'proveedor_admin' &&
+                Boolean(user.supplier_id) &&
+                Number(current.rows[0].supplier_id) === Number(user.supplier_id));
+        if (!isOwner)
             return res.status(403).json({ error: 'No autorizado' });
-        }
         const { name, category_id, description, sku, unit, price_per_unit, min_order_qty, stock_available, image_url, is_active } = req.body;
         const result = await (0, db_1.query)(`UPDATE products
        SET name = COALESCE($2, name), category_id = COALESCE($3, category_id),
@@ -139,15 +125,18 @@ router.put('/:id', async (req, res, next) => {
         next(err);
     }
 });
-router.delete('/:id', async (req, res, next) => {
+router.delete('/:id', (0, auth_1.roleRequired)('proveedor_admin', 'admin'), async (req, res, next) => {
     try {
         const user = req.user;
         const current = await (0, db_1.query)('SELECT * FROM products WHERE id = $1', [req.params.id]);
         if (!current.rowCount)
             return res.status(404).json({ error: 'Producto no encontrado' });
-        if (user.role !== 'admin' && user.supplier_id && current.rows[0].supplier_id !== user.supplier_id) {
+        const isOwner = user.role === 'admin' ||
+            (user.role === 'proveedor_admin' &&
+                Boolean(user.supplier_id) &&
+                Number(current.rows[0].supplier_id) === Number(user.supplier_id));
+        if (!isOwner)
             return res.status(403).json({ error: 'No autorizado' });
-        }
         await (0, db_1.query)('UPDATE products SET is_active = FALSE, updated_at = CURRENT_TIMESTAMP WHERE id = $1', [
             req.params.id,
         ]);

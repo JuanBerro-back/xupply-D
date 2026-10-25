@@ -253,18 +253,39 @@ async function runTool(name, rawArgs, ctx) {
 }
 // ---------------------------------------------------------------------------
 // Gate de confirmación (defensa en profundidad del lado del servidor):
-// crear_borrador_oc SOLO se ejecuta si el último turno del usuario es una
-// confirmación explícita y si antes hubo una propuesta de OC del asistente.
+// crear_borrador_oc SOLO se ejecuta si el usuario confirmó explícitamente
+// DESPUÉS de que el servidor emitiera una propuesta de OC. El estado vive en
+// el servidor: no se confía en el historial enviado por el cliente, que podría
+// inyectar un turno falso del asistente para saltarse la confirmación.
 // ---------------------------------------------------------------------------
 const CONFIRM_WORDS = new Set([
     'si', 'sip', 'yes', 'yep', 'ok', 'oka', 'oke', 'dale', 'listo', 'claro',
     'confirmo', 'confirmar', 'confirma', 'adelante', 'hazlo', 'hagale', 'vamos',
     'genial', 'perfecto', 'bueno', 'va', 'simon', 'obvio', 'ejecuta',
 ]);
+const PROPOSAL_TTL_MS = 10 * 60 * 1000;
+const pendingProposals = new Map();
 function normalize(text) {
     return text.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
 }
-function getUserConfirmation(messages) {
+function markProposal(userId) {
+    pendingProposals.set(userId, Date.now());
+    if (pendingProposals.size > 5000) {
+        const now = Date.now();
+        for (const [key, ts] of pendingProposals) {
+            if (now - ts > PROPOSAL_TTL_MS)
+                pendingProposals.delete(key);
+        }
+    }
+}
+function getUserConfirmation(messages, userId) {
+    const proposedAt = pendingProposals.get(userId);
+    if (!proposedAt || Date.now() - proposedAt > PROPOSAL_TTL_MS) {
+        return {
+            ok: false,
+            reason: 'No hay una propuesta de Orden de Compra vigente. Primero presenta la sugerencia y termina preguntando "¿Quieres que genere la orden de compra con esto?"',
+        };
+    }
     let lastUserIdx = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
         if (messages[i].role === 'user') {
@@ -273,28 +294,31 @@ function getUserConfirmation(messages) {
         }
     }
     if (lastUserIdx < 0) {
-        return { ok: false, reason: 'No hay confirmación explícita del usuario. Primero pregunta "¿Quieres que genere la orden de compra con esto?" y espera su respuesta afirmativa.' };
+        return { ok: false, reason: 'No hay confirmación explícita del usuario.' };
     }
     const lastUser = normalize(messages[lastUserIdx].content || '');
     const firstToken = lastUser.replace(/[.,!?¿¡]+/g, ' ').trim().split(/\s+/)[0];
-    const confirmed = CONFIRM_WORDS.has(firstToken);
-    if (/\bno\b/.test(lastUser)) {
-        return { ok: false, reason: 'El usuario respondió de forma negativa o con dudas. No se debe crear la orden de compra.' };
-    }
-    if (!confirmed) {
-        return { ok: false, reason: 'Falta la confirmación explícita del usuario. Pregunta "¿Quieres que genere la orden de compra con esto?" y espera un sí/ok/dale. NO crees la OC sin esa confirmación.' };
-    }
-    let prevAssistant = '';
-    for (let i = lastUserIdx - 1; i >= 0; i--) {
-        if (messages[i].role === 'assistant') {
-            prevAssistant = normalize(messages[i].content || '');
-            break;
-        }
-    }
-    if (!/orden de compra|borrador|generar?e? la|quieres que genere/.test(prevAssistant)) {
-        return { ok: false, reason: 'No hay una sugerencia de Orden de Compra previa que confirmar. Primero presenta la sugerencia con cifras y termina preguntando si genera la OC.' };
+    if (/\bno\b/.test(lastUser) || !CONFIRM_WORDS.has(firstToken)) {
+        return { ok: false, reason: 'Falta la confirmación explícita del usuario. Espera un sí/ok/dale antes de crear la OC.' };
     }
     return { ok: true, reason: 'ok' };
+}
+// Límite de uso del agente para evitar abuso de costos del proveedor LLM.
+const agentRate = new Map();
+const AGENT_MAX_REQUESTS = 30;
+const AGENT_WINDOW_MS = 10 * 60 * 1000;
+function checkAgentRateLimit(userId) {
+    const now = Date.now();
+    const entry = agentRate.get(userId);
+    if (!entry || entry.resetAt <= now) {
+        agentRate.set(userId, { count: 1, resetAt: now + AGENT_WINDOW_MS });
+        return { ok: true, retryAfter: 0 };
+    }
+    entry.count += 1;
+    if (entry.count > AGENT_MAX_REQUESTS) {
+        return { ok: false, retryAfter: Math.ceil((entry.resetAt - now) / 1000) };
+    }
+    return { ok: true, retryAfter: 0 };
 }
 // ---------------------------------------------------------------------------
 // Llamadas al proveedor de LLM (compatible con OpenAI y sustitutos)
@@ -316,7 +340,13 @@ async function chatCompletions(messages, tools) {
     });
     if (!res.ok) {
         const text = await res.text();
-        throw new Error(`Proveedor LLM (${XUPAI_MODEL}) respondió ${res.status}: ${text.slice(0, 400)}`);
+        // El detalle del proveedor se registra solo en el servidor; nunca se
+        // devuelve al cliente (podría filtrar configuración interna).
+        console.error(`[XupAI] Proveedor LLM (${XUPAI_MODEL}) respondió ${res.status}: ${text.slice(0, 400)}`);
+        const error = new Error('No se pudo contactar al proveedor de IA. Intenta nuevamente.');
+        error.status = 502;
+        error.expose = true;
+        throw error;
     }
     return res.json();
 }
@@ -335,14 +365,23 @@ router.post('/agent', (0, auth_1.roleRequired)('gerente', 'admin'), async (req, 
         if (!restaurantId) {
             return res.status(403).json({ error: 'Esta función es solo para restaurantes.' });
         }
+        const rate = checkAgentRateLimit(req.user.id);
+        if (!rate.ok) {
+            res.setHeader('Retry-After', String(rate.retryAfter));
+            return res.status(429).json({ error: 'Has hecho demasiadas consultas a XupAI. Intenta más tarde.' });
+        }
         const { message, history } = req.body || {};
         if (!message || !String(message).trim()) {
             return res.status(400).json({ error: 'message es requerido' });
+        }
+        if (String(message).length > 2000) {
+            return res.status(400).json({ error: 'message no puede superar 2000 caracteres' });
         }
         const historyMessages = Array.isArray(history)
             ? history
                 .filter((m) => m && (m.role === 'user' || m.role === 'assistant') && typeof m.content === 'string' && m.content.trim())
                 .slice(-24)
+                .map((m) => ({ role: m.role, content: String(m.content).slice(0, 2000) }))
             : [];
         const messages = [
             { role: 'system', content: SYSTEM_PROMPT },
@@ -363,7 +402,7 @@ router.post('/agent', (0, auth_1.roleRequired)('gerente', 'admin'), async (req, 
                     const fnName = tc.function?.name || '';
                     let toolResult;
                     if (fnName === 'crear_borrador_oc') {
-                        const gate = getUserConfirmation(messages);
+                        const gate = getUserConfirmation(messages, ctx.userId ?? 0);
                         if (!gate.ok) {
                             toolResult = JSON.stringify({ error: gate.reason });
                         }
@@ -371,12 +410,16 @@ router.post('/agent', (0, auth_1.roleRequired)('gerente', 'admin'), async (req, 
                             try {
                                 toolResult = await runTool('crear_borrador_oc', tc.function?.arguments, ctx);
                                 try {
-                                    draft_created = Boolean(JSON.parse(toolResult).ok);
+                                    if (JSON.parse(toolResult).ok) {
+                                        draft_created = true;
+                                        pendingProposals.delete(ctx.userId ?? 0);
+                                    }
                                 }
                                 catch { }
                             }
                             catch (err) {
-                                toolResult = JSON.stringify({ error: err.message || 'Error creando la orden' });
+                                console.error('[XupAI] Error creando borrador de OC:', err);
+                                toolResult = JSON.stringify({ error: 'No se pudo crear la orden de compra. Intenta nuevamente.' });
                             }
                         }
                     }
@@ -385,14 +428,21 @@ router.post('/agent', (0, auth_1.roleRequired)('gerente', 'admin'), async (req, 
                             toolResult = await runTool(fnName, tc.function?.arguments, ctx);
                         }
                         catch (err) {
-                            toolResult = JSON.stringify({ error: err.message || 'Error ejecutando la herramienta' });
+                            console.error(`[XupAI] Error ejecutando herramienta ${fnName}:`, err);
+                            toolResult = JSON.stringify({ error: 'No se pudo consultar la información solicitada.' });
                         }
                     }
                     messages.push({ role: 'tool', tool_call_id: tc.id, content: toolResult });
                 }
                 continue;
             }
-            return res.json({ reply: msg.content || '', model: XUPAI_MODEL, mode: 'xupai', draft_created });
+            const reply = msg.content || '';
+            // Si el asistente propone generar la OC, habilitamos la confirmación
+            // del lado del servidor durante los próximos 10 minutos.
+            if (/quieres que genere/i.test(normalize(reply))) {
+                markProposal(ctx.userId ?? 0);
+            }
+            return res.json({ reply, model: XUPAI_MODEL, mode: 'xupai', draft_created });
         }
         return res.status(529).json({ error: 'El agente alcanzó el límite de pasos. Intenta nuevamente.' });
     }

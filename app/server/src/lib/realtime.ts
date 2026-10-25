@@ -1,4 +1,6 @@
 import type { Server as SocketIOServer, Socket } from 'socket.io';
+import type { AuthUser } from '../middleware/auth';
+import { query } from '../config/db';
 
 let io: SocketIOServer | null = null;
 
@@ -6,41 +8,82 @@ export function setIo(instance: SocketIOServer) {
   io = instance;
 }
 
-export function registerSocket(socket: Socket) {
-  const { restaurantId, supplierId, orderId, deliveryId, userId, role } = socket.handshake.query;
-  if (typeof restaurantId === 'string') socket.join(`restaurant:${restaurantId}`);
-  if (typeof supplierId === 'string') socket.join(`supplier:${supplierId}`);
-  if (typeof orderId === 'string') socket.join(`order:${orderId}`);
-  if (typeof deliveryId === 'string') socket.join(`delivery:${deliveryId}`);
-  if (typeof userId === 'string') socket.join(`user:${userId}`);
-  if (typeof role === 'string') socket.join(`role:${role}`);
-  if (role === 'admin') socket.join('admins');
+/** Comprueba que el usuario autenticado puede ver una entrega concreta. */
+async function canAccessDelivery(user: AuthUser, deliveryId: number): Promise<boolean> {
+  if (user.role === 'admin') return true;
+  const res = await query(
+    `SELECT d.restaurant_id, d.driver_id, o.supplier_id
+       FROM deliveries d
+       JOIN orders o ON o.id = d.order_id
+      WHERE d.id = $1`,
+    [deliveryId]
+  );
+  if (!res.rowCount) return false;
+  const row = res.rows[0];
+  if (user.restaurant_id && Number(row.restaurant_id) === Number(user.restaurant_id)) return true;
+  if (user.supplier_id && Number(row.supplier_id) === Number(user.supplier_id)) return true;
+  if (user.role === 'domiciliario' && Number(row.driver_id) === Number(user.id)) return true;
+  return false;
+}
 
-  socket.on('client:identify', (data: any) => {
-    if (data?.role === 'admin') {
-      socket.join('admins');
-      socket.join('role:admin');
+/**
+ * Registra un socket YA autenticado.
+ *
+ * La identidad llega desde el JWT (ver `server.ts`): NUNCA se aceptan
+ * `role`/`restaurantId`/`userId` enviados por el cliente, porque permitían
+ * unirse a la sala `admins` o a la de cualquier otro inquilino y recibir
+ * pedidos, posiciones GPS y eventos de auditoría ajenos.
+ */
+export function registerSocket(socket: Socket, user: AuthUser) {
+  socket.join(`user:${user.id}`);
+  if (user.restaurant_id) socket.join(`restaurant:${user.restaurant_id}`);
+  if (user.supplier_id) socket.join(`supplier:${user.supplier_id}`);
+  if (user.role) socket.join(`role:${user.role}`);
+  if (user.role === 'admin') socket.join('admins');
+
+  // El cliente solo puede pedir unirse a una entrega que le pertenezca.
+  socket.on('delivery:join', async (id: unknown) => {
+    const deliveryId = Number(id);
+    if (!Number.isInteger(deliveryId) || deliveryId <= 0) return;
+    try {
+      if (await canAccessDelivery(user, deliveryId)) socket.join(`delivery:${deliveryId}`);
+    } catch {
+      /* ignorar */
     }
-    if (data?.userId) socket.join(`user:${data.userId}`);
-    if (data?.restaurantId) socket.join(`restaurant:${data.restaurantId}`);
-    if (data?.supplierId) socket.join(`supplier:${data.supplierId}`);
   });
 
-  // Permite al cliente unirse/salir de la sala de seguimiento de una entrega
-  socket.on('delivery:join', (id: unknown) => {
-    if (Number.isInteger(Number(id))) socket.join(`delivery:${Number(id)}`);
-  });
   socket.on('delivery:leave', (id: unknown) => {
-    socket.leave(`delivery:${Number(id)}`);
+    const deliveryId = Number(id);
+    if (Number.isInteger(deliveryId)) socket.leave(`delivery:${deliveryId}`);
   });
 
-  // Permite al repartidor actualizar su posición en vivo
-  socket.on('delivery:update_position', (data: { deliveryId: number; lat: number; lng: number; speed: number | null }) => {
-    if (data && data.deliveryId) {
-      // Retransmitimos la posición a todos los que estén suscritos a esta entrega (Restaurantes, Admins, etc.)
-      socket.to(`delivery:${data.deliveryId}`).emit('delivery:position', data);
+  // Solo el domiciliario asignado (o un admin) puede publicar su posición.
+  socket.on(
+    'delivery:update_position',
+    async (data: { deliveryId?: number; lat?: number; lng?: number; speed?: number | null }) => {
+      const deliveryId = Number(data?.deliveryId);
+      if (!Number.isInteger(deliveryId) || deliveryId <= 0) return;
+      try {
+        const res = await query(
+          `SELECT d.driver_id, d.restaurant_id, o.supplier_id
+             FROM deliveries d
+             JOIN orders o ON o.id = d.order_id
+            WHERE d.id = $1`,
+          [deliveryId]
+        );
+        if (!res.rowCount) return;
+        const row = res.rows[0];
+        const isAssignedDriver = Number(row.driver_id) === Number(user.id);
+        if (!isAssignedDriver && user.role !== 'admin') return;
+        const payload = { ...data, deliveryId };
+        io?.to(`delivery:${deliveryId}`).emit('delivery:position', payload);
+        io?.to(`restaurant:${row.restaurant_id}`).emit('delivery:position', payload);
+        if (row.supplier_id) io?.to(`supplier:${row.supplier_id}`).emit('delivery:position', payload);
+      } catch {
+        /* ignorar */
+      }
     }
-  });
+  );
 }
 
 export function emitAuditActivity(data: unknown) {
@@ -121,7 +164,8 @@ export function emitOrder(event: string, data: unknown) {
     io.to(toSupplierId(data.supplier_id)).emit(event, data);
     io.to(`order:${data.id}`).emit(event, data);
   } else {
-    io.emit(event, data);
+    // Nunca broadcast global de datos de pedidos sin inquilino identificable.
+    io.to('admins').emit(event, data);
   }
 }
 
