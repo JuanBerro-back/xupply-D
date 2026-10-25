@@ -1,3 +1,4 @@
+import { toast } from '../lib/feedback';
 import { useState } from 'react';
 import { api } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
@@ -42,7 +43,7 @@ export default function AiAssistant() {
       setMessages((m) => [...m, { role: 'assistant', content: `${res.reply} (modelo: ${res.model})` }]);
       setInput('');
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     } finally {
       setSending(false);
     }
@@ -53,7 +54,7 @@ export default function AiAssistant() {
       const res = await api<PredictResponse>('/ai/predict-inventory', { method: 'POST', body: '{}' });
       setPredictions(res);
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 
@@ -63,7 +64,7 @@ export default function AiAssistant() {
       setReport(res);
       push({ message: 'Reporte generado con Xupply IA', at: new Date().toISOString() });
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 

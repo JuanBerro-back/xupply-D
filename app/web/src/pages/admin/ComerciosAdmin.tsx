@@ -1,3 +1,4 @@
+import { toast } from '../../lib/feedback';
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../../lib/api';
@@ -83,7 +84,7 @@ export default function ComerciosAdmin() {
       if (selectedCommerce) fetchDetail();
     } catch (err) {
       console.error(err);
-      alert('Error cambiando estado');
+      toast('Error cambiando estado', 'error');
     }
   };
 
@@ -103,7 +104,7 @@ export default function ComerciosAdmin() {
       fetchComercios();
       if (selectedCommerce) fetchDetail();
     } catch (err: any) {
-      alert(err.message || 'Error guardando');
+      toast(err.message || 'Error guardando', 'error');
     }
   };
 

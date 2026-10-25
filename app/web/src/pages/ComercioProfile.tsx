@@ -1,3 +1,4 @@
+import { toast } from '../lib/feedback';
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -71,7 +72,7 @@ export default function ComercioProfile() {
       setComment('');
       fetchReviews();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 

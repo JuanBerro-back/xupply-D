@@ -2,9 +2,11 @@ import { Suspense, lazy } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { isCapacitorNative } from './lib/api';
 import { useAuth } from './context/AuthContext';
-import { useNotifications } from './context/NotificationContext';
-import Toasts from './components/Toasts';
 import CookieConsent from './components/CookieConsent';
+import FeedbackHost from './components/FeedbackHost';
+import AppErrorBoundary from './components/AppErrorBoundary';
+import AccessDenied from './pages/AccessDenied';
+import NotFound from './pages/NotFound';
 
 // "Chrome" de la app en carga diferida: en el landing público (sin sesión) no
 // se renderiza, así que su código no se descarga ni se ejecuta.
@@ -56,9 +58,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 function RolesAllowed({ roles, children }: { roles: string[]; children: React.ReactNode }) {
   const { user } = useAuth();
   if (!user) return <Navigate to="/" replace />;
-  if (!roles.includes(user.role)) {
-    return <div className="p-8 text-center text-rose-500 font-bold text-xl mt-10">403 Acceso Denegado</div>;
-  }
+  if (!roles.includes(user.role)) return <AccessDenied />;
   return <>{children}</>;
 }
 
@@ -68,11 +68,7 @@ function AdminAccessAllowed({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
   if (loading) return <div className="p-8 text-center text-gray-500">Cargando...</div>;
   if (!user) return <Navigate to="/login" replace />;
-  
-  if (!hasAdminAccess(user)) {
-    return <div className="p-8 text-center text-rose-500 font-bold text-xl mt-10">403 Acceso Denegado</div>;
-  }
-  
+  if (!hasAdminAccess(user)) return <AccessDenied />;
   return <>{children}</>;
 }
 
@@ -82,7 +78,8 @@ function RootRoute() {
   if (user) {
     if (user.role === 'admin') return <Navigate to="/admin" replace />;
     if (user.role === 'verificador') return <Navigate to="/admin/verificaciones" replace />;
-    if (localStorage.getItem('xupply_new_user')) return <Navigate to="/mi-perfil" replace />;
+    // El domiciliario entra directo a su ruta (experiencia tipo DiDi).
+    if (user.role === 'domiciliario') return <Navigate to="/repartidor" replace />;
     return <Dashboard />;
   }
   if (isCapacitorNative()) return <Navigate to="/login" replace />;
@@ -99,13 +96,13 @@ function AdminIndex() {
 
 export default function App() {
   const { user } = useAuth();
-  const { items } = useNotifications();
 
   return (
     <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center text-gray-500">Cargando…</div>}>
     <div className="min-h-screen bg-slate-50 text-slate-800 dark:bg-[#0b1120] dark:text-slate-100 antialiased transition-colors duration-300">
       {user && <Navbar />}
       <main className={user ? 'mx-auto max-w-7xl px-4 py-6 pb-24 sm:pb-6' : ''}>
+        <AppErrorBoundary>
         <Suspense fallback={<div className="flex min-h-[60vh] items-center justify-center text-gray-500">Cargando…</div>}>
         <Routes>
           <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
@@ -140,15 +137,16 @@ export default function App() {
           </Route>
           <Route path="/comercio/:type/:id" element={<RequireAuth><ComercioProfile /></RequireAuth>} />
           <Route path="/mi-perfil" element={<RequireAuth><MyProfile /></RequireAuth>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         </Suspense>
+        </AppErrorBoundary>
       </main>
       {user && <BottomNav />}
-      {items.length > 0 && <Toasts />}
       {user && user.role !== 'admin' && user.role !== 'verificador' && <SideCart />}
       {user && <AiFloatingWidget />}
       <CookieConsent />
+      <FeedbackHost />
     </div>
     </Suspense>
   );

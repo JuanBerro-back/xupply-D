@@ -1,3 +1,4 @@
+import { toast } from '../lib/feedback';
 import { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../lib/api';
@@ -81,7 +82,7 @@ export default function OrderDetail() {
       push({ message: `Pedido actualizado → ${status}`, at: new Date().toISOString() });
       load();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 
@@ -101,7 +102,7 @@ export default function OrderDetail() {
       setDeliveryModal(false);
       load();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 

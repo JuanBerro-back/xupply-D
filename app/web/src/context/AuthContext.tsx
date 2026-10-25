@@ -79,7 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       disconnectSocket();
       setUser(null);
       setTenant(null);
-      alert(data?.message || 'Tu sesión ha sido revocada o actualizada por el administrador.');
+      // Se guarda para mostrarlo tras la recarga de /login (el aviso sobrevive
+      // al cambio de página, pero no a un alert bloqueante).
+      sessionStorage.setItem(
+        'xupply_flash',
+        data?.message || 'Tu sesión fue revocada o actualizada por el administrador.'
+      );
       window.location.href = '/login';
     };
     socket.on('auth:session_invalidated', onSessionInvalidated);

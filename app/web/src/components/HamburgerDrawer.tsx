@@ -62,6 +62,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
   const isSupplier = user?.role === 'proveedor_admin';
   const isDomiciliario = user?.role === 'domiciliario';
   const isAdmin = user?.role === 'admin';
+  const isVerifier = user?.role === 'verificador';
   const isOwner = user?.role === 'gerente' || user?.role === 'proveedor_admin';
   const isRestaurant = !isSupplier && !isAdmin && (!!user?.restaurant_id || user?.role === 'gerente' || user?.role === 'empleado');
   const canTrack = isAdmin || isSupplier || isDomiciliario;
@@ -115,7 +116,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
         <div className="flex-1 overflow-y-auto p-4 space-y-6 text-sm">
 
           {/* Módulos Principales */}
-          {!isAdmin && (
+          {!isAdmin && !isVerifier && (
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
                 {t('nav.main_modules')}
@@ -136,6 +137,18 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                     <span>{t('nav.catalog')}</span>
                   </span>
                   <span className="text-[10px] text-brand font-bold bg-brand/10 px-2 py-0.5 rounded-md">B2B</span>
+                </Link>
+              )}
+
+              {isDomiciliario && (
+                <Link to="/repartidor" className={linkItemClass}>
+                  <span className="flex items-center gap-3">
+                    <IconGps className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <span>Mi ruta</span>
+                  </span>
+                  <span className="text-[10px] text-emerald-700 bg-emerald-100 dark:bg-emerald-900/50 dark:text-emerald-300 font-bold px-2 py-0.5 rounded-md">
+                    GPS
+                  </span>
                 </Link>
               )}
 
@@ -171,7 +184,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           )}
 
           {/* Operaciones & Logística */}
-          {!isAdmin && (
+          {!isAdmin && !isVerifier && (
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
                 {t('nav.ops_supply')}
@@ -239,7 +252,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
           )}
 
           {/* Finanzas & Inteligencia */}
-          {!isAdmin && (
+          {!isAdmin && !isVerifier && (
             <div>
               <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
                 {t('nav.finance_auto')}
@@ -330,6 +343,26 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
             </div>
           )}
 
+          {/* Back office de verificación (rol verificador) */}
+          {isVerifier && (
+            <div>
+              <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+                Back office
+              </p>
+              <div className="space-y-1" onClick={onClose}>
+                <Link to="/admin/verificaciones" className={linkItemClass}>
+                  <span className="flex items-center gap-3">
+                    <IconSettings className="w-4 h-4 text-sky-600 dark:text-sky-400" />
+                    <span>Verificación de cuentas</span>
+                  </span>
+                  <span className="text-[10px] text-brand font-bold bg-brand/10 px-2 py-0.5 rounded-md">
+                    KYC
+                  </span>
+                </Link>
+              </div>
+            </div>
+          )}
+
           {/* Configuración y Preferencias */}
           <div>
             <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
@@ -374,7 +407,7 @@ export default function HamburgerDrawer({ isOpen, onClose }: HamburgerDrawerProp
                       className="rounded text-brand"
                     />
                   </label>
-                  {!isAdmin && (
+                  {!isAdmin && !isVerifier && (
                     <label className="flex items-center justify-between cursor-pointer">
                       <span>{lang === 'es' ? 'Aviso de stock bajo' : 'Low stock notices'}</span>
                       <input

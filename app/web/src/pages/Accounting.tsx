@@ -1,3 +1,4 @@
+import { toast } from '../lib/feedback';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { AccountingTransaction } from '../types';
@@ -42,7 +43,7 @@ export default function Accounting() {
       setModal(false);
       load();
     } catch (err) {
-      alert((err as Error).message);
+      toast((err as Error).message, 'error');
     }
   };
 
