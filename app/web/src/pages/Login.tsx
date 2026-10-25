@@ -79,16 +79,6 @@ export default function Login() {
         <p className="mt-6 text-sm text-slate-600 text-center font-medium">
           ¿Sin cuenta? <Link to="/register" className="text-brand font-bold hover:underline">Regístrate</Link>
         </p>
-        <div className="mt-8 rounded-xl bg-slate-50 border border-slate-100 p-4 text-xs text-slate-500 leading-relaxed">
-          <span className="font-semibold text-slate-700 block mb-1">Usuarios demo (contraseña demo1234):</span>
-          <div className="flex flex-wrap gap-1 mt-1">
-            <span className="bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-600">admin</span>
-            <span className="bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-600">gerente</span>
-            <span className="bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-600">empleado</span>
-            <span className="bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-600">proveedor</span>
-            <span className="bg-white border border-slate-200 px-2 py-0.5 rounded text-slate-600">domiciliario</span>
-          </div>
-        </div>
       </div>
     </div>
   );

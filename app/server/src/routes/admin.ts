@@ -4,10 +4,20 @@ import { authRequired, clearPermissionCache, requirePermission } from '../middle
 import bcrypt from 'bcryptjs';
 import { logAudit } from '../lib/audit';
 import { emitToUser, emitToRole } from '../lib/realtime';
+import { getEmailStatus, sendTestEmail, checkEmailDns } from '../lib/email';
 import { tenantScopeForRole, validateTenantScope } from '../lib/userTenant';
 
 const router = Router();
 router.use(authRequired);
+
+/** Paginación acotada: evita `LIMIT NaN`, valores negativos y volcados masivos. */
+function pagination(page: unknown, limit: unknown, defaultLimit = 20, maxLimit = 100) {
+  const parsedPage = Number.parseInt(String(page ?? '1'), 10);
+  const parsedLimit = Number.parseInt(String(limit ?? defaultLimit), 10);
+  const p = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
+  const l = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, maxLimit) : defaultLimit;
+  return { page: p, limit: l, offset: (p - 1) * l };
+}
 
 
 
@@ -54,9 +64,8 @@ router.get('/users', requirePermission('config'), async (req: Request, res: Resp
     const total = parseInt(countResult.rows[0].count, 10);
     
     // Pagination
-    const p = Math.max(1, Number(page));
-    const l = Math.max(1, Number(limit));
-    sql += ` ORDER BY u.created_at DESC LIMIT ${l} OFFSET ${(p - 1) * l}`;
+    const { page: p, limit: l, offset } = pagination(page, limit);
+    sql += ` ORDER BY u.created_at DESC LIMIT ${l} OFFSET ${offset}`;
     
     const result = await query(sql, params);
     
@@ -712,9 +721,8 @@ router.get('/audit-log', requirePermission('config'), async (req: Request, res: 
     const countResult = await query(`SELECT COUNT(*) FROM (${sql}) AS t`, params);
     const total = parseInt(countResult.rows[0].count, 10);
     
-    const p = Math.max(1, Number(page));
-    const l = Math.max(1, Number(limit));
-    sql += ` ORDER BY a.created_at DESC LIMIT ${l} OFFSET ${(p - 1) * l}`;
+    const { page: p, limit: l, offset } = pagination(page, limit, 50, 200);
+    sql += ` ORDER BY a.created_at DESC LIMIT ${l} OFFSET ${offset}`;
     
     const result = await query(sql, params);
     
@@ -1162,6 +1170,70 @@ router.get('/stats', requirePermission('analytics'), async (req: Request, res: R
     stats.recent_activity = recentActivity.rows;
 
     res.json(stats);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ==========================================
+// CORREO TRANSACCIONAL (diagnóstico)
+// ==========================================
+
+const emailTestCooldown = new Map<number, number>();
+
+router.get('/email/status', requirePermission('config'), async (_req: Request, res: Response) => {
+  const status = getEmailStatus();
+  res.json({
+    provider: status.provider,
+    providers: status.providers,
+    from: status.from,
+    reply_to: status.reply_to,
+    configured: status.configured,
+    warnings: status.warnings,
+  });
+});
+
+/**
+ * Diagnóstico DNS de entregabilidad (SPF/DKIM/DMARC/MX) del dominio remitente.
+ * `?refresh=1` fuerza una consulta nueva (por defecto se cachea 10 minutos).
+ */
+router.get('/email/dns', requirePermission('config'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const refresh = String(req.query.refresh ?? '') === '1';
+    const report = await checkEmailDns(refresh);
+    if (!report) {
+      return res.status(400).json({ error: 'MAIL_FROM no está configurado; no hay dominio que verificar.' });
+    }
+    res.json(report);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post('/email/test', requirePermission('config'), async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const user = req.user!;
+    const now = Date.now();
+    const last = emailTestCooldown.get(user.id) ?? 0;
+    if (now - last < 60_000) {
+      return res.status(429).json({ error: 'Espera un minuto antes de enviar otra prueba.' });
+    }
+
+    const result = await query('SELECT email FROM users WHERE id = $1', [user.id]);
+    const to = String(result.rows[0]?.email ?? '').trim();
+    if (!to) {
+      return res.status(400).json({ error: 'Tu usuario no tiene un correo configurado.' });
+    }
+
+    emailTestCooldown.set(user.id, now);
+    await logAudit(req, 'email_test', 'user', user.id, null, { provider: getEmailStatus().provider });
+    const outcome = await sendTestEmail(to);
+    res.json({
+      ok: outcome.ok,
+      sent_to: to,
+      provider: outcome.status.provider,
+      warnings: outcome.status.warnings,
+    });
   } catch (err) {
     next(err);
   }

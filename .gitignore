@@ -14,7 +14,9 @@ landing/dist/
 **/.gradle/
 **/.astro/
 *.tsbuildinfo
-package-lock.json
+# Lock raíz generado por `npm install` en el workspace; los locks versionados
+# son app/server/package-lock.json y app/web/package-lock.json.
+/package-lock.json
 app/web/android/app/build/
 app/web/android/.gradle/
 app/web/android/build/

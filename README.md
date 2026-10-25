@@ -47,9 +47,11 @@ npm run dev          # http://localhost:5173
 
 Crea la base `xupply` y aplica el esquema `app/server/DB/xupply_schema_postgresql.sql`.
 
-### Usuarios de prueba
+### Usuarios
 
-Usuarios demo (contrasena: `demo1234`): `admin`, `gerente`, `empleado`, `proveedor`, `domiciliario`.
+No existen usuarios por defecto. En el primer arranque, si defines `ADMIN_USERNAME`
+y `ADMIN_PASSWORD` (mínimo 12 caracteres), se crea un único administrador.
+Los datos de demostración solo se siembran con `SEED_DEMO_DATA=true` en local.
 
 ## Modo portatil (Windows, sin instalar nada)
 
@@ -74,6 +76,22 @@ Espejo en `.env.production.example` y `app/server/.env.example`:
 | `DATABASE_URL`  | Cadena de conexion PostgreSQL.                |
 | `JWT_SECRET`    | **Obligatorio.** Secreto para firmar tokens. En produccion el servidor no arranca si falta. Genera uno aleatorio largo. |
 | `CLIENT_ORIGIN` | Lista blanca de origenes permitidos (CORS para HTTP y Socket.IO), separados por coma. Recomendado/obligatorio en produccion. |
+| `MAIL_PROVIDER` | `smtp`, `resend` o `emailjs`. Si se omite, se autodetecta. Ver `EMAIL-ENTERPRISE.md`. |
+| `MAIL_FROM` | Remitente corporativo (mismo dominio que `SMTP_USER`). |
+| `MAIL_REPLY_TO` | Buzon enterprise que recibe las respuestas. |
+| `SMTP_*` / `RESEND_API_KEY` | Credenciales del proveedor de correo. |
+
+## Correo transaccional
+
+Las notificaciones de pedidos y facturas se envian con `app/server/src/lib/email.ts`.
+Soporta SMTP empresarial (Google Workspace, Microsoft 365, Amazon SES, Zoho),
+Resend y EmailJS. Para evitar spam configura SPF, DKIM y DMARC siguiendo
+`EMAIL-ENTERPRISE.md`. Prueba con:
+
+```bash
+cd app/server
+npm run email:test -- tu-correo@tudominio.com
+```
 
 ## Verificacion de salud
 
@@ -109,7 +127,7 @@ El endpoint `/health` responde `{"status":"ok","service":"xupply-api","db":"conn
 ### Autorizacion y roles (correccion posterior)
 
 - **`requirePermission` sin bypass**: se elimino el atajo que dejaba pasar siempre al rol `admin`. Ahora todo permiso se valida contra `role_permissions`, y una migracion garantiza que el rol `admin` conserve todos los permisos.
-- **Cambio de plan de suscripcion**: `POST /api/auth/subscription-plan` exige rol `gerente` o `admin` (antes cualquier usuario autenticado con restaurante podia cambiar el plan del negocio).
+- **Cambio de plan de suscripcion**: `POST /api/auth/subscription-plan` exige rol `admin` (antes cualquier usuario autenticado con restaurante podia cambiar el plan del negocio).
 - **Invariantes rol/inquilino**: al crear o cambiar el rol de un usuario se exige coherencia (`gerente`/`empleado` -> restaurante; `proveedor_admin`/`domiciliario` -> proveedor; `admin` -> plataforma). Evita usuarios sin inquilino que rompian el aislamiento multi-tenant.
 - **Alta/edicion de usuarios del panel**: `POST/PUT /api/admin/users` ahora valida la existencia de restaurante, sucursal y proveedor (responde 400 en vez de 500) y aplica las mismas invariantes de rol/inquilino.
 - **Migracion reparada**: un `INSERT INTO role_permissions` sin terminador en `migrations.ts` se fusionaba con el `UPDATE` siguiente y rompia la inicializacion al arrancar; se agrego `ON CONFLICT DO NOTHING;`.
@@ -123,8 +141,9 @@ El endpoint `/health` responde `{"status":"ok","service":"xupply-api","db":"conn
    ```
 2. **Define `CLIENT_ORIGIN`** con el dominio real del frontend (varios separados por coma).
 3. **Las sesiones activas se invalidaran una vez** (los tokens antiguos no llevan `token_version`); los usuarios deberan iniciar sesion de nuevo.
-4. Las cuentas demo (`admin`, `gerente`, `empleado`, `proveedor`, `domiciliario` / `demo1234`) siguen funcionando con hash real, pero **cambia sus contrasenas en produccion**.
+4. Elimina cualquier cuenta demo que exista en la base de datos. En producción `SEED_DEMO_DATA` debe ser `false` y no se crean usuarios con contraseña conocida.
 5. Los despliegues que compilan desde `src/` (Vercel, Render, Docker) toman los cambios automaticamente.
+6. **Realtime**: Socket.IO necesita un proceso persistente. Vercel (serverless) no lo soporta; para producción usa Render, Docker o un VPS.
 
 ## Rendimiento y SEO
 

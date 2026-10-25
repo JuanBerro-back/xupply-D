@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-and-test:
+    name: Build, typecheck y auditoría
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalar backend
+        working-directory: app/server
+        run: npm ci --workspaces=false --no-audit --no-fund
+
+      - name: Instalar frontend
+        working-directory: app/web
+        run: npm ci --workspaces=false --no-audit --no-fund
+
+      - name: Typecheck backend
+        working-directory: app/server
+        run: npm run typecheck
+
+      - name: Build backend
+        working-directory: app/server
+        run: npm run build
+
+      - name: Build frontend
+        working-directory: app/web
+        run: npm run build
+
+      - name: Auditar dependencias de producción
+        working-directory: app/server
+        run: npm audit --omit=dev --audit-level=high

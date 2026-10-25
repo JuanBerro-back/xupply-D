@@ -3,16 +3,26 @@ services:
     name: xupply
     runtime: node
     rootDir: app
-    buildCommand: npm install --prefix server && npm install --prefix web && npm run build --prefix web && npm run build --prefix server
+    buildCommand: npm ci --prefix server && npm ci --prefix web && npm run build --prefix web && npm run build --prefix server
     startCommand: node server/dist/server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV
         value: production
+      # Define aquí el dominio real del frontend (o déjalo vacío si el
+      # frontend y la API se sirven desde el mismo origen).
       - key: CLIENT_ORIGIN
-        value: '*'
+        sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: JWT_EXPIRES_IN
+        value: 12h
+      - key: SEED_DEMO_DATA
+        value: "false"
+      - key: ADMIN_USERNAME
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
       - key: DATABASE_URL
         fromDatabase:
           name: xupply-db

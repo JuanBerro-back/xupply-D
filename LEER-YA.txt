@@ -11,8 +11,10 @@ COMO USAR EN OTRO PC (ej. con la USB):
    - Carga el esquema + datos de prueba
    - Abre la ventana de la aplicacion.
 
-USUARIOS DE PRUEBA (password: demo1234):
+USUARIOS DE PRUEBA (SOLO MODO LOCAL / DEMO, password: demo1234):
 admin | gerente | empleado | proveedor | domiciliario
+Estas cuentas se crean solo si se aplica el bloque de datos demo del esquema.
+NUNCA uses este modo portatil contra una base de produccion.
 
 NOTAS:
 - La primera apertura tarda un poco (inicializa la base).

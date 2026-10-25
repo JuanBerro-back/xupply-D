@@ -3,6 +3,17 @@
 -- Plataforma B2B ERP / Ecosistema Logístico con IA
 -- Surtesoft - v2.0
 -- ============================================================
+--
+--  ⚠️  AVISO DE SEGURIDAD
+--  Este archivo contiene, entre las marcas "-- Restaurantes" y "-- VISTAS",
+--  DATOS DE DEMOSTRACIÓN con usuarios y contraseñas conocidas (demo1234).
+--  Es SOLO para desarrollo local / modo portátil.
+--
+--  Para PRODUCCIÓN no apliques este archivo completo: deja que la aplicación
+--  cree el esquema automáticamente (initDatabase) con SEED_DEMO_DATA=false,
+--  o elimina el bloque de demostración antes de ejecutarlo.
+-- ============================================================
+
 
 -- ------------------------------------------------------------
 -- TIPOS ENUM personalizados
@@ -544,6 +555,12 @@ SELECT 4, id FROM permissions WHERE name LIKE 'prov:%';
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT 5, id FROM permissions WHERE name IN ('prov:logistica', 'prov:gps');
 
+-- ============================================================
+-- DATOS DE DEMOSTRACIÓN (SOLO DESARROLLO) — INICIO
+-- Todo lo que sigue hasta la marca "-- VISTAS" crea restaurantes,
+-- proveedores y usuarios con contraseñas conocidas. No usar en producción.
+-- ============================================================
+
 -- Restaurantes
 INSERT INTO restaurants (name, nit, phone, email, address, city) VALUES
 ('Rancho Grande BGA', '900123456-7', '(607) 634-5678', 'info@ranchogrande.com', 'Cra 27 #45-32, Cabecera', 'Bucaramanga'),
@@ -634,6 +651,10 @@ INSERT INTO users (username, password_hash, name, email, role_id, restaurant_id,
 ('empleado', '$2a$10$oeMFaVfquf/BWyFhkKmh.upF3lNucd/f8.jq4pajD5Sl10zCwwU.e', 'Miguel Torres', 'empleado@ranchogrande.com', 3, 1, 1),
 ('proveedor', '$2a$10$oeMFaVfquf/BWyFhkKmh.upF3lNucd/f8.jq4pajD5Sl10zCwwU.e', 'Pedro Mora', 'pedro@carneelpaisa.com', 4, NULL, NULL),
 ('domiciliario', '$2a$10$oeMFaVfquf/BWyFhkKmh.upF3lNucd/f8.jq4pajD5Sl10zCwwU.e', 'Jhon Diaz', 'jhon@carneelpaisa.com', 5, NULL, NULL);
+
+-- ============================================================
+-- DATOS DE DEMOSTRACIÓN (SOLO DESARROLLO) — FIN
+-- ============================================================
 
 -- ============================================================
 -- VISTAS

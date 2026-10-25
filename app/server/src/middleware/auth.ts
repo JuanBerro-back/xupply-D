@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import jwt from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import { query } from '../config/db';
 
 export interface AuthUser {
@@ -38,6 +38,9 @@ if (!RAW_JWT_SECRET || !RAW_JWT_SECRET.trim()) {
 
 const JWT_SECRET = (RAW_JWT_SECRET && RAW_JWT_SECRET.trim()) || 'dev-only-insecure-secret-change-me';
 
+// Sesiones cortas: antes 7 días. Configurable por entorno.
+const JWT_EXPIRES_IN = (process.env.JWT_EXPIRES_IN || '12h') as SignOptions['expiresIn'];
+
 const permissionCache = new Map<number, Set<string>>();
 let cacheLoaded = false;
 
@@ -63,7 +66,7 @@ export async function clearPermissionCache() {
 }
 
 export function signToken(user: AuthUser): string {
-  return jwt.sign(user, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(user, JWT_SECRET, { expiresIn: JWT_EXPIRES_IN, algorithm: 'HS256' });
 }
 
 export async function authRequired(req: Request, res: Response, next: NextFunction) {
@@ -72,23 +75,45 @@ export async function authRequired(req: Request, res: Response, next: NextFuncti
     return res.status(401).json({ error: 'Token requerido' });
   }
   try {
-    const decoded = jwt.verify(header.slice(7), JWT_SECRET) as AuthUser;
-    
-    // Verificación en tiempo real contra DB para invalidar sesiones antiguas,
-    // revocar accesos de usuarios inactivos o cuando sus roles/permisos cambian drásticamente.
-    const userCheck = await query('SELECT token_version, is_active FROM users WHERE id = $1', [decoded.id]);
-    
+    const decoded = jwt.verify(header.slice(7), JWT_SECRET, {
+      algorithms: ['HS256'],
+    }) as AuthUser;
+
+    // Verificación en tiempo real contra la BD: además de invalidar sesiones
+    // antiguas, el rol y el inquilino se toman SIEMPRE de la base de datos y no
+    // del token. Así un cambio de rol/restaurante/proveedor se aplica al
+    // instante (antes el JWT podía seguir diciendo lo contrario hasta caducar).
+    const userCheck = await query(
+      `SELECT u.id, u.username, u.name, u.token_version, u.is_active,
+              u.role_id, r.name AS role, u.restaurant_id, u.supplier_id, u.branch_id
+         FROM users u
+         JOIN roles r ON r.id = u.role_id
+        WHERE u.id = $1`,
+      [decoded.id]
+    );
+
     if (!userCheck.rowCount || !userCheck.rows[0].is_active) {
       return res.status(401).json({ error: 'Cuenta inactiva o eliminada' });
     }
-    
+
     // Comparar SIEMPRE la versión del token contra la de la BD. Los tokens sin versión
     // (emitidos antes de habilitar esta columna) se rechazan para forzar un nuevo inicio de sesión.
     if (Number(decoded.token_version ?? -1) !== Number(userCheck.rows[0].token_version)) {
       return res.status(401).json({ error: 'Sesión invalidada por cambios en la cuenta. Por favor inicie sesión nuevamente.' });
     }
 
-    req.user = decoded;
+    const row = userCheck.rows[0];
+    req.user = {
+      id: Number(row.id),
+      username: row.username,
+      name: row.name,
+      role: row.role,
+      role_id: Number(row.role_id),
+      restaurant_id: row.restaurant_id === null ? null : Number(row.restaurant_id),
+      supplier_id: row.supplier_id === null ? null : Number(row.supplier_id),
+      branch_id: row.branch_id === null ? null : Number(row.branch_id),
+      token_version: Number(row.token_version),
+    };
     next();
   } catch (err) {
     return res.status(401).json({ error: 'Token inválido o expirado' });

@@ -35,8 +35,9 @@ export async function createPurchaseOrderDraft(opts: {
     if (prodIds.length > 0) {
       const inArr = prodIds.map((_, i) => `$${i + 1}`).join(',');
       const p = await client.query(
-        `SELECT id, name, unit, price_per_unit FROM products WHERE id IN (${inArr}) AND is_active=TRUE`,
-        prodIds
+        `SELECT id, name, unit, price_per_unit FROM products
+         WHERE id IN (${inArr}) AND is_active = TRUE AND supplier_id = $${prodIds.length + 1}`,
+        [...prodIds, Number(supplierId)]
       );
       for (const r of p.rows) priceMap.set(r.id, r);
     }
