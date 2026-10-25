@@ -18,13 +18,15 @@ function deliverySelect() {
                  v.current_lat AS vehicle_lat, v.current_lng AS vehicle_lng,
                  v.last_location_update, v.imei, v.gps_validated, v.gps_last_seen,
                  u.name AS driver_name, u.phone AS driver_phone,
+                 cu.name AS created_by_name, cu.phone AS created_by_phone,
                  s.name AS supplier_name, s.phone AS supplier_phone
           FROM deliveries d
           JOIN orders o ON o.id = d.order_id
           JOIN restaurants r ON r.id = d.restaurant_id
           JOIN suppliers s ON s.id = o.supplier_id
           LEFT JOIN vehicles v ON v.id = d.vehicle_id
-          LEFT JOIN users u ON u.id = d.driver_id`;
+          LEFT JOIN users u ON u.id = d.driver_id
+          LEFT JOIN users cu ON cu.id = o.created_by`;
 }
 
 /** Restringe una entrega al inquilino del usuario (proveedor, restaurante o domiciliario). */
