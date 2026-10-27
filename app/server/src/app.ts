@@ -52,6 +52,8 @@ export function createApp() {
           baseUri: ["'self'"],
           objectSrc: ["'none'"],
           frameAncestors: ["'none'"],
+          // Visor de documentos del back office: PDFs servidos como blob.
+          frameSrc: ["'self'", 'blob:'],
           formAction: ["'self'"],
           scriptSrc: ["'self'"],
           styleSrc: ["'self'", "'unsafe-inline'"],
