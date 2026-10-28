@@ -76,6 +76,10 @@ export function createApp() {
         // Peticiones sin Origin (server-to-server, curl, apps nativas) se permiten.
         if (!origin) return cb(null, true);
         if (configuredOrigins.includes(origin)) return cb(null, true);
+        // WebView de Capacitor (APK): el origen es https://localhost. No concede
+        // acceso por sí solo; toda petición sigue exigiendo el Bearer token.
+        const nativeOrigins = ['https://localhost', 'capacitor://localhost', 'http://localhost'];
+        if (nativeOrigins.includes(origin)) return cb(null, true);
         // Fail-closed: sin lista blanca configurada, en producción NO se permite
         // ningún origen cruzado (antes se permitían todos).
         return cb(null, !isProduction);

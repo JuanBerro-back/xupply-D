@@ -9,7 +9,8 @@
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit && tsc -p tsconfig.smoke.json",
     "smoke": "tsx scripts/smoke.ts",
-    "email:test": "tsx scripts/email-test.ts"
+    "email:test": "tsx scripts/email-test.ts",
+    "admin:credentials": "node scripts/admin-credentials.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

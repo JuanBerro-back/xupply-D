@@ -2,7 +2,9 @@ import { Capacitor } from '@capacitor/core';
 
 const TOKEN_KEY = 'xupply_token';
 const SERVER_URL_KEY = 'xupply_server_url';
-export const DEFAULT_RENDER_URL = 'https://xupply-d.onrender.com';
+export const DEFAULT_API_URL = 'https://xupply-d.vercel.app';
+/** @deprecated usar DEFAULT_API_URL */
+export const DEFAULT_RENDER_URL = DEFAULT_API_URL;
 
 export function isCapacitorNative(): boolean {
   if (typeof window === 'undefined') return false;
@@ -29,9 +31,10 @@ export function getApiOrigin(): string {
     return buildUrl.trim().replace(/\/+$/, '');
   }
 
-  // Si se ejecuta en APK (Capacitor en Android), localhost no tiene backend; usamos Render
+  // Si se ejecuta en APK (Capacitor en Android), localhost no tiene backend;
+  // se usa el backend de producción.
   if (isCapacitorNative()) {
-    return DEFAULT_RENDER_URL;
+    return DEFAULT_API_URL;
   }
 
   // En la web (despliegue en Vercel, vercel dev o proxy de Vite), origen relativo ""

@@ -233,6 +233,14 @@ export default function Deliveries({ focusMode = false }: { focusMode?: boolean 
     };
   }, [load]);
 
+  // Sin Socket.IO (Vercel) la posición y el estado se refrescan por polling.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') load();
+    }, 20_000);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
   const refreshGps = async () => {
     setGpsManualEnabled(true);
     setGpsStatus('pendiente');
