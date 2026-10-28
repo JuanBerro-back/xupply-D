@@ -144,7 +144,9 @@ El endpoint `/health` responde `{"status":"ok","service":"xupply-api","db":"conn
 3. **Las sesiones activas se invalidaran una vez** (los tokens antiguos no llevan `token_version`); los usuarios deberan iniciar sesion de nuevo.
 4. Elimina cualquier cuenta demo que exista en la base de datos. En producción `SEED_DEMO_DATA` debe ser `false` y no se crean usuarios con contraseña conocida.
 5. Los despliegues que compilan desde `src/` (Vercel, Render, Docker) toman los cambios automaticamente.
-6. **Realtime**: Socket.IO necesita un proceso persistente. Vercel (serverless) no lo soporta; para producción usa Render, Docker o un VPS.
+6. **Realtime**: Socket.IO necesita un proceso persistente. Vercel (serverless) no lo soporta; para producción usa Render, Docker o un VPS. En Vercel la app refresca por polling.
+7. **Acceso administrativo**: si se pierde la contraseña, usa `npm run admin:credentials` (ver `ACCESO-ADMIN.md`). No hay contraseñas por defecto.
+8. **APK**: el WebView debe apuntar a `https://xupply-d.vercel.app`; los orígenes `https://localhost` y `capacitor://localhost` están permitidos en CORS para que el APK pueda autenticarse.
 
 ## Rendimiento y SEO
 

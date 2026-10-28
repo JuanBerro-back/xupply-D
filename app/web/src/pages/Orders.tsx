@@ -46,6 +46,15 @@ export default function Orders() {
     };
   }, [load]);
 
+  // En Vercel no hay Socket.IO persistente: se refresca por polling cuando la
+  // pestaña está visible para no mostrar estados desactualizados.
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') load();
+    }, 30_000);
+    return () => window.clearInterval(timer);
+  }, [load]);
+
   const visibleOrders = useMemo(() => {
     return [...orders].sort((a, b) => {
       if (priceSort === 'asc') return Number(a.total) - Number(b.total);
@@ -188,7 +197,7 @@ export default function Orders() {
 
       {!loading && visibleOrders.length > 0 && (
         <p className="text-center text-[11px] text-slate-400">
-          {visibleOrders.length} pedido(s) · se actualiza en tiempo real
+          {visibleOrders.length} pedido(s) · se actualiza automáticamente cada 30 s
         </p>
       )}
     </div>
