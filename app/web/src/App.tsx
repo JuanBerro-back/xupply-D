@@ -125,7 +125,7 @@ export default function App() {
           <Route path="/planes" element={<RolesAllowed roles={['admin', 'gerente']}><Plans /></RolesAllowed>} />
           <Route path="/pago/resultado" element={<RequireAuth><PaymentResult /></RequireAuth>} />
           <Route path="/xupply-ia" element={<RolesAllowed roles={['gerente', 'proveedor_admin']}><AiAssistant /></RolesAllowed>} />
-          <Route path="/equipo" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><TeamManagement /></RolesAllowed>} />
+          <Route path="/equipo" element={<RolesAllowed roles={['gerente', 'proveedor_admin']}><TeamManagement /></RolesAllowed>} />
           <Route path="/repartidor" element={<RolesAllowed roles={['domiciliario', 'admin']}><DriverDashboard /></RolesAllowed>} />
           
           {/* Rutas de Administración */}

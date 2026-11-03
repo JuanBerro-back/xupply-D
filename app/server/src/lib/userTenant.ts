@@ -44,13 +44,13 @@ export function validateTenantScope(
   const scope = tenantScopeForRole(roleName);
 
   if (scope === 'restaurant' && !ids.restaurant_id) {
-    return 'Este rol requiere un restaurante (restaurant_id).';
+    return `El rol '${roleName}' requiere un restaurante (restaurant_id).`;
   }
   if (scope === 'supplier' && !ids.supplier_id) {
-    return 'Este rol requiere un proveedor (supplier_id).';
+    return `El rol '${roleName}' requiere un proveedor (supplier_id).`;
   }
   if (scope === 'platform' && (ids.restaurant_id || ids.supplier_id)) {
-    return 'El rol admin es de plataforma: no debe tener restaurante ni proveedor.';
+    return `El rol '${roleName}' es de plataforma: no debe tener restaurante ni proveedor.`;
   }
   return null;
 }

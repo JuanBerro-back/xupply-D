@@ -65,7 +65,7 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
       ? ['domiciliario']
       : user.role === 'gerente'
         ? ['empleado']
-        : ['admin', 'gerente', 'empleado', 'proveedor_admin', 'domiciliario'];
+        : ['admin', 'gerente', 'empleado', 'proveedor_admin', 'domiciliario', 'verificador'];
 
     const roleRow = await query('SELECT name FROM roles WHERE id = $1', [numericRoleId]);
     const roleName = roleRow.rows[0]?.name;
@@ -106,10 +106,8 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
     }
 
     // Invariante rol/tenant: gerente|empleado requieren restaurante; proveedor_admin|domiciliario
-    // requieren proveedor; admin es de plataforma. Evita usuarios sin inquilino.
-    const scopeError = validateTenantScope(roleName, { restaurant_id: restaurantId, supplier_id: supplierId });
-    if (scopeError) return res.status(400).json({ error: scopeError });
-
+    // requieren proveedor; admin y verificador son de plataforma. El inquilino se
+    // deduce del rol antes de validar para no arrastrar valores de otra selección.
     const scope = tenantScopeForRole(roleName);
     if (scope === 'restaurant') {
       supplierId = null;
@@ -121,6 +119,9 @@ router.post('/', roleRequired('admin', 'gerente', 'proveedor_admin'), async (req
       supplierId = null;
       branchId = null;
     }
+
+    const scopeError = validateTenantScope(roleName, { restaurant_id: restaurantId, supplier_id: supplierId });
+    if (scopeError) return res.status(400).json({ error: scopeError });
 
     const result = await query(
       `INSERT INTO users (username, password_hash, name, email, phone, role_id, restaurant_id, supplier_id, branch_id, vehicle_type, vehicle_plate)
@@ -170,31 +171,54 @@ router.put('/:id', roleRequired('admin', 'gerente', 'proveedor_admin'), async (r
     const targetUser = scope.user;
 
     const numericRoleId = role_id ? Number(role_id) : undefined;
+    let roleName = targetUser.role_name;
     if (numericRoleId && numericRoleId !== targetUser.role_id) {
       const roleRow = await query('SELECT name FROM roles WHERE id = $1', [numericRoleId]);
-      const roleName = roleRow.rows[0]?.name;
-      const allowedRoles = user.role === 'proveedor_admin' ? ['domiciliario'] : user.role === 'gerente' ? ['empleado'] : ['admin', 'gerente', 'empleado', 'proveedor_admin', 'domiciliario'];
+      roleName = roleRow.rows[0]?.name;
+      const allowedRoles = user.role === 'proveedor_admin' ? ['domiciliario'] : user.role === 'gerente' ? ['empleado'] : ['admin', 'gerente', 'empleado', 'proveedor_admin', 'domiciliario', 'verificador'];
       if (!roleName || !allowedRoles.includes(roleName)) {
         return res.status(403).json({ error: 'No puedes asignar ese rol' });
       }
-      // El nuevo rol debe ser coherente con el inquilino actual del usuario.
-      const scopeError = validateTenantScope(roleName, { restaurant_id: targetUser.restaurant_id, supplier_id: targetUser.supplier_id });
-      if (scopeError) return res.status(400).json({ error: scopeError });
     }
+
+    // El inquilino se deduce del rol resultante: los roles de plataforma
+    // (admin/verificador) no conservan restaurante ni proveedor.
+    let restaurantId = targetUser.restaurant_id;
+    let branchId = targetUser.branch_id;
+    let supplierId = targetUser.supplier_id;
+    const roleScope = tenantScopeForRole(roleName);
+    if (roleScope === 'restaurant') {
+      supplierId = null;
+    } else if (roleScope === 'supplier') {
+      restaurantId = null;
+      branchId = null;
+    } else if (roleScope === 'platform') {
+      restaurantId = null;
+      branchId = null;
+      supplierId = null;
+    }
+
+    const scopeError = validateTenantScope(roleName, { restaurant_id: restaurantId, supplier_id: supplierId });
+    if (scopeError) return res.status(400).json({ error: scopeError });
 
     const result = await query(
       `UPDATE users
        SET name = COALESCE($2, name), email = COALESCE($3, email),
            phone = COALESCE($4, phone), is_active = COALESCE($5, is_active),
            role_id = COALESCE($6, role_id),
-           vehicle_type = COALESCE($7, vehicle_type),
-           vehicle_plate = COALESCE($8, vehicle_plate),
+           restaurant_id = $7,
+           branch_id = $8,
+           supplier_id = $9,
+           vehicle_type = COALESCE($10, vehicle_type),
+           vehicle_plate = COALESCE($11, vehicle_plate),
            token_version = CASE WHEN role_id IS DISTINCT FROM COALESCE($6, role_id)
-                                THEN token_version + 1 ELSE token_version END,
+                                 OR restaurant_id IS DISTINCT FROM $7
+                                 OR supplier_id IS DISTINCT FROM $9
+                               THEN token_version + 1 ELSE token_version END,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING id, username, name, email, phone, role_id, restaurant_id, supplier_id, vehicle_type, vehicle_plate, is_active, created_at`,
-      [req.params.id, name, email, phone, is_active, numericRoleId, vehicle_type, vehicle_plate]
+      [req.params.id, name, email, phone, is_active, numericRoleId, restaurantId, branchId, supplierId, vehicle_type, vehicle_plate]
     );
     res.json(result.rows[0]);
   } catch (err) {

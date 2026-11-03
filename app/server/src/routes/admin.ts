@@ -132,6 +132,24 @@ router.post('/users', requirePermission('config'), async (req: Request, res: Res
     let branchId: number | null = branch_id ? Number(branch_id) : null;
     let supId: number | null = supplier_id ? Number(supplier_id) : null;
 
+    // El inquilino se deduce del rol ANTES de validar: los roles de plataforma
+    // (admin, verificador) no llevan restaurante ni proveedor, así que cualquier
+    // valor heredado del formulario se descarta en vez de rechazar el alta.
+    const scope = tenantScopeForRole(roleName);
+    if (scope === 'restaurant') {
+      supId = null;
+    } else if (scope === 'supplier') {
+      restId = null;
+      branchId = null;
+    } else if (scope === 'platform') {
+      restId = null;
+      supId = null;
+      branchId = null;
+    }
+
+    const scopeError = validateTenantScope(roleName, { restaurant_id: restId, supplier_id: supId });
+    if (scopeError) return res.status(400).json({ error: scopeError });
+
     if (restId) {
       const restCheck = await query('SELECT 1 FROM restaurants WHERE id = $1', [restId]);
       if (!restCheck.rowCount) return res.status(400).json({ error: `El restaurant_id ${restId} no existe` });
@@ -143,21 +161,6 @@ router.post('/users', requirePermission('config'), async (req: Request, res: Res
     if (supId) {
       const supCheck = await query('SELECT 1 FROM suppliers WHERE id = $1', [supId]);
       if (!supCheck.rowCount) return res.status(400).json({ error: `El supplier_id ${supId} no existe` });
-    }
-
-    const scopeError = validateTenantScope(roleName, { restaurant_id: restId, supplier_id: supId });
-    if (scopeError) return res.status(400).json({ error: scopeError });
-
-    const scope = tenantScopeForRole(roleName);
-    if (scope === 'restaurant') {
-      supId = null;
-    } else if (scope === 'supplier') {
-      restId = null;
-      branchId = null;
-    } else if (scope === 'platform') {
-      restId = null;
-      supId = null;
-      branchId = null;
     }
     
     const hash = await bcrypt.hash(String(password), 10);
@@ -190,52 +193,67 @@ router.put('/users/:id', requirePermission('config'), async (req: Request, res: 
       return res.status(403).json({ error: 'No puedes quitarte el rol de administrador a ti mismo' });
     }
     
-    if (restaurant_id) {
-      const restCheck = await query('SELECT 1 FROM restaurants WHERE id = $1', [restaurant_id]);
-      if (!restCheck.rowCount) return res.status(400).json({ error: `El restaurant_id ${restaurant_id} no existe` });
-    }
-    
-    if (branch_id) {
-      const restId = restaurant_id || oldUser.restaurant_id;
-      const branchCheck = await query('SELECT 1 FROM branches WHERE id = $1 AND restaurant_id = $2', [branch_id, restId]);
-      if (!branchCheck.rowCount) return res.status(400).json({ error: `El branch_id ${branch_id} no pertenece al restaurant_id ${restId} o no existe` });
-    }
-
-    if (supplier_id) {
-      const supCheck = await query('SELECT 1 FROM suppliers WHERE id = $1', [supplier_id]);
-      if (!supCheck.rowCount) return res.status(400).json({ error: `El supplier_id ${supplier_id} no existe` });
-    }
-
-    // Coherencia rol/tenant del estado resultante (los ids se conservan con COALESCE).
+    // Estado resultante del rol y su inquilino.
     const effectiveRoleId = role_id ? Number(role_id) : oldUser.role_id;
     const effectiveRoleRow = await query('SELECT name FROM roles WHERE id = $1', [effectiveRoleId]);
     const effectiveRoleName = effectiveRoleRow.rows[0]?.name;
     if (!effectiveRoleName) return res.status(400).json({ error: 'El role_id proporcionado no existe' });
-    const scopeError = validateTenantScope(effectiveRoleName, {
-      restaurant_id: restaurant_id ? Number(restaurant_id) : oldUser.restaurant_id,
-      supplier_id: supplier_id ? Number(supplier_id) : oldUser.supplier_id,
-    });
+
+    let restId: number | null = restaurant_id ? Number(restaurant_id) : oldUser.restaurant_id;
+    let branchId: number | null = branch_id ? Number(branch_id) : oldUser.branch_id;
+    let supId: number | null = supplier_id ? Number(supplier_id) : oldUser.supplier_id;
+
+    // Al cambiar a un rol de plataforma se limpia el inquilino; al cambiar de
+    // restaurante a proveedor (o viceversa) se descarta el que no aplica.
+    const scope = tenantScopeForRole(effectiveRoleName);
+    if (scope === 'restaurant') {
+      supId = null;
+    } else if (scope === 'supplier') {
+      restId = null;
+      branchId = null;
+    } else if (scope === 'platform') {
+      restId = null;
+      branchId = null;
+      supId = null;
+    }
+
+    const scopeError = validateTenantScope(effectiveRoleName, { restaurant_id: restId, supplier_id: supId });
     if (scopeError) return res.status(400).json({ error: scopeError });
+
+    if (restId) {
+      const restCheck = await query('SELECT 1 FROM restaurants WHERE id = $1', [restId]);
+      if (!restCheck.rowCount) return res.status(400).json({ error: `El restaurant_id ${restId} no existe` });
+    }
+
+    if (branchId) {
+      const branchCheck = await query('SELECT 1 FROM branches WHERE id = $1 AND restaurant_id = $2', [branchId, restId]);
+      if (!branchCheck.rowCount) return res.status(400).json({ error: `El branch_id ${branchId} no pertenece al restaurant_id ${restId} o no existe` });
+    }
+
+    if (supId) {
+      const supCheck = await query('SELECT 1 FROM suppliers WHERE id = $1', [supId]);
+      if (!supCheck.rowCount) return res.status(400).json({ error: `El supplier_id ${supId} no existe` });
+    }
 
     const result = await query(
       `UPDATE users 
        SET name = COALESCE($2, name), 
            email = COALESCE($3, email),
            phone = COALESCE($4, phone),
-           role_id = COALESCE($5, role_id),
-           restaurant_id = COALESCE($6, restaurant_id),
-           branch_id = COALESCE($7, branch_id),
-           supplier_id = COALESCE($8, supplier_id),
+           role_id = $5,
+           restaurant_id = $6,
+           branch_id = $7,
+           supplier_id = $8,
            vehicle_type = COALESCE($9, vehicle_type),
            vehicle_plate = COALESCE($10, vehicle_plate),
-           token_version = CASE WHEN role_id IS DISTINCT FROM COALESCE($5, role_id)
-                                  OR restaurant_id IS DISTINCT FROM COALESCE($6, restaurant_id)
-                                  OR supplier_id IS DISTINCT FROM COALESCE($8, supplier_id)
+           token_version = CASE WHEN role_id IS DISTINCT FROM $5
+                                  OR restaurant_id IS DISTINCT FROM $6
+                                  OR supplier_id IS DISTINCT FROM $8
                                 THEN token_version + 1 ELSE token_version END,
            updated_at = CURRENT_TIMESTAMP
        WHERE id = $1
        RETURNING id, username, name, email, phone, role_id, restaurant_id, branch_id, supplier_id, vehicle_type, vehicle_plate, is_active, updated_at`,
-      [id, name, email, phone, role_id, restaurant_id, branch_id, supplier_id, vehicle_type, vehicle_plate]
+      [id, name, email, phone, effectiveRoleId, restId, branchId, supId, vehicle_type, vehicle_plate]
     );
     
     await logAudit(req, 'update', 'user', Number(id), oldUser, result.rows[0]);

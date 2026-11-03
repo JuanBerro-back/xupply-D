@@ -41,6 +41,15 @@ interface TenantOpt {
   name: string;
 }
 
+type RoleScope = 'restaurant' | 'supplier' | 'platform';
+
+/** Ámbito del rol, igual que en el backend (lib/userTenant.ts). */
+function scopeForRoleName(name?: string): RoleScope {
+  if (name === 'gerente' || name === 'empleado') return 'restaurant';
+  if (name === 'proveedor_admin' || name === 'domiciliario') return 'supplier';
+  return 'platform';
+}
+
 export default function UsuariosAdmin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [roles, setRoles] = useState<Role[]>([]);
@@ -88,6 +97,9 @@ export default function UsuariosAdmin() {
     vehicle_type: 'ninguno',
     vehicle_plate: ''
   });
+
+  const selectedRole = roles.find((r) => r.id === Number(form.role_id));
+  const roleScope = scopeForRoleName(selectedRole?.name);
 
   // Efecto Debounce para búsqueda
   useEffect(() => {
@@ -196,6 +208,26 @@ export default function UsuariosAdmin() {
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
+
+    // Al cambiar de rol se limpian los inquilinos que no aplican: un
+    // verificador/admin no debe arrastrar restaurante ni proveedor.
+    if (name === 'role_id') {
+      const scope = scopeForRoleName(roles.find((r) => r.id === Number(value))?.name);
+      setForm((prev) => ({
+        ...prev,
+        role_id: Number(value),
+        restaurant_id: scope === 'restaurant' ? prev.restaurant_id : '',
+        branch_id: scope === 'restaurant' ? prev.branch_id : '',
+        supplier_id: scope === 'supplier' ? prev.supplier_id : '',
+      }));
+      if (scope !== 'restaurant') {
+        setBranches([]);
+      } else if (form.restaurant_id) {
+        loadBranches(Number(form.restaurant_id));
+      }
+      return;
+    }
+
     setForm(prev => ({ ...prev, [name]: value }));
     
     // Si cambia restaurante, recargar sucursales
@@ -215,9 +247,9 @@ export default function UsuariosAdmin() {
         email: form.email.trim() || null,
         phone: form.phone.trim() || null,
         role_id: Number(form.role_id),
-        restaurant_id: form.restaurant_id ? Number(form.restaurant_id) : null,
-        branch_id: form.branch_id ? Number(form.branch_id) : null,
-        supplier_id: form.supplier_id ? Number(form.supplier_id) : null,
+        restaurant_id: roleScope === 'restaurant' && form.restaurant_id ? Number(form.restaurant_id) : null,
+        branch_id: roleScope === 'restaurant' && form.branch_id ? Number(form.branch_id) : null,
+        supplier_id: roleScope === 'supplier' && form.supplier_id ? Number(form.supplier_id) : null,
         vehicle_type: form.vehicle_type !== 'ninguno' ? form.vehicle_type : null,
         vehicle_plate: form.vehicle_plate.trim().toUpperCase() || null
       };
@@ -559,38 +591,54 @@ export default function UsuariosAdmin() {
 
             <div className="border-t border-slate-200 dark:border-slate-700 pt-4 mt-2">
               <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Vinculación a Tenant</h4>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1 block">Restaurante</label>
-                  <select 
-                    name="restaurant_id" value={form.restaurant_id} onChange={handleFormChange}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs dark:text-white"
-                  >
-                    <option value="">Ninguno</option>
-                    {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
-                  </select>
+
+              {roleScope === 'platform' ? (
+                <p className="rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:bg-slate-800/60 dark:text-slate-400">
+                  {selectedRole?.name === 'verificador'
+                    ? 'El verificador es un rol de plataforma: revisa cuentas de todos los restaurantes y proveedores, no requiere restaurante ni proveedor.'
+                    : 'Este rol es de plataforma: no requiere restaurante ni proveedor.'}
+                </p>
+              ) : (
+                <div className={`grid grid-cols-1 gap-3 ${roleScope === 'restaurant' ? 'sm:grid-cols-2' : ''}`}>
+                  {roleScope === 'restaurant' && (
+                    <>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1 block">Restaurante *</label>
+                        <select 
+                          name="restaurant_id" value={form.restaurant_id} onChange={handleFormChange} required
+                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs dark:text-white"
+                        >
+                          <option value="">Selecciona un restaurante</option>
+                          {restaurants.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1 block">Sucursal</label>
+                        <select 
+                          name="branch_id" value={form.branch_id} onChange={handleFormChange} disabled={!form.restaurant_id}
+                          className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs disabled:opacity-50 dark:text-white"
+                        >
+                          <option value="">Ninguna</option>
+                          {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
+                        </select>
+                      </div>
+                    </>
+                  )}
+
+                  {roleScope === 'supplier' && (
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1 block">Proveedor *</label>
+                      <select 
+                        name="supplier_id" value={form.supplier_id} onChange={handleFormChange} required
+                        className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs dark:text-white"
+                      >
+                        <option value="">Selecciona un proveedor</option>
+                        {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1 block">Sucursal</label>
-                  <select 
-                    name="branch_id" value={form.branch_id} onChange={handleFormChange} disabled={!form.restaurant_id}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs disabled:opacity-50 dark:text-white"
-                  >
-                    <option value="">Ninguna</option>
-                    {branches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400 mb-1 block">Proveedor</label>
-                  <select 
-                    name="supplier_id" value={form.supplier_id} onChange={handleFormChange}
-                    className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-2 py-1.5 text-xs dark:text-white"
-                  >
-                    <option value="">Ninguno</option>
-                    {suppliers.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                  </select>
-                </div>
-              </div>
+              )}
             </div>
 
             {/* Vehículos para domiciliarios/etc */}
