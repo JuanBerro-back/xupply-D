@@ -122,7 +122,7 @@ export default function App() {
           <Route path="/clientes" element={<RolesAllowed roles={['proveedor_admin', 'admin']}><PosiblesClientes /></RolesAllowed>} />
           <Route path="/logistica" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin', 'domiciliario']}><Deliveries /></RolesAllowed>} />
           <Route path="/planes" element={<RolesAllowed roles={['admin', 'gerente']}><Plans /></RolesAllowed>} />
-          <Route path="/xupply-ia" element={<RequireAuth><AiAssistant /></RequireAuth>} />
+          <Route path="/xupply-ia" element={<RolesAllowed roles={['gerente', 'proveedor_admin']}><AiAssistant /></RolesAllowed>} />
           <Route path="/equipo" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><TeamManagement /></RolesAllowed>} />
           <Route path="/repartidor" element={<RolesAllowed roles={['domiciliario', 'admin']}><DriverDashboard /></RolesAllowed>} />
           
@@ -144,7 +144,7 @@ export default function App() {
       </main>
       {user && <BottomNav />}
       {user && user.role !== 'admin' && user.role !== 'verificador' && <SideCart />}
-      {user && <AiFloatingWidget />}
+      {user && (user.role === 'gerente' || user.role === 'proveedor_admin') && <AiFloatingWidget />}
       <CookieConsent />
       <FeedbackHost />
     </div>

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import { api } from '../lib/api';
 import { IconAi, IconClose } from './Icons';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuth } from '../context/AuthContext';
 
 interface Message {
   role: 'user' | 'assistant';
@@ -52,6 +53,10 @@ const PURCHASE_INTENT_ES = [
 
 export default function AiFloatingWidget() {
   const { lang } = useLanguage();
+  const { user } = useAuth();
+  // El agente de compras solo aplica a restaurantes (gerente). El proveedor
+  // mantiene únicamente el asistente general.
+  const canUsePurchaseAgent = user?.role === 'gerente';
   const [isOpen, setIsOpen] = useState(false);
   const [mode, setMode] = useState<ChatMode>('general');
   const [agentStatus, setAgentStatus] = useState<AgentStatus | null>(null);
@@ -113,7 +118,7 @@ export default function AiFloatingWidget() {
     setMessages((prev) => [...prev, { role: 'user', content: queryText }]);
     setLoading(true);
 
-    const useXupai = (mode === 'compras' || isPurchaseIntent(queryText)) && Boolean(agentStatus?.enabled);
+    const useXupai = canUsePurchaseAgent && (mode === 'compras' || isPurchaseIntent(queryText)) && Boolean(agentStatus?.enabled);
 
     try {
       if (useXupai || (isPurchaseIntent(queryText) && mode === 'compras')) {
@@ -211,7 +216,7 @@ export default function AiFloatingWidget() {
           {/* Toggle de modo: General / Compra Inteligente */}
           <div className="px-2 pt-2 bg-white border-b border-slate-100 dark:bg-slate-900 dark:border-slate-800 shrink-0">
             <div className="flex gap-1 rounded-xl bg-slate-100 p-1 dark:bg-slate-800">
-              {(['general', 'compras'] as ChatMode[]).map((m) => (
+              {(['general', 'compras'] as ChatMode[]).filter((m) => m === 'general' || canUsePurchaseAgent).map((m) => (
                 <button
                   key={m}
                   type="button"

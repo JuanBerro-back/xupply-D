@@ -110,17 +110,19 @@ export default function AiAssistant() {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-lg border bg-white p-4">
-            <h3 className="mb-2 font-semibold">Herramientas IA</h3>
-            <div className="flex gap-3">
-              <button onClick={runPrediction} className="flex-1 rounded border border-indigo-500 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-500 hover:text-white">
-                Predecir inventario
-              </button>
-              <button onClick={runReport} className="flex-1 rounded border border-brand py-2 text-sm font-medium text-brand hover:bg-brand hover:text-white">
-                Generar reporte
-              </button>
+          {user?.role === 'gerente' && (
+            <div className="rounded-lg border bg-white p-4">
+              <h3 className="mb-2 font-semibold">Herramientas IA</h3>
+              <div className="flex gap-3">
+                <button onClick={runPrediction} className="flex-1 rounded border border-indigo-500 py-2 text-sm font-medium text-indigo-600 hover:bg-indigo-500 hover:text-white">
+                  Predecir inventario
+                </button>
+                <button onClick={runReport} className="flex-1 rounded border border-brand py-2 text-sm font-medium text-brand hover:bg-brand hover:text-white">
+                  Generar reporte
+                </button>
+              </div>
             </div>
-          </div>
+          )}
 
           {predictions && (
             <div className="rounded-lg border bg-white p-4">

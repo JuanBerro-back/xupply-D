@@ -11,7 +11,7 @@ const PLAN_SELECT: Record<string, { model: string; assistant: boolean; reports: 
   premium: { model: 'xupply-max', assistant: true, reports: true },
 };
 
-router.post('/chat', async (req, res) => {
+router.post('/chat', roleRequired('gerente', 'proveedor_admin'), async (req, res) => {
   const { message, plan } = req.body as { message?: string; plan?: string };
   const cfg = PLAN_SELECT[plan ?? 'basico'] ?? PLAN_SELECT.basico;
   if (!message || !message.trim()) return res.status(400).json({ error: 'message es requerido' });

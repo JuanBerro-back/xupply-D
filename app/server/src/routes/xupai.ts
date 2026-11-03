@@ -383,11 +383,11 @@ async function chatCompletions(messages: any[], tools: any[]): Promise<any> {
 // ---------------------------------------------------------------------------
 // Endpoints
 // ---------------------------------------------------------------------------
-router.get('/status', (_req, res) => {
+router.get('/status', roleRequired('gerente', 'proveedor_admin'), (_req, res) => {
   res.json({ enabled: Boolean(XUPAI_API_KEY), model: XUPAI_API_KEY ? XUPAI_MODEL : null });
 });
 
-router.post('/agent', roleRequired('gerente', 'admin'), async (req, res, next) => {
+router.post('/agent', roleRequired('gerente'), async (req, res, next) => {
   try {
     if (!XUPAI_API_KEY) {
       return res.status(503).json({ error: 'Agente de compras no configurado. Define XUPAI_API_KEY en el servidor.', enabled: false });

@@ -582,13 +582,15 @@ return (
               </Link>
             )}
 
-            <Link to="/xupply-ia" className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-indigo-300 hover:shadow-sm transition-all group">
-              <div className="flex items-center gap-3">
-                <div className="text-slate-400 group-hover:text-indigo-500 transition-colors"><IconAi className="w-5 h-5" /></div>
-                <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900">Asistente Xupply IA</span>
-              </div>
-              <svg className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
-            </Link>
+            {(user?.role === 'gerente' || isSupplier) && (
+              <Link to="/xupply-ia" className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-xl hover:border-indigo-300 hover:shadow-sm transition-all group">
+                <div className="flex items-center gap-3">
+                  <div className="text-slate-400 group-hover:text-indigo-500 transition-colors"><IconAi className="w-5 h-5" /></div>
+                  <span className="text-sm font-bold text-slate-700 group-hover:text-slate-900">Asistente Xupply IA</span>
+                </div>
+                <svg className="w-4 h-4 text-slate-300 group-hover:text-indigo-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+              </Link>
+            )}
           </div>
 
           {/* Activity Feed */}
