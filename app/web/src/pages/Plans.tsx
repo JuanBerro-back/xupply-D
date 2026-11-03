@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNotifications } from '../context/NotificationContext';
 import { api } from '../lib/api';
+import { toast } from '../lib/feedback';
 import { getActivePlan, setActivePlan, PlanTier, PLAN_CONFIG } from '../lib/planAccess';
 import { IconCheck, IconClose, IconStar } from '../components/Icons';
 
@@ -78,7 +78,6 @@ const PLAN_DETAILS = [
 ];
 
 export default function Plans() {
-  const { user } = useAuth();
   const { push } = useNotifications();
   const [currentPlan, setCurrentPlan] = useState<PlanTier>(getActivePlan());
   const [updating, setUpdating] = useState(false);
@@ -96,29 +95,34 @@ export default function Plans() {
     if (planId === currentPlan) return;
     setUpdating(true);
     try {
-      setActivePlan(planId);
-      setCurrentPlan(planId);
+      // El plan solo se activa cuando el backend lo confirma: pago gratuito
+      // (básico) al instante, o redirección a Wompi para los planes de pago.
+      const res = await api<{
+        activated?: boolean;
+        checkout_url?: string;
+        plan: string;
+        amount_cop?: number;
+      }>('/payments/checkout/subscription', {
+        method: 'POST',
+        body: JSON.stringify({ plan: planId }),
+      });
 
-      // Persist to backend if user is authenticated
-      if (user) {
-        try {
-          await api('/auth/subscription-plan', {
-            method: 'POST',
-            body: JSON.stringify({ plan: planId }),
-          });
-        } catch {
-          // Keep local state active even if offline
-        }
+      if (res.checkout_url) {
+        window.location.href = res.checkout_url;
+        return;
       }
 
+      setActivePlan(planId);
+      setCurrentPlan(planId);
       const planName = PLAN_CONFIG[planId].name;
       setSuccessMessage(`¡Has activado el ${planName}! Tus permisos y accesos se han actualizado.`);
       push({
         message: `Plan actualizado a ${planName}`,
         at: new Date().toISOString(),
       });
-
       setTimeout(() => setSuccessMessage(''), 5000);
+    } catch (err) {
+      toast((err as Error).message, 'error');
     } finally {
       setUpdating(false);
     }
@@ -233,7 +237,11 @@ export default function Plans() {
                     : p.buttonClass
                 }`}
               >
-                {isActive ? 'Plan Activo en tu Cuenta' : `Seleccionar ${p.name}`}
+                {isActive
+                  ? 'Plan Activo en tu Cuenta'
+                  : p.id === 'basico'
+                    ? 'Cambiar a Plan Básico'
+                    : `Pagar ${p.price} / mes con Wompi`}
               </button>
             </div>
           );

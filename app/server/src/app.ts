@@ -23,6 +23,7 @@ import agentRouter from './routes/agent';
 import xupaiRouter from './routes/xupai';
 import adminRouter from './routes/admin';
 import verificationRouter from './routes/verification';
+import { paymentsRouter, paymentsWebhookRouter, paymentsCronRouter } from './routes/payments';
 import { ensureServerInitialized } from './lib/migrations';
 import { query, resolveDatabaseUrl } from './config/db';
 import { notFound, errorHandler } from './middleware/error';
@@ -90,6 +91,11 @@ export function createApp() {
   // Límite explícito: evita peticiones gigantes que agoten memoria/CPU.
   // La carga de documentos de verificación usa su propio parser (6 MB) más
   // abajo, porque un PDF en base64 supera el límite general de 1 MB.
+  // Webhooks de la pasarela: necesitan el cuerpo CRUDO para verificar la
+  // firma, por lo que se montan ANTES del parser JSON global. Si se montaran
+  // después, req.body llegaría como objeto y la firma no se podría validar.
+  app.use('/api/payments/webhooks', paymentsWebhookRouter);
+
   const jsonParser = express.json({ limit: '1mb' });
   app.use((req, res, next) => {
     if (
@@ -153,6 +159,8 @@ export function createApp() {
   app.use('/api/agent', agentRouter);
   app.use('/api/xupai', xupaiRouter);
   app.use('/api/admin', adminRouter);
+  app.use('/api/payments', paymentsRouter);
+  app.use('/api/internal', paymentsCronRouter);
 
   // Endpoint de descarga directa del instalador APK para Android
   const serveApk = (_req: express.Request, res: express.Response) => {

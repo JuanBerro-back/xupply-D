@@ -281,6 +281,146 @@ export async function ensureVerificationSchema(): Promise<void> {
   }
 }
 
+/**
+ * Pasarela de pagos (Wompi): suscripciones Xupply y venta proveedor→restaurante.
+ *
+ * Modelo elegido: Xupply cobra y dispersa. El dinero del pedido entra a la
+ * cuenta de Xupply, se retiene la comisión y el neto queda como obligación con
+ * el proveedor (supplier_settlements) hasta ejecutar el payout.
+ */
+export async function ensurePaymentsSchema(): Promise<void> {
+  try {
+    await query(`
+      -- Estado de pago del pedido. 'no_requerido' mantiene el comportamiento
+      -- anterior (contraentrega / crédito) y no bloquea ninguna transición.
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(20) NOT NULL DEFAULT 'no_requerido';
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS paid_at TIMESTAMP;
+      ALTER TABLE orders ADD COLUMN IF NOT EXISTS payment_intent_id UUID;
+
+      -- Política comercial del proveedor: prepago | contraentrega | credito
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS payment_policy VARCHAR(20) NOT NULL DEFAULT 'contraentrega';
+      ALTER TABLE suppliers ADD COLUMN IF NOT EXISTS commission_pct DECIMAL(5,2) NOT NULL DEFAULT 5.00;
+
+      CREATE TABLE IF NOT EXISTS subscriptions (
+        id SERIAL PRIMARY KEY,
+        restaurant_id INT NOT NULL UNIQUE REFERENCES restaurants(id) ON DELETE CASCADE,
+        plan VARCHAR(20) NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+        provider VARCHAR(20),
+        provider_subscription_id VARCHAR(160),
+        payment_source_id VARCHAR(160),
+        current_period_start DATE,
+        current_period_end DATE,
+        cancel_at_period_end BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CHECK (status IN ('pendiente','trial','activa','mora','suspendida','cancelada'))
+      );
+
+      CREATE TABLE IF NOT EXISTS payment_intents (
+        id UUID PRIMARY KEY,
+        kind VARCHAR(20) NOT NULL,
+        restaurant_id INT REFERENCES restaurants(id) ON DELETE SET NULL,
+        supplier_id INT REFERENCES suppliers(id) ON DELETE SET NULL,
+        order_id INT REFERENCES orders(id) ON DELETE SET NULL,
+        subscription_id INT REFERENCES subscriptions(id) ON DELETE SET NULL,
+        amount_cop BIGINT NOT NULL CHECK (amount_cop >= 0),
+        currency CHAR(3) NOT NULL DEFAULT 'COP',
+        provider VARCHAR(20) NOT NULL DEFAULT 'wompi',
+        provider_ref VARCHAR(160) NOT NULL UNIQUE,
+        provider_tx_id VARCHAR(160),
+        status VARCHAR(20) NOT NULL DEFAULT 'creado',
+        payment_method VARCHAR(40),
+        failure_reason TEXT,
+        idempotency_key VARCHAR(160) UNIQUE,
+        metadata JSONB NOT NULL DEFAULT '{}',
+        expires_at TIMESTAMP,
+        created_by INT REFERENCES users(id) ON DELETE SET NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CHECK (status IN ('creado','pendiente','aprobado','rechazado','expirado','reembolsado','fallido'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_payment_intents_order ON payment_intents(order_id);
+      CREATE INDEX IF NOT EXISTS idx_payment_intents_restaurant ON payment_intents(restaurant_id, created_at);
+      CREATE INDEX IF NOT EXISTS idx_payment_intents_status ON payment_intents(status);
+
+      -- Idempotencia y evidencia de webhooks: el payload completo se conserva
+      -- para conciliación y disputas.
+      CREATE TABLE IF NOT EXISTS payment_events (
+        id BIGSERIAL PRIMARY KEY,
+        provider VARCHAR(20) NOT NULL,
+        event_id VARCHAR(160) NOT NULL,
+        event_type VARCHAR(80) NOT NULL,
+        signature_ok BOOLEAN NOT NULL DEFAULT FALSE,
+        payload JSONB NOT NULL,
+        processed_at TIMESTAMP,
+        error TEXT,
+        received_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (provider, event_id)
+      );
+
+      CREATE TABLE IF NOT EXISTS subscription_charges (
+        id BIGSERIAL PRIMARY KEY,
+        subscription_id INT NOT NULL REFERENCES subscriptions(id) ON DELETE CASCADE,
+        period_start DATE NOT NULL,
+        period_end DATE NOT NULL,
+        amount_cop BIGINT NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+        payment_intent_id UUID REFERENCES payment_intents(id) ON DELETE SET NULL,
+        invoice_id INT REFERENCES invoices(id) ON DELETE SET NULL,
+        failure_reason TEXT,
+        attempted_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (subscription_id, period_start)
+      );
+
+      CREATE TABLE IF NOT EXISTS supplier_payout_accounts (
+        id SERIAL PRIMARY KEY,
+        supplier_id INT NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+        provider VARCHAR(20) NOT NULL DEFAULT 'wompi',
+        provider_recipient_id VARCHAR(160),
+        account_type VARCHAR(20),
+        bank_code VARCHAR(10),
+        account_last4 VARCHAR(4),
+        holder_name VARCHAR(200),
+        holder_document VARCHAR(30),
+        status VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (supplier_id, provider)
+      );
+
+      -- Neto que Xupply le debe al proveedor por cada pedido pagado.
+      CREATE TABLE IF NOT EXISTS supplier_settlements (
+        id BIGSERIAL PRIMARY KEY,
+        supplier_id INT NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
+        order_id INT REFERENCES orders(id) ON DELETE SET NULL,
+        period_start DATE,
+        period_end DATE,
+        gross_cop BIGINT NOT NULL,
+        commission_cop BIGINT NOT NULL DEFAULT 0,
+        fee_cop BIGINT NOT NULL DEFAULT 0,
+        net_cop BIGINT NOT NULL,
+        status VARCHAR(20) NOT NULL DEFAULT 'pendiente',
+        provider_payout_id VARCHAR(160),
+        paid_at TIMESTAMP,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE (order_id),
+        CHECK (status IN ('pendiente','enviada','pagada','fallida','anulada'))
+      );
+
+      CREATE INDEX IF NOT EXISTS idx_supplier_settlements_supplier
+        ON supplier_settlements(supplier_id, status);
+      CREATE INDEX IF NOT EXISTS idx_subscription_charges_sub
+        ON subscription_charges(subscription_id, period_start);
+      CREATE INDEX IF NOT EXISTS idx_orders_payment_status ON orders(payment_status);
+    `);
+    console.log('[DB] Esquema de pagos (Wompi) verificado.');
+  } catch (err) {
+    console.error('[DB] Error aplicando esquema de pagos:', err);
+  }
+}
+
 /** Cierra alertas y ofertas vencidas. Se ejecuta cada hora. */export async function expireRadarItems(): Promise<void> {
   try {
     await query(
@@ -320,6 +460,7 @@ export async function ensureServerInitialized(): Promise<void> {
         await initDatabase();
         await ensureRadarAndGpsSchema();
         await ensureVerificationSchema();
+        await ensurePaymentsSchema();
         await neutralizeDemoCredentials();
         await dropLegacyPlatformViews();
         await expireRadarItems();

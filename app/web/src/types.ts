@@ -92,6 +92,8 @@ export interface Order {
   supplier_name: string;
   status: string;
   total: number;
+  payment_status?: 'no_requerido' | 'pendiente' | 'pagado' | 'reembolsado' | 'fallido';
+  paid_at?: string | null;
   notes: string;
   delivery_address: string;
   requested_delivery_date: string;

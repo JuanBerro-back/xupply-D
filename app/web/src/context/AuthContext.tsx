@@ -35,6 +35,8 @@ interface AuthContextValue {
   login: (username: string, password: string) => Promise<void>;
   register: (data: RegisterData) => Promise<RegisterResult>;
   logout: () => void;
+  /** Recarga el inquilino (plan, nombre, logo) sin cerrar sesión. */
+  refreshTenant: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>(null!);
@@ -126,8 +128,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     document.title = 'Xupply';
   };
 
+  const refreshTenant = async () => {
+    const t = await api<TenantInfo>('/auth/tenant-info');
+    setTenant(t);
+    document.title = getDisplayName(t);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, tenant, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, tenant, loading, login, register, logout, refreshTenant }}>
       {children}
     </AuthContext.Provider>
   );

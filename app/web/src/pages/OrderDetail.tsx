@@ -22,6 +22,21 @@ export default function OrderDetail() {
   const [securityKeyInput, setSecurityKeyInput] = useState('');
   const [verifyingKey, setVerifyingKey] = useState(false);
   const [keyError, setKeyError] = useState('');
+  const [paying, setPaying] = useState(false);
+
+  const payOrder = async () => {
+    if (!order) return;
+    setPaying(true);
+    try {
+      const res = await api<{ checkout_url: string }>(`/payments/checkout/order/${order.id}`, {
+        method: 'POST',
+      });
+      window.location.href = res.checkout_url;
+    } catch (err) {
+      toast((err as Error).message, 'error');
+      setPaying(false);
+    }
+  };
 
   const completeWithKey = async (deliveryId: number) => {
     if (!securityKeyInput.trim()) {
@@ -124,7 +139,19 @@ export default function OrderDetail() {
                 {isSupplier ? order.restaurant_name : order.supplier_name} · {formatDate(order.created_at)}
               </p>
             </div>
-            <span className={`rounded-full px-3 py-1 text-sm font-bold ${st.color}`}>{st.label}</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className={`rounded-full px-3 py-1 text-sm font-bold ${st.color}`}>{st.label}</span>
+              {order.payment_status === 'pagado' && (
+                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+                  Pagado
+                </span>
+              )}
+              {order.payment_status === 'pendiente' && (
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
+                  Pago pendiente
+                </span>
+              )}
+            </div>
           </div>
 
           <table className="w-full text-sm">
@@ -148,6 +175,29 @@ export default function OrderDetail() {
             </tbody>
           </table>
           <div className="mt-4 flex justify-end text-lg font-bold text-slate-900 dark:text-white">Total: {formatMoney(order.total)}</div>
+
+          {order.payment_status === 'pendiente' && (isGerente || user?.role === 'admin') && (
+            <div className="mt-4 rounded-xl border-2 border-amber-300 bg-amber-50 p-4 shadow-sm dark:border-amber-700 dark:bg-amber-950/30">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                    Este pedido requiere pago antes de confirmarse
+                  </p>
+                  <p className="mt-0.5 text-xs text-amber-800 dark:text-amber-300">
+                    Pago seguro con Wompi: tarjeta, PSE o Nequi. Al aprobarse, el proveedor podrá confirmar el pedido.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={payOrder}
+                  disabled={paying}
+                  className="rounded-xl bg-amber-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm transition hover:bg-amber-700 active:scale-95 disabled:opacity-50"
+                >
+                  {paying ? 'Abriendo Wompi…' : `Pagar ${formatMoney(order.total)}`}
+                </button>
+              </div>
+            </div>
+          )}
           {order.notes && <p className="mt-3 rounded-lg bg-slate-50 dark:bg-slate-800/70 border border-slate-200 dark:border-slate-700/60 p-2.5 text-sm text-slate-600 dark:text-slate-300">Notas: {order.notes}</p>}
           {order.delivery_address && (
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400 flex items-center gap-1.5">

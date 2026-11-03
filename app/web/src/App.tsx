@@ -33,6 +33,7 @@ const PosiblesClientes = lazy(() => import('./pages/PosiblesClientes'));
 const Accounting = lazy(() => import('./pages/Accounting'));
 const Deliveries = lazy(() => import('./pages/Deliveries'));
 const Plans = lazy(() => import('./pages/Plans'));
+const PaymentResult = lazy(() => import('./pages/PaymentResult'));
 const AiAssistant = lazy(() => import('./pages/AiAssistant'));
 const TeamManagement = lazy(() => import('./pages/TeamManagement'));
 const Radar = lazy(() => import('./pages/Radar'));
@@ -122,6 +123,7 @@ export default function App() {
           <Route path="/clientes" element={<RolesAllowed roles={['proveedor_admin', 'admin']}><PosiblesClientes /></RolesAllowed>} />
           <Route path="/logistica" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin', 'domiciliario']}><Deliveries /></RolesAllowed>} />
           <Route path="/planes" element={<RolesAllowed roles={['admin', 'gerente']}><Plans /></RolesAllowed>} />
+          <Route path="/pago/resultado" element={<RequireAuth><PaymentResult /></RequireAuth>} />
           <Route path="/xupply-ia" element={<RolesAllowed roles={['gerente', 'proveedor_admin']}><AiAssistant /></RolesAllowed>} />
           <Route path="/equipo" element={<RolesAllowed roles={['admin', 'gerente', 'proveedor_admin']}><TeamManagement /></RolesAllowed>} />
           <Route path="/repartidor" element={<RolesAllowed roles={['domiciliario', 'admin']}><DriverDashboard /></RolesAllowed>} />

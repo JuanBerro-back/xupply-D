@@ -98,7 +98,10 @@ router.post('/', roleRequired('gerente', 'empleado', 'admin'), async (req, res, 
     const client = await pool.connect();
     try {
       await client.query('BEGIN');
-      const supplier = await client.query('SELECT id FROM suppliers WHERE id = $1', [supplier_id]);
+      const supplier = await client.query(
+        'SELECT id, payment_policy FROM suppliers WHERE id = $1',
+        [supplier_id]
+      );
       if (!supplier.rowCount) {
         await client.query('ROLLBACK');
         return res.status(400).json({ error: `El supplier_id ${supplier_id} no existe` });
@@ -117,10 +120,15 @@ router.post('/', roleRequired('gerente', 'empleado', 'admin'), async (req, res, 
         }
       }
       const code = `ORDER-${Date.now().toString(36).toUpperCase()}`;
+      // Si el proveedor exige prepago, el pedido nace con pago pendiente y no
+      // puede confirmarse hasta que la pasarela lo apruebe. Los demás casos
+      // conservan el flujo anterior (contraentrega / crédito).
+      const paymentPolicy = String(supplier.rows[0].payment_policy || 'contraentrega');
+      const paymentStatus = paymentPolicy === 'prepago' ? 'pendiente' : 'no_requerido';
       const inserted = await client.query(
-        `INSERT INTO orders (order_code, restaurant_id, branch_id, supplier_id, status, notes, delivery_address, requested_delivery_date, created_by)
-         VALUES ($1, $2, $3, $4, 'nuevo', $5, $6, $7, $8) RETURNING id`,
-        [code, user.restaurant_id, branchId ?? null, supplier_id, notes, delivery_address, requested_delivery_date, user.id]
+        `INSERT INTO orders (order_code, restaurant_id, branch_id, supplier_id, status, notes, delivery_address, requested_delivery_date, created_by, payment_status)
+         VALUES ($1, $2, $3, $4, 'nuevo', $5, $6, $7, $8, $9) RETURNING id`,
+        [code, user.restaurant_id, branchId ?? null, supplier_id, notes, delivery_address, requested_delivery_date, user.id, paymentStatus]
       );
       const orderId = inserted.rows[0].id;
       let total = 0;
@@ -249,6 +257,13 @@ router.patch('/:id/status', roleRequired('admin', 'gerente', 'empleado', 'provee
     if (status === 'entregado' && user.role !== 'admin') {
       return res.status(403).json({
         error: 'El pedido solo se marca como entregado con la llave de entrega (POST /api/deliveries/:id/confirm).',
+      });
+    }
+    // Prepago: el proveedor no puede confirmar hasta que el dinero esté aplicado.
+    if (status === 'confirmado' && order.payment_status === 'pendiente') {
+      return res.status(409).json({
+        error: 'El pedido tiene un pago pendiente. El restaurante debe completarlo antes de confirmar.',
+        code: 'PAYMENT_REQUIRED',
       });
     }
     const allowed = STATUS_TRANSITIONS[order.status] ?? [];
