@@ -4,24 +4,13 @@
   "private": true,
   "description": "Xupply - Plataforma B2B para Restaurantes y Proveedores",
   "workspaces": [
-    "app/server",
-    "app/web",
-    "landing"
+    "app/backend",
+    "app/frontend"
   ],
   "scripts": {
-    "landing": "npm run dev --prefix landing",
-    "landing:build": "npm run build --prefix landing",
-    "landing:preview": "npm run preview --prefix landing",
-    "web": "npm run dev --prefix app/web",
-    "server": "npm run dev --prefix app/server"
-  },
-  "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.19.2",
-    "jsonwebtoken": "^9.0.2",
-    "pg": "^8.12.0",
-    "socket.io": "^4.7.5"
+    "web": "npm run dev --prefix app/frontend",
+    "server": "npm run dev --prefix app/backend",
+    "check:structure": "node scripts/check-structure.mjs",
+    "check:structure:update": "node scripts/check-structure.mjs --update"
   }
 }

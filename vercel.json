@@ -2,14 +2,14 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "services": {
     "server": {
-      "root": "app/server",
+      "root": "app/backend",
       "framework": "express",
       "entrypoint": "index.js",
       "installCommand": "npm install",
       "buildCommand": "npm run build"
     },
     "web": {
-      "root": "app/web",
+      "root": "app/frontend",
       "framework": "vite",
       "installCommand": "npm install",
       "buildCommand": "npm run build",

@@ -6,4 +6,4 @@ node
 .git
 .env
 *.log
-app/web/android
+app/frontend/android

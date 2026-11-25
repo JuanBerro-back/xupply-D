@@ -3,8 +3,8 @@ services:
     name: xupply
     runtime: node
     rootDir: app
-    buildCommand: npm ci --prefix server && npm ci --prefix web && npm run build --prefix web && npm run build --prefix server
-    startCommand: node server/dist/server.js
+    buildCommand: npm ci --prefix backend && npm ci --prefix frontend && npm run build --prefix frontend && npm run build --prefix backend
+    startCommand: node backend/dist/server.js
     healthCheckPath: /health
     envVars:
       - key: NODE_ENV

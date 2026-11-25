@@ -55,7 +55,7 @@ finally {
   Remove-Item Env:\PGPASSWORD
 }
 
-$sqlFile = Join-Path $Root 'server\DB\xupply_schema_postgresql.sql'
+$sqlFile = Join-Path $Root 'backend\DB\xupply_schema_postgresql.sql'
 $env:PGPASSWORD = $DbPassword
 try {
   & $psql -w -h localhost -p $DbPort -U $DbUser -d $DbName -f $sqlFile -v ON_ERROR_STOP=1

@@ -1,10 +1,10 @@
 # Xupply Desktop - construccion de dependencias
-# Instala dependencias y compila server/ y web/.
+# Instala dependencias y compila backend/ y frontend/.
 param([string]$PostgresPassword = "")
 $ErrorActionPreference = 'Stop'
 $root = Join-Path $PSScriptRoot '..'
 
-foreach ($dir in @('server', 'web')) {
+foreach ($dir in @('backend', 'frontend')) {
   Write-Host "=== npm install: $dir ==="
   Push-Location (Join-Path $root $dir)
   npm install 2>&1 | Select-Object -Last 3

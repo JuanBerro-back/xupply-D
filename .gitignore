@@ -2,24 +2,23 @@
 GUIA-PROYECTO.md
 
 # Secrets and local configuration
-app/server/.env
+app/backend/.env
 .env
 .env.production
 *.local
 
 # Dependencies and generated output
 **/node_modules/
-app/web/dist/
-landing/dist/
+app/frontend/dist/
+app/backend/dist/
 **/.gradle/
-**/.astro/
 *.tsbuildinfo
 # Lock raíz generado por `npm install` en el workspace; los locks versionados
-# son app/server/package-lock.json y app/web/package-lock.json.
+# son app/backend/package-lock.json y app/frontend/package-lock.json.
 /package-lock.json
-app/web/android/app/build/
-app/web/android/.gradle/
-app/web/android/build/
+app/frontend/android/app/build/
+app/frontend/android/.gradle/
+app/frontend/android/build/
 
 # Local databases and runtime files
 pgdata/
@@ -42,7 +41,7 @@ dist-apk/
 release-manual/
 *.jks
 *.apk
-!app/web/public/Xupply.apk
+!app/frontend/public/Xupply.apk
 
 # Reportes de Lighthouse (medicion local)
-app/web/lh-*.json
+app/frontend/lh-*.json

@@ -29,31 +29,34 @@ jobs:
           node-version: 20
 
       - name: Instalar backend
-        working-directory: app/server
+        working-directory: app/backend
         run: npm ci --workspaces=false --no-audit --no-fund
 
       - name: Instalar frontend
-        working-directory: app/web
+        working-directory: app/frontend
         run: npm ci --workspaces=false --no-audit --no-fund
 
+      - name: Auditoría de estructura y rutas
+        run: npm run check:structure
+
       - name: Typecheck backend
-        working-directory: app/server
+        working-directory: app/backend
         run: npm run typecheck
 
       - name: Build backend
-        working-directory: app/server
+        working-directory: app/backend
         run: npm run build
 
       - name: Build frontend
-        working-directory: app/web
+        working-directory: app/frontend
         run: npm run build
 
       - name: Auditar dependencias de producción
-        working-directory: app/server
+        working-directory: app/backend
         # `--prefix .` evita que npm suba al paquete raiz del workspace (sin
         # lockfile versionado) y falle con ENOLOCK en CI.
         run: npm --prefix . audit --omit=dev --audit-level=high
 
       - name: Auditar dependencias de produccion del frontend
-        working-directory: app/web
+        working-directory: app/frontend
         run: npm --prefix . audit --omit=dev --audit-level=high

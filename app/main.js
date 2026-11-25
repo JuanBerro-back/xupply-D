@@ -6,8 +6,8 @@ const http = require('http');
 
 const PORT = Number(process.env.XUPLY_PORT || 4420);
 const URL = `http://127.0.0.1:${PORT}`;
-const SERVER_RUNNER = path.join(__dirname, 'server', 'dist', 'server.js');
-const SERVER_CWD = path.join(__dirname, 'server');
+const SERVER_RUNNER = path.join(__dirname, 'backend', 'dist', 'server.js');
+const SERVER_CWD = path.join(__dirname, 'backend');
 const BUNDLED_NODE = path.join(__dirname, '..', 'node', 'node.exe');
 
 let serverProc = null;
@@ -56,7 +56,7 @@ function startServer() {
 }
 
 function createWindow() {
-  const iconFile = path.join(__dirname, 'web', 'public', 'icon-512.png');
+  const iconFile = path.join(__dirname, 'frontend', 'public', 'icon-512.png');
   const win = new BrowserWindow({
     width: 1280,
     height: 820,
